@@ -53,8 +53,8 @@ search_config = {
     "ext": "mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,enrichments,superFollowMetadata,unmentionInfo,editControl,collab_control,vibe"
 }
 
-IN_PATH = Path('~').expanduser() / 'data/raw'
-OUT_PATH = Path('~').expanduser() / f'data/processed/combined_{time.time_ns()}.json'
+IN_PATH = Path('~/data/raw').expanduser()
+OUT_PATH = Path(f'~/data/processed/combined_{time.time_ns()}.json').expanduser()
 
 reset = '\u001b[0m'
 colors = [f'\u001b[{i}m' for i in range(30, 38)]
@@ -168,7 +168,7 @@ def __get_headers(fname: str = None) -> dict:
 
 
 def make_output_dirs(path: str) -> Path:
-    p = Path('~').expanduser() / path
+    p = Path(f'~/{path}').expanduser()
     (p / 'raw').mkdir(parents=True, exist_ok=True)
     (p / 'processed').mkdir(parents=True, exist_ok=True)
     (p / 'final').mkdir(parents=True, exist_ok=True)
@@ -184,4 +184,4 @@ def combine_results(in_path: Path = IN_PATH, out_path: Path = OUT_PATH):
             for k, v in json.loads(p.read_text())['globalObjects']['tweets'].items()
         }, indent=2))
     except Exception as e:
-        logger.debug(f'FAILED TO COMBINE RESULTS, {e}')
+        logger.debug(f'FAILED to combine search results, {e}')
