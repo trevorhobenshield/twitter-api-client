@@ -94,7 +94,6 @@ download_media(tweet_ids, session=session)
 
 ```python   
 from twitter.search import search
-from twitter.config.search_config import search_config
 
 search(
     '(#dogs OR #cats) min_retweets:500',
@@ -104,7 +103,6 @@ search(
     'skateboarding baseball guitar',
     'cheese bread butter',
     'ios android',
-    config=search_config
 )
 ```
 ![](assets/example-search.gif)

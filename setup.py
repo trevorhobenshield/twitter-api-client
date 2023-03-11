@@ -3,7 +3,7 @@ from textwrap import dedent
 
 setup(
     name="twitter-api-client",
-    version="0.1.4",
+    version="0.1.5",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -13,7 +13,7 @@ setup(
 
     
     ### Automation
-    
+
     ```python
     from twitter.main import *
     from twitter.login import login
@@ -95,7 +95,6 @@ setup(
     
     ```python   
     from twitter.search import search
-    from twitter.config.search_config import search_config
     
     search(
         '(#dogs OR #cats) min_retweets:500',
@@ -105,9 +104,18 @@ setup(
         'skateboarding baseball guitar',
         'cheese bread butter',
         'ios android',
-        config=search_config
     )
     ```
+    ![](assets/example-search.gif)
+    
+    - search results are output to `~/data/raw`
+    - ~400 search results rate limiting occurs
+    
+    **Search Operators Reference**
+    
+    https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-operators
+    
+    https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
     '''),
     long_description_content_type='text/markdown',
     author="Trevor Hobenshield",
