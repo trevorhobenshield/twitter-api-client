@@ -108,3 +108,12 @@ search(
 )
 ```
 ![](assets/example-search.gif)
+
+- search results are output to `~/data/raw`
+- ~400 search results rate limiting occurs
+
+**Search Operators Reference**
+
+https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-operators
+
+https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
