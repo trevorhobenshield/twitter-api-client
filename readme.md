@@ -21,8 +21,7 @@ usr, pwd = ..., ...
 session = login(usr, pwd)
 
 # create tweet with images, videos, gifs, and tagged users
-r = create_tweet('test 123', session,
-                 media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+r = create_tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
 r = create_tweet('test 123', session, media=['test.jpg', 'test.png'])
 r = create_tweet('test 123', session, media=['test.mp4'])
 r = create_tweet('test 123', session)

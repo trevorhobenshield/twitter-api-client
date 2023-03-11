@@ -292,9 +292,9 @@ def download(session: Session, post_url: str, cdn_url: str, path: str = 'media',
     """
     Path(path).mkdir(parents=True, exist_ok=True)
     name = urlsplit(post_url).path.replace('/', '_')[1:]
-    ext = Path(urlsplit(cdn_url).path).suffix
+    ext = cdn_url.split('/')[-1]  # Path(urlsplit(cdn_url).path).suffix
     try:
-        with open(f'{path}/{name}{ext}', 'wb') as fp:
+        with open(f'{path}/{name}_{ext}', 'wb') as fp:
             r = session.get(cdn_url, stream=True)
             for chunk in r.iter_content(chunk_size=chunk_size):
                 fp.write(chunk)
