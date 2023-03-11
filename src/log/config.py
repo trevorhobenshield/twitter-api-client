@@ -16,7 +16,7 @@ log_config = {
             "class": "logging.FileHandler",
             "level": "DEBUG",
             "formatter": "simple",
-            "filename": "log/debug.log",
+            "filename": "debug.log",
             "encoding": "utf8",
             "mode": "a"
         }
