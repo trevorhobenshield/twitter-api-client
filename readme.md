@@ -104,3 +104,4 @@ search(
     config=search_config
 )
 ```
+![](assets/example-search.gif)
