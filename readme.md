@@ -1,8 +1,12 @@
+### Todo
+- fast async twitter search implementation
+- scraper
+
 **(Work in Progress)** Complete implementation of the undocumented Twitter API
 
-- Written very quickly, crude, needs refactoring/redesign
+- Frantically written in a day, crude, needs refactoring/redesign, code is repetitive.
 
-
+### Installation
 ```bash
 pip install twitter-api-client
 ```

@@ -1,18 +1,18 @@
-import sys
 import asyncio
 import logging.config
-from pathlib import Path
-from urllib.parse import urlencode
+import sys
 from enum import Enum, auto
 from functools import wraps, partial
+from pathlib import Path
+from urllib.parse import urlencode
 
 import aiohttp
 import ujson
 
-from .login import login, Session
-from .utils import find_key
-from .log.config import log_config
 from .config.operations import operations
+from .log.config import log_config
+from .login import Session
+from .utils import find_key
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
@@ -580,11 +580,3 @@ def stats(rest_id: int, session: Session):
     r = session.get(url, headers=_get_headers(session))
     return r.json()
 
-
-def main() -> int:
-    ...
-    return 0
-
-
-if __name__ == '__main__':
-    exit(main())
