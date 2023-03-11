@@ -3,7 +3,7 @@ from textwrap import dedent
 
 setup(
     name="twitter-api-client",
-    version="0.1.5",
+    version="0.1.6",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -11,9 +11,8 @@ setup(
     
     A free alternative to the Twitter API
 
-    
     ### Automation
-
+    
     ```python
     from twitter.main import *
     from twitter.login import login
@@ -22,14 +21,12 @@ setup(
     session = login(usr, pwd)
     
     # create tweet with images, videos, gifs, and tagged users
-    r = create_tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
-    r = create_tweet('test 123', session, media=['test.jpg', 'test.png'])
-    r = create_tweet('test 123', session, media=['test.mp4'])
-    r = create_tweet('test 123', session)
+    r = tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+    r = tweet('test 123', session, media=['test.jpg', 'test.png'])
+    r = tweet('test 123', session, media=['test.mp4'])
+    r = tweet('test 123', session)
     
     r = delete_tweet(123, session)
-    
-    # delete all tweets in account
     r = delete_all_tweets(456, session)
     
     r = retweet(1633609779745820675, session)
@@ -38,8 +35,8 @@ setup(
     r = quote('test 123', 'elonmusk', 1633609779745820675, session)
     r = comment('test 123', 1633609779745820675, session)
     
-    r = unlike_tweet(1633609779745820675, session)
-    r = like_tweet(1633609779745820675, session)
+    r = unlike(1633609779745820675, session)
+    r = like(1633609779745820675, session)
     
     r = follow(50393960, session)
     r = unfollow(50393960, session)

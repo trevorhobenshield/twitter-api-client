@@ -179,7 +179,7 @@ def add_alt_text(text: str, media_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['status_code', 'json'])
-def like_tweet(tweet_id: int, session: Session):
+def like(tweet_id: int, session: Session):
     operation = Operation.FavoriteTweet.name
     qid = operations[operation]['queryId']
     params = operations[operation]
@@ -191,7 +191,7 @@ def like_tweet(tweet_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['status_code', 'json'])
-def unlike_tweet(tweet_id: int, session: Session):
+def unlike(tweet_id: int, session: Session):
     operation = Operation.UnfavoriteTweet.name
     qid = operations[operation]['queryId']
     params = operations[operation]
@@ -203,7 +203,7 @@ def unlike_tweet(tweet_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['status_code', 'json'])
-def create_tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs):
+def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs):
     operation = Operation.CreateTweet.name
     qid = operations[operation]['queryId']
     params = operations[operation]
@@ -240,13 +240,13 @@ def create_tweet(text: str, session: Session, media: list[dict | str] = None, **
 
 def comment(text: str, tweet_id: int, session: Session, media: list[dict | str] = None):
     params = {"reply": {"in_reply_to_tweet_id": tweet_id, "exclude_reply_user_ids": []}}
-    return create_tweet(text, session, media, reply_params=params)
+    return tweet(text, session, media, reply_params=params)
 
 
 def quote(text: str, screen_name: str, tweet_id: int, session: Session, media: list[dict | str] = None):
     """ no unquote operation, just DeleteTweet"""
     params = {"attachment_url": f"https://twitter.com/{screen_name}/status/{tweet_id}"}
-    return create_tweet(text, session, media, quote_params=params)
+    return tweet(text, session, media, quote_params=params)
 
 
 def delete_tweet(tweet_id: int, session: Session):
