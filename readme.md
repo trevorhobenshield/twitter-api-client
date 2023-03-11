@@ -1,19 +1,20 @@
-### Todo
-- fast async twitter search implementation
-- scraper
+**(Work in Progress)**
 
-**(Work in Progress)** Complete implementation of the undocumented Twitter API
+Complete implementation of the undocumented Twitter API
 
 - Frantically written in a day, crude, needs refactoring/redesign, code is repetitive.
+- Includes a scraper and automation library.
+
 
 ### Installation
 ```bash
 pip install twitter-api-client
 ```
 
-### Usage
+### Automation
 ```python
 from src.main import *
+from src.login import login
 
 usr, pwd = ..., ...
 session = login(usr, pwd)
@@ -55,3 +56,33 @@ r = stats(50393960, session)
 
 ```
 
+### Scraping
+```python
+from src.scrape import *
+from src.login import login
+
+usr, pwd = ..., ...
+session = login(usr, pwd)
+
+user_ids = [...]
+usernames = [...]
+tweet_ids = [...]
+
+######### User Data ########
+users = get_user_by_screen_name(usernames, session=session)
+tweets = get_user_tweets(user_ids, session=session)
+likes = get_likes(user_ids, session=session)
+tweets_and_replies = get_tweets_and_replies(user_ids, session=session)
+media = get_media(user_ids, session=session)
+following = get_following(user_ids, session=session)
+followers = get_followers(user_ids, session=session)
+
+######### Tweet Data ########
+tweet = get_tweet_by_rest_id(tweet_ids, session=session)
+tweet_detail = get_tweets(tweet_ids, session=session)
+retweeters = get_retweeters(tweet_ids, session=session)
+favoriters = get_favoriters(tweet_ids, session=session)
+
+######### Media (Images/Videos) ########
+download_media(tweet_ids, session=session)
+```

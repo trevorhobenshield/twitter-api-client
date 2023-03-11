@@ -303,6 +303,7 @@ def download(session: Session, post_url: str, cdn_url: str, path: str = 'media',
 
 
 def download_media(ids: list[int], *, session: Session, photos: bool = True, videos: bool = True) -> None:
+    # todo: big problem, will only download highest res photo in post with multiple photos
     res = get_tweet_by_rest_id(ids, session=session)
     for r in res:
         user_id = find_key(r, 'user_results')[0]['result']['rest_id']
