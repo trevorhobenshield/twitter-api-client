@@ -10,7 +10,7 @@ import aiohttp
 import ujson
 
 from .config.operations import operations
-from .log.config import log_config
+from .config.log_config import log_config
 from .login import Session
 from .utils import find_key
 

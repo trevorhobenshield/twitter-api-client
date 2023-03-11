@@ -11,7 +11,7 @@ from urllib.parse import quote, urlencode, parse_qs, urlsplit, urlunsplit
 import aiohttp
 import requests
 
-from .log.config import log_config
+from .config.log_config import log_config
 
 IN_PATH = Path('~').expanduser() / 'data/raw'
 OUT_PATH = Path('~').expanduser() / f'data/processed/combined_{time.time_ns()}.json'
