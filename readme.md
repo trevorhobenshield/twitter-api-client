@@ -12,15 +12,17 @@ pip install twitter-api-client
 ```
 
 ### Automation
+
 ```python
-from twitter_api_client.main import *
-from twitter_api_client.login import login
+from twitter.main import *
+from twitter.login import login
 
 usr, pwd = ..., ...
 session = login(usr, pwd)
 
 # create tweet with images, videos, gifs, and tagged users
-r = create_tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+r = create_tweet('test 123', session,
+                 media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
 r = create_tweet('test 123', session, media=['test.jpg', 'test.png'])
 r = create_tweet('test 123', session, media=['test.mp4'])
 r = create_tweet('test 123', session)
@@ -58,9 +60,10 @@ r = stats(50393960, session)
 
 ### Scraping
 #### User/Tweet data
+
 ```python
-from twitter_api_client.scrape import *
-from twitter_api_client.login import login
+from twitter.scrape import *
+from twitter.login import login
 
 usr, pwd = ..., ...
 session = login(usr, pwd)
@@ -89,9 +92,10 @@ download_media(tweet_ids, session=session)
 ```
 
 #### Search
+
 ```python   
-from twitter_api_client.search import search
-from twitter_api_client.config.search_config import search_config
+from twitter.search import search
+from twitter.config.search_config import search_config
 
 search(
     '(#dogs OR #cats) min_retweets:500',
