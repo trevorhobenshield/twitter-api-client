@@ -3,7 +3,7 @@
 Complete implementation of the undocumented Twitter API
 
 - Frantically written in a day, crude, needs refactoring/redesign, code is repetitive.
-- Includes a scraper and automation library.
+- Includes twitter search, scraper, and automation library.
 
 
 ### Installation
@@ -57,6 +57,7 @@ r = stats(50393960, session)
 ```
 
 ### Scraping
+#### User/Tweet data
 ```python
 from src.scrape import *
 from src.login import login
@@ -85,4 +86,21 @@ favoriters = get_favoriters(tweet_ids, session=session)
 
 ######### Media (Images/Videos) ########
 download_media(tweet_ids, session=session)
+```
+
+#### Search
+```python   
+from src.search import search
+from src.config.search_config import search_config
+
+search(
+    '(#dogs OR #cats) min_retweets:500',
+    'min_faves:10000 @elonmusk until:2023-02-16 since:2023-02-01',
+    'brasil portugal -argentina',
+    'paperswithcode -tensorflow -tf',
+    'skateboarding baseball guitar',
+    'cheese bread butter',
+    'ios android',
+    config=search_config
+)
 ```

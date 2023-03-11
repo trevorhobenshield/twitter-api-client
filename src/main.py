@@ -89,7 +89,7 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None):
     return wrapper
 
 
-def _get_headers(session: Session) -> dict:
+def get_auth_headers(session: Session) -> dict:
     return {
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         'accept-encoding': 'gzip, deflate, br',
@@ -102,7 +102,7 @@ def _get_headers(session: Session) -> dict:
 
 async def get_status(media_id: str, auth_session: Session, check_after_secs: int = 1):
     url = 'https://upload.twitter.com/i/media/upload.json'
-    headers = _get_headers(auth_session)
+    headers = get_auth_headers(auth_session)
     params = {'command': 'STATUS', 'media_id': media_id}
     while 1:
         await asyncio.sleep(check_after_secs)
@@ -124,7 +124,7 @@ async def get_status(media_id: str, auth_session: Session, check_after_secs: int
 
 async def upload_media(fname: str, auth_session: Session):
     url = 'https://upload.twitter.com/i/media/upload.json'
-    headers = _get_headers(auth_session)
+    headers = get_auth_headers(auth_session)
     conn = aiohttp.TCPConnector(limit=0, ssl=False, ttl_dns_cache=69)
     async with aiohttp.ClientSession(headers=headers, connector=conn) as s:
         file = Path(fname)
@@ -174,7 +174,7 @@ async def upload_media(fname: str, auth_session: Session):
 def add_alt_text(text: str, media_id: int, session: Session):
     params = {"media_id": media_id, "alt_text": {"text": text}}
     url = 'https://api.twitter.com/1.1/media/metadata/create.json'
-    r = session.post(url, headers=_get_headers(session), json=params)
+    r = session.post(url, headers=get_auth_headers(session), json=params)
     return r
 
 
@@ -185,7 +185,7 @@ def like_tweet(tweet_id: int, session: Session):
     params = operations[operation]
     params['variables']['tweet_id'] = tweet_id
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=_get_headers(session), json=params)
+    r = session.post(url, headers=get_auth_headers(session), json=params)
     logger.debug(f'{tweet_id = }')
     return r
 
@@ -197,7 +197,7 @@ def unlike_tweet(tweet_id: int, session: Session):
     params = operations[operation]
     params['variables']['tweet_id'] = tweet_id
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=_get_headers(session), json=params)
+    r = session.post(url, headers=get_auth_headers(session), json=params)
     logger.debug(f'{tweet_id = }')
     return r
 
@@ -234,7 +234,7 @@ def create_tweet(text: str, session: Session, media: list[dict | str] = None, **
         params['variables'] |= poll_params
 
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=_get_headers(session), json=params)
+    r = session.post(url, headers=get_auth_headers(session), json=params)
     return r
 
 
@@ -255,7 +255,7 @@ def delete_tweet(tweet_id: int, session: Session):
     params = operations[operation]
     params['variables']['tweet_id'] = tweet_id
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=_get_headers(session), json=params)
+    r = session.post(url, headers=get_auth_headers(session), json=params)
     if 200 <= r.status_code < 300:
         logger.debug(f'{WARN}DELETE{RESET} tweet: {tweet_id}')
     return r.json()
@@ -273,7 +273,7 @@ def retweet(tweet_id: int, session: Session):
     params = operations[operation]
     params['variables']['tweet_id'] = tweet_id
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=_get_headers(session), json=params)
+    r = session.post(url, headers=get_auth_headers(session), json=params)
     if 200 <= r.status_code < 300:
         logger.debug(f'{SUCCESS}RETWEET{RESET} tweet: {tweet_id}')
     return r.json()
@@ -285,7 +285,7 @@ def unretweet(tweet_id: int, session: Session):
     params = operations[operation]
     params['variables']['source_tweet_id'] = tweet_id
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=_get_headers(session), json=params)
+    r = session.post(url, headers=get_auth_headers(session), json=params)
     if 200 <= r.status_code < 300:
         logger.debug(f'{SUCCESS}UNRETWEET{RESET} tweet: {tweet_id}')
     return r.json()
@@ -298,7 +298,7 @@ def get_tweets(user_id: int, session: Session):
     params['variables']['userId'] = user_id
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
-    r = session.get(url, headers=_get_headers(session))
+    r = session.get(url, headers=get_auth_headers(session))
     return r.json()
 
 
@@ -319,7 +319,7 @@ def follow(user_id: int, session: Session):
         "include_ext_verified_type": "1",
         "skip_status": "1",
     }
-    headers = _get_headers(session)
+    headers = get_auth_headers(session)
     headers['content-type'] = 'application/x-www-form-urlencoded'
     url = 'https://api.twitter.com/1.1/friendships/create.json'
     r = session.post(url, headers=headers, data=urlencode(settings))
@@ -344,7 +344,7 @@ def unfollow(user_id: int, session: Session):
         "include_ext_verified_type": "1",
         "skip_status": "1",
     }
-    headers = _get_headers(session)
+    headers = get_auth_headers(session)
     headers['content-type'] = 'application/x-www-form-urlencoded'
     url = 'https://api.twitter.com/1.1/friendships/destroy.json'
     r = session.post(url, headers=headers, data=urlencode(settings))
@@ -357,7 +357,7 @@ def mute(user_id: int, session: Session):
         'user_id': user_id
     }
     try:
-        headers = _get_headers(session)
+        headers = get_auth_headers(session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = 'https://api.twitter.com/1.1/mutes/users/create.json'
         r = session.post(url, headers=headers, data=urlencode(settings))
@@ -375,7 +375,7 @@ def unmute(user_id: int, session: Session):
         'user_id': user_id
     }
     try:
-        headers = _get_headers(session)
+        headers = get_auth_headers(session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = 'https://api.twitter.com/1.1/mutes/users/destroy.json'
         r = session.post(url, headers=headers, data=urlencode(settings))
@@ -407,7 +407,7 @@ def enable_notifications(user_id: int, session: Session):
         "skip_status": "1",
     }
     try:
-        headers = _get_headers(session)
+        headers = get_auth_headers(session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = 'https://api.twitter.com/1.1/friendships/update.json'
         r = session.post(url, headers=headers, data=urlencode(settings))
@@ -440,7 +440,7 @@ def disable_notifications(user_id: int, session: Session):
         "skip_status": "1",
     }
     try:
-        headers = _get_headers(session)
+        headers = get_auth_headers(session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = 'https://api.twitter.com/1.1/friendships/update.json'
         r = session.post(url, headers=headers, data=urlencode(settings))
@@ -459,7 +459,7 @@ def block(user_id: int, session: Session):
         'user_id': user_id
     }
     try:
-        headers = _get_headers(session)
+        headers = get_auth_headers(session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = 'https://api.twitter.com/1.1/blocks/create.json'
         r = session.post(url, headers=headers, data=urlencode(settings))
@@ -477,7 +477,7 @@ def unblock(user_id: int, session: Session):
         'user_id': user_id
     }
     try:
-        headers = _get_headers(session)
+        headers = get_auth_headers(session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = 'https://api.twitter.com/1.1/blocks/destroy.json'
         r = session.post(url, headers=headers, data=urlencode(settings))
@@ -502,7 +502,7 @@ def update_search_settings(session: Session, **kwargs):
             settings = {}
         settings |= kwargs
         twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
-        headers = _get_headers(session=session)
+        headers = get_auth_headers(session=session)
         r = session.post(
             url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
             headers=headers,
@@ -551,7 +551,7 @@ def update_content_settings(session: Session, **kwargs):
         else:
             settings = {}
         settings |= kwargs
-        headers = _get_headers(session=session)
+        headers = get_auth_headers(session=session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         r = session.post(
             url='https://api.twitter.com/1.1/account/settings.json',
@@ -577,6 +577,6 @@ def stats(rest_id: int, session: Session):
     params['variables']['rest_id'] = rest_id
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
-    r = session.get(url, headers=_get_headers(session))
+    r = session.get(url, headers=get_auth_headers(session))
     return r.json()
 
