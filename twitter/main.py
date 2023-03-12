@@ -285,14 +285,14 @@ def quote(text: str, screen_name: str, tweet_id: int, session: Session, media: l
 
 
 @log(level=logging.DEBUG, info=['json'])
-def delete_tweet(tweet_id: int, session: Session) -> Response:
+def untweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteTweet.name, 'tweet_id', session)
 
 
-def delete_all_tweets(user_id: int, session: Session) -> None:
-    tweets = get_tweets(user_id, session).json()
-    ids = set(map(int, find_key(find_key(tweets, 'tweet_results'), 'rest_id'))) - {user_id}
-    [delete_tweet(_id, session) for _id in ids]
+# def __batch_delete_tweets(user_id: int, session: Session) -> None:
+#     tweets = get_tweets(user_id, session).json()
+#     ids = set(map(int, find_key(find_key(tweets, 'tweet_results'), 'rest_id'))) - {user_id}
+#     [untweet(_id, session) for _id in ids]
 
 
 @log(level=logging.DEBUG, info=['json'])

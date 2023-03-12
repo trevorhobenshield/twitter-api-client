@@ -19,7 +19,7 @@ from twitter.login import login
 usr, pwd = ..., ...
 session = login(usr, pwd)
 
-# DM 1 user
+# DM one user
 dm('hello world', [123], session)
 
 # DM group of users
@@ -31,10 +31,8 @@ r = tweet('test 123', session, media=['test.jpg', 'test.png'])
 r = tweet('test 123', session, media=['test.mp4'])
 r = tweet('test 123', session)
 
-r = delete_tweet(123, session)
-
-# delete all tweets in account
-r = delete_all_tweets(456, session)
+# delete tweet
+r = untweet(123, session)
 
 r = retweet(1633609779745820675, session)
 r = unretweet(1633609779745820675, session)
@@ -59,6 +57,10 @@ r = unblock(50393960, session)
 
 # some hidden user attribute?
 r = stats(50393960, session)
+
+r = bookmark(1633609779745820675, session)
+r = unbookmark(1633609779745820675, session)
+r = unbookmark_all(1633609779745820675, session)
 
 ```
 
