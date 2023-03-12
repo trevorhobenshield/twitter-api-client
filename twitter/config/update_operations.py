@@ -42,7 +42,7 @@ def get_operations() -> list[dict]:
 def update_operations(path=Path('operations.json')):
     """
     Update operations.json with queryId and feature definitions
-    @param path: path to operations operations file
+    @param path: path to operations file
     @return: updated operations
     """
     operations = get_operations()
@@ -68,6 +68,7 @@ def update_operations(path=Path('operations.json')):
 
 def main() -> int:
     update_operations()
+    # todo: currently need to manually convert json to python file
     return 0
 
 

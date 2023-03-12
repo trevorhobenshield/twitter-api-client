@@ -61,7 +61,6 @@ content_settings = {
     'allow_location_history_personalization': False,
 }
 notification_settings = {
-    "device": "false",
     "cursor": "-1",
     "include_profile_interstitial_type": "1",
     "include_blocking": "1",
