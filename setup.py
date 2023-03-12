@@ -3,11 +3,10 @@ from textwrap import dedent
 
 setup(
     name="twitter-api-client",
-    version="0.1.8",
+    version="0.1.9",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
-    
     
     A free alternative to the Twitter API
 
@@ -53,6 +52,14 @@ setup(
     # some hidden user attribute?
     r = stats(50393960, session)
     
+    r = bookmark(1633609779745820675, session)
+    r = unbookmark(1633609779745820675, session)
+    r = unbookmark_all(1633609779745820675, session)
+
+    sender = 123
+    receiver = 456
+    dm('hello world', sender, receiver, session)
+
     ```
     
     ### Scraping

@@ -11,31 +11,52 @@ RESET = '\u001b[0m'
 MEDIA = {
     '.mp4': {
         'type': 'video/mp4',
-        'category': 'tweet_video'
+        'category': {
+            'tweet': 'tweet_video',
+            'dm': 'dm_video',
+        }
     },
     '.mov': {
         'type': 'video/quicktime',
-        'category': 'tweet_video'
+        'category': {
+            'tweet': 'tweet_video',
+            'dm': 'dm_video',
+        }
     },
     '.png': {
         'type': 'image/png',
-        'category': 'tweet_image'
+        'category': {
+            'tweet': 'tweet_image',
+            'dm': 'dm_image',
+        }
     },
     '.jpg': {
         'type': 'image/jpeg',
-        'category': 'tweet_image'
+        'category': {
+            'tweet': 'tweet_image',
+            'dm': 'dm_image',
+        }
     },
     '.jpeg': {
         'type': 'image/jpeg',
-        'category': 'tweet_image'
+        'category': {
+            'tweet': 'tweet_image',
+            'dm': 'dm_image',
+        }
     },
     '.jfif': {
         'type': 'image/jpeg',
-        'category': 'tweet_image'
+        'category': {
+            'tweet': 'tweet_image',
+            'dm': 'dm_image',
+        }
     },
     '.gif': {
         'type': 'image/gif',
-        'category': 'tweet_gif'
+        'category': {
+            'tweet': 'tweet_gif',
+            'dm': 'dm_gif',
+        }
     },
 }
 

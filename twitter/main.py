@@ -1,10 +1,12 @@
 import asyncio
+import hashlib
 import inspect
 import logging.config
 from enum import Enum, auto
 from functools import wraps, partial
 from pathlib import Path
 from urllib.parse import urlencode
+from uuid import uuid1, getnode
 
 import aiohttp
 import ujson
@@ -18,6 +20,7 @@ from .utils import find_key
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
+
 class Operation(Enum):
     CreateTweet = auto()
     CreateScheduledTweet = auto()
@@ -27,24 +30,12 @@ class Operation(Enum):
     UnfavoriteTweet = auto()
     CreateRetweet = auto()
     DeleteRetweet = auto()
+    CreateBookmark = auto()
+    DeleteBookmark = auto()
+    BookmarksAllDelete = auto()
     TweetStats = auto()
-
-
-def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> Response:
-    qid = operations[operation]['queryId']
-    params = operations[operation]
-    params['variables'][key] = _id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
-    return r
-
-
-def api_request(settings: dict, path: str, session: Session) -> Response:
-    headers = get_auth_headers(session)
-    headers['content-type'] = 'application/x-www-form-urlencoded'
-    url = f'https://api.twitter.com/1.1/{path}'
-    r = session.post(url, headers=headers, data=urlencode(settings))
-    return r
+    # DM
+    useSendMessageMutation = auto()
 
 
 def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
@@ -77,6 +68,38 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
         return r
 
     return wrapper
+
+
+@log(level=logging.DEBUG, info=['json'])
+def bookmark(_id: int, session: Session) -> Response:
+    return graphql_request(_id, Operation.CreateBookmark.name, 'tweet_id', session)
+
+
+@log(level=logging.DEBUG, info=['json'])
+def unbookmark(_id: int, session: Session) -> Response:
+    return graphql_request(_id, Operation.DeleteBookmark.name, 'tweet_id', session)
+
+
+@log(level=logging.DEBUG, info=['json'])
+def unbookmark_all(_id: int, session: Session) -> Response:
+    return graphql_request(_id, Operation.BookmarksAllDelete.name, 0, session)
+
+
+def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> Response:
+    qid = operations[operation]['queryId']
+    params = operations[operation]
+    if key: params['variables'][key] = _id
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_auth_headers(session), json=params)
+    return r
+
+
+def api_request(settings: dict, path: str, session: Session) -> Response:
+    headers = get_auth_headers(session)
+    headers['content-type'] = 'application/x-www-form-urlencoded'
+    url = f'https://api.twitter.com/1.1/{path}'
+    r = session.post(url, headers=headers, data=urlencode(settings))
+    return r
 
 
 def get_auth_headers(session: Session) -> dict:
@@ -112,7 +135,7 @@ async def get_status(media_id: str, auth_session: Session, check_after_secs: int
             logger.debug(f'{media_id}: upload {state = }')
 
 
-async def upload_media(fname: str, auth_session: Session):
+async def upload_media(fname: str, auth_session: Session, is_dm=False):
     """
     https://developer.twitter.com/en/docs/twitter-api/v1/media/upload-media/uploading-media/media-best-practices
     """
@@ -122,15 +145,15 @@ async def upload_media(fname: str, auth_session: Session):
     async with aiohttp.ClientSession(headers=headers, connector=conn) as s:
         file = Path(fname)
         total_bytes = file.stat().st_size
-
+        upload_type = 'dm' if is_dm else 'tweet'
         media_type = MEDIA[file.suffix]['type']
-        media_category = MEDIA[file.suffix]['category']
+        media_category = MEDIA[file.suffix]['category'][upload_type]
 
-        if media_category == 'tweet_image' and total_bytes > MAX_IMAGE_SIZE:
+        if media_category in {'dm_image', 'tweet_image'} and total_bytes > MAX_IMAGE_SIZE:
             raise Exception(f'Image too large: max is {(MAX_IMAGE_SIZE / 1e6):.2f} MB')
-        if media_category == 'tweet_gif' and total_bytes > MAX_GIF_SIZE:
+        if media_category in {'dm_gif', 'tweet_gif'} and total_bytes > MAX_GIF_SIZE:
             raise Exception(f'GIF too large: max is {(MAX_GIF_SIZE / 1e6):.2f} MB')
-        if media_category == 'tweet_video' and total_bytes > MAX_VIDEO_SIZE:
+        if media_category in {'dm_video', 'tweet_video'} and total_bytes > MAX_VIDEO_SIZE:
             raise Exception(f'Video too large: max is {(MAX_VIDEO_SIZE / 1e6):.2f} MB')
 
         params = {
@@ -141,7 +164,7 @@ async def upload_media(fname: str, auth_session: Session):
         }
         async with s.post(url, headers=headers, params=params) as r:
             info = await r.json()
-            logger.debug(f'{info = }')
+            logger.debug(f'INIT {info}')
             media_id = info['media_id']
 
         with open(fname, 'rb') as f:
@@ -157,13 +180,18 @@ async def upload_media(fname: str, auth_session: Session):
                         headers=headers,
                         params={'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
                     )
-                    logger.debug(f'{r.status = }')
+                    logger.debug(f'APPEND {r.status}')
                     i += 1
-
-        async with s.post(url, headers=headers,
-                          params={'command': 'FINALIZE', 'media_id': media_id, 'allow_async': 'true'}) as r:
+        finalize_params = {
+            'command': 'FINALIZE',
+            'media_id': media_id,
+            'allow_async': 'true'
+        }
+        if is_dm:
+            finalize_params |= {'original_md5': hashlib.md5(Path(fname).read_bytes()).hexdigest()}
+        async with s.post(url, headers=headers, params=finalize_params) as r:
             res = await r.json()
-            logger.debug(f'{res = }')
+            logger.debug(f'FINALIZE {res}')
 
         if processing_info := res.get('processing_info', {}):
             state = processing_info.get('state')
@@ -373,4 +401,24 @@ def stats(rest_id: int, session: Session) -> Response:
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
     r = session.get(url, headers=get_auth_headers(session))
+    return r
+
+
+@log(level=logging.DEBUG, info=['json'])
+def dm(text: str, sender: int, receiver: int, session: Session, filename: str = '') -> Response:
+    operation = Operation.useSendMessageMutation.name
+    qid = operations[operation]['queryId']
+    params = operations[operation]
+    params['variables']['target']['conversation_id'] = '-'.join(map(str, sorted((sender, receiver))))
+    params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    if filename:
+        raise NotImplementedError('Sending media in DMs is not working currently')
+        # media_info = asyncio.run(upload_media(filename, session))
+        # params['variables']['message']['media'] = {'id': media_info['media_id'], 'text': text}
+    else:
+        params['variables']['message']['text'] = {'text': text}
+    r = session.post(url, headers=get_auth_headers(session), json=params)
+    # todo: strange errors preventing media from being sent in DM
+    # r = session.post(url, headers=get_auth_headers(session), data=data)
     return r
