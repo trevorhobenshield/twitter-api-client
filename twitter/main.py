@@ -89,7 +89,7 @@ def api_request(settings: dict, path: str, session: Session) -> Response:
     return r
 
 
-def log(fn=None, *, level: int = logging.DEBUG, info: list = None):
+def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
     if fn is None:
         return partial(log, level=level, info=info)
 
