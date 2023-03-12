@@ -1,6 +1,6 @@
 import asyncio
+import inspect
 import logging.config
-import sys
 from enum import Enum, auto
 from functools import wraps, partial
 from pathlib import Path
@@ -9,15 +9,17 @@ from urllib.parse import urlencode
 import aiohttp
 import ujson
 
-from .config.operations import operations
 from .config.log_config import log_config
+from .config.operations import operations
 from .login import Session
 from .utils import find_key
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
-MAX_IMAGE_FILE_SIZE = 5_242_880
+MAX_IMAGE_SIZE = 5_242_880  # ~5 MB
+MAX_GIF_SIZE = 15_728_640  # ~15 MB
+MAX_VIDEO_SIZE = 536_870_912  # ~530 MB
 CHUNK_SIZE = 8192
 
 BOLD = '\u001b[1m'
@@ -46,6 +48,14 @@ MEDIA = {
         'type': 'image/jpeg',
         'category': 'tweet_image'
     },
+    '.jfif': {
+        'type': 'image/jpeg',
+        'category': 'tweet_image'
+    },
+    '.gif': {
+        'type': 'image/gif',
+        'category': 'tweet_gif'
+    },
 }
 
 
@@ -62,28 +72,50 @@ class Operation(Enum):
     TweetStats = auto()
 
 
+def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> any:
+    qid = operations[operation]['queryId']
+    params = operations[operation]
+    params['variables'][key] = _id
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_auth_headers(session), json=params)
+    return r
+
+
+def api_request(settings: dict, path: str, session: Session) -> any:
+    headers = get_auth_headers(session)
+    headers['content-type'] = 'application/x-www-form-urlencoded'
+    url = f'https://api.twitter.com/1.1/{path}'
+    r = session.post(url, headers=headers, data=urlencode(settings))
+    return r
+
+
 def log(fn=None, *, level: int = logging.DEBUG, info: list = None):
     if fn is None:
         return partial(log, level=level, info=info)
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
+        args_info = " ".join(
+            f'{k}={v}' for k, v in dict(zip(inspect.getfullargspec(fn)[0], args)).items()
+            if '_id' in k or '_name' in k or 'Id' in k or 'Name' in k
+        )
         r = fn(*args, **kwargs)
         try:
             if 200 <= r.status_code < 300:
-                message = f'[{SUCCESS}SUCCESS{RESET}] ({BOLD}{fn.__name__}{RESET})'
+                # info.remove('status_code')
+                message = f'[{SUCCESS}SUCCESS{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info}'
                 for k in info:
                     if callable(k):
-                        logger.log(level, f'{message}: {k(r)}')
+                        logger.log(level, f'{message} {k(r)}')
                     else:
                         attr = getattr(r, k)
                         v = attr() if callable(attr) else attr
                         d = {f"{k}": v}
-                        logger.log(level, f'{message}: {d}')
+                        logger.log(level, f'{message} {d}')
             else:
-                logger.log(level, f'[{WARN}ERROR{RESET}] ({fn.__name__}) {r.status_code} {r.text}')
+                logger.log(level, f'[{WARN}ERROR{RESET}] ({fn.__name__}) {args_info} {r.status_code} {r.text}')
         except Exception as e:
-            logger.log(level, f'[{WARN}FAILED{RESET}] ({fn.__name__}) {e}')
+            logger.log(level, f'[{WARN}FAILED{RESET}] ({fn.__name__}) {args_info} {r.status_code} {e}')
         return r
 
     return wrapper
@@ -123,17 +155,31 @@ async def get_status(media_id: str, auth_session: Session, check_after_secs: int
 
 
 async def upload_media(fname: str, auth_session: Session):
+    """
+    https://developer.twitter.com/en/docs/twitter-api/v1/media/upload-media/uploading-media/media-best-practices
+    """
     url = 'https://upload.twitter.com/i/media/upload.json'
     headers = get_auth_headers(auth_session)
     conn = aiohttp.TCPConnector(limit=0, ssl=False, ttl_dns_cache=69)
     async with aiohttp.ClientSession(headers=headers, connector=conn) as s:
         file = Path(fname)
         total_bytes = file.stat().st_size
+
+        media_type = MEDIA[file.suffix]['type']
+        media_category = MEDIA[file.suffix]['category']
+
+        if media_category == 'tweet_image' and total_bytes > MAX_IMAGE_SIZE:
+            raise Exception(f'Image too large: max is {(MAX_IMAGE_SIZE / 1e6):.2f} MB')
+        if media_category == 'tweet_gif' and total_bytes > MAX_GIF_SIZE:
+            raise Exception(f'GIF too large: max is {(MAX_GIF_SIZE / 1e6):.2f} MB')
+        if media_category == 'tweet_video' and total_bytes > MAX_VIDEO_SIZE:
+            raise Exception(f'Video too large: max is {(MAX_VIDEO_SIZE / 1e6):.2f} MB')
+
         params = {
             'command': 'INIT',
             'total_bytes': total_bytes,
-            'media_type': MEDIA[file.suffix]['type'],
-            'media_category': MEDIA[file.suffix]['category']
+            'media_type': media_type,
+            'media_category': media_category
         }
         async with s.post(url, headers=headers, params=params) as r:
             info = await r.json()
@@ -142,7 +188,7 @@ async def upload_media(fname: str, auth_session: Session):
 
         with open(fname, 'rb') as f:
             i = 0
-            while chunk := f.read(MAX_IMAGE_FILE_SIZE):  # todo: arbitrary max size for now
+            while chunk := f.read(MAX_IMAGE_SIZE):  # todo: arbitrary max size for now
                 with aiohttp.MultipartWriter('form-data') as mpw:
                     part = mpw.append(chunk)
                     part.set_content_disposition('form-data', name='media', filename='blob')
@@ -170,7 +216,7 @@ async def upload_media(fname: str, auth_session: Session):
     return res
 
 
-@log(level=logging.DEBUG, info=['status_code'])
+@log(level=logging.DEBUG, info=['text'])
 def add_alt_text(text: str, media_id: int, session: Session):
     params = {"media_id": media_id, "alt_text": {"text": text}}
     url = 'https://api.twitter.com/1.1/media/metadata/create.json'
@@ -178,31 +224,17 @@ def add_alt_text(text: str, media_id: int, session: Session):
     return r
 
 
-@log(level=logging.DEBUG, info=['status_code', 'json'])
+@log(level=logging.DEBUG, info=['json'])
 def like(tweet_id: int, session: Session):
-    operation = Operation.FavoriteTweet.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
-    params['variables']['tweet_id'] = tweet_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
-    logger.debug(f'{tweet_id = }')
-    return r
+    return graphql_request(tweet_id, Operation.FavoriteTweet.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['status_code', 'json'])
+@log(level=logging.DEBUG, info=['json'])
 def unlike(tweet_id: int, session: Session):
-    operation = Operation.UnfavoriteTweet.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
-    params['variables']['tweet_id'] = tweet_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
-    logger.debug(f'{tweet_id = }')
-    return r
+    return graphql_request(tweet_id, Operation.UnfavoriteTweet.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['status_code', 'json'])
+@log(level=logging.DEBUG, info=['json'])
 def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs):
     operation = Operation.CreateTweet.name
     qid = operations[operation]['queryId']
@@ -249,46 +281,25 @@ def quote(text: str, screen_name: str, tweet_id: int, session: Session, media: l
     return tweet(text, session, media, quote_params=params)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def delete_tweet(tweet_id: int, session: Session):
-    operation = Operation.DeleteTweet.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
-    params['variables']['tweet_id'] = tweet_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
-    if 200 <= r.status_code < 300:
-        logger.debug(f'{WARN}DELETE{RESET} tweet: {tweet_id}')
-    return r.json()
+    return graphql_request(tweet_id, Operation.DeleteTweet.name, 'tweet_id', session)
 
 
 def delete_all_tweets(user_id: int, session: Session):
-    tweets = get_tweets(user_id, session)
+    tweets = get_tweets(user_id, session).json()
     ids = set(map(int, find_key(find_key(tweets, 'tweet_results'), 'rest_id'))) - {user_id}
     [delete_tweet(_id, session) for _id in ids]
 
 
+@log(level=logging.DEBUG, info=['json'])
 def retweet(tweet_id: int, session: Session):
-    operation = Operation.CreateRetweet.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
-    params['variables']['tweet_id'] = tweet_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
-    if 200 <= r.status_code < 300:
-        logger.debug(f'{SUCCESS}RETWEET{RESET} tweet: {tweet_id}')
-    return r.json()
+    return graphql_request(tweet_id, Operation.CreateRetweet.name, 'tweet_id', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def unretweet(tweet_id: int, session: Session):
-    operation = Operation.DeleteRetweet.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
-    params['variables']['source_tweet_id'] = tweet_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
-    if 200 <= r.status_code < 300:
-        logger.debug(f'{SUCCESS}UNRETWEET{RESET} tweet: {tweet_id}')
-    return r.json()
+    return graphql_request(tweet_id, Operation.DeleteRetweet.name, 'source_tweet_id', session)
 
 
 def get_tweets(user_id: int, session: Session):
@@ -299,10 +310,10 @@ def get_tweets(user_id: int, session: Session):
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
     r = session.get(url, headers=get_auth_headers(session))
-    return r.json()
+    return r
 
 
-@log(level=logging.DEBUG, info=['status_code', lambda r: r.json()['id']])
+@log(level=logging.DEBUG, info=['json'])
 def follow(user_id: int, session: Session):
     settings = {
         "user_id": user_id,
@@ -319,16 +330,11 @@ def follow(user_id: int, session: Session):
         "include_ext_verified_type": "1",
         "skip_status": "1",
     }
-    headers = get_auth_headers(session)
-    headers['content-type'] = 'application/x-www-form-urlencoded'
-    url = 'https://api.twitter.com/1.1/friendships/create.json'
-    r = session.post(url, headers=headers, data=urlencode(settings))
-    return r
+    return api_request(settings, 'friendships/create.json', session)
 
 
-@log(level=logging.DEBUG, info=['status_code', lambda r: r.json()['id']])
+@log(level=logging.DEBUG, info=['json'])
 def unfollow(user_id: int, session: Session):
-    _name = sys._getframe().f_code.co_name
     settings = {
         "user_id": user_id,
         "include_profile_interstitial_type": "1",
@@ -344,51 +350,23 @@ def unfollow(user_id: int, session: Session):
         "include_ext_verified_type": "1",
         "skip_status": "1",
     }
-    headers = get_auth_headers(session)
-    headers['content-type'] = 'application/x-www-form-urlencoded'
-    url = 'https://api.twitter.com/1.1/friendships/destroy.json'
-    r = session.post(url, headers=headers, data=urlencode(settings))
-    return r
+    return api_request(settings, 'friendships/destroy.json', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def mute(user_id: int, session: Session):
-    _name = sys._getframe().f_code.co_name
-    settings = {
-        'user_id': user_id
-    }
-    try:
-        headers = get_auth_headers(session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = 'https://api.twitter.com/1.1/mutes/users/create.json'
-        r = session.post(url, headers=headers, data=urlencode(settings))
-        if 200 <= r.status_code < 300:
-            data = r.json()
-            logger.debug(f'{SUCCESS}MUTE{RESET}: {data["id"]}')
-            return data
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    settings = {'user_id': user_id}
+    return api_request(settings, 'mutes/users/create.json', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def unmute(user_id: int, session: Session):
-    _name = sys._getframe().f_code.co_name
-    settings = {
-        'user_id': user_id
-    }
-    try:
-        headers = get_auth_headers(session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = 'https://api.twitter.com/1.1/mutes/users/destroy.json'
-        r = session.post(url, headers=headers, data=urlencode(settings))
-        if 200 <= r.status_code < 300:
-            data = r.json()
-            logger.debug(f'{WARN}UNMUTE{RESET}: {data["id"]}')
-            return data
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    settings = {'user_id': user_id}
+    return api_request(settings, 'mutes/users/destroy.json', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def enable_notifications(user_id: int, session: Session):
-    _name = sys._getframe().f_code.co_name
     settings = {
         "id": user_id,
         "device": "true",
@@ -406,22 +384,11 @@ def enable_notifications(user_id: int, session: Session):
         "include_ext_verified_type": "1",
         "skip_status": "1",
     }
-    try:
-        headers = get_auth_headers(session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = 'https://api.twitter.com/1.1/friendships/update.json'
-        r = session.post(url, headers=headers, data=urlencode(settings))
-        if 200 <= r.status_code < 300:
-            data = r.json()
-            twid = data["relationship"]["target"]["id"]
-            logger.debug(f'{SUCCESS}ENABLE NOTIFICATIONS{RESET}: {twid}')
-            return data
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    return api_request(settings, 'friendships/update.json', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def disable_notifications(user_id: int, session: Session):
-    _name = sys._getframe().f_code.co_name
     settings = {
         "id": user_id,
         "device": "false",
@@ -439,82 +406,43 @@ def disable_notifications(user_id: int, session: Session):
         "include_ext_verified_type": "1",
         "skip_status": "1",
     }
-    try:
-        headers = get_auth_headers(session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = 'https://api.twitter.com/1.1/friendships/update.json'
-        r = session.post(url, headers=headers, data=urlencode(settings))
-        if 200 <= r.status_code < 300:
-            data = r.json()
-            twid = data["relationship"]["target"]["id"]
-            logger.debug(f'{WARN}DISABLE NOTIFICATIONS{RESET}: {twid}')
-            return data
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    return api_request(settings, 'friendships/update.json', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def block(user_id: int, session: Session):
-    _name = sys._getframe().f_code.co_name
-    settings = {
-        'user_id': user_id
-    }
-    try:
-        headers = get_auth_headers(session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = 'https://api.twitter.com/1.1/blocks/create.json'
-        r = session.post(url, headers=headers, data=urlencode(settings))
-        if 200 <= r.status_code < 300:
-            data = r.json()
-            logger.debug(f'{SUCCESS}BLOCK{RESET}: {data["id"]}')
-            return data
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    settings = {'user_id': user_id}
+    return api_request(settings, 'blocks/create.json', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def unblock(user_id: int, session: Session):
-    _name = sys._getframe().f_code.co_name
-    settings = {
-        'user_id': user_id
-    }
-    try:
-        headers = get_auth_headers(session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = 'https://api.twitter.com/1.1/blocks/destroy.json'
-        r = session.post(url, headers=headers, data=urlencode(settings))
-        if 200 <= r.status_code < 300:
-            data = r.json()
-            logger.debug(f'{WARN}UNBLOCK{RESET}: {data["id"]}')
-            return data
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    settings = {'user_id': user_id}
+    return api_request(settings, 'blocks/destroy.json', session)
 
 
+@log(level=logging.DEBUG, info=['text'])
 def update_search_settings(session: Session, **kwargs):
-    _name = sys._getframe().f_code.co_name
-    try:
-        if kwargs.get('incognito'):
-            kwargs.pop('incognito')
-            settings = {
-                "optInFiltering": False,
-                "optInBlocking": True,
-            }
-        else:
-            settings = {}
-        settings |= kwargs
-        twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
-        headers = get_auth_headers(session=session)
-        r = session.post(
-            url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
-            headers=headers,
-            json=settings,
-        )
-        if r.status_code == 200:
-            logger.debug(f'[SUCCESS] {_name}: {settings}')
-            return settings
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    if kwargs.get('incognito'):
+        kwargs.pop('incognito')
+        settings = {
+            "optInFiltering": False,
+            "optInBlocking": True,
+        }
+    else:
+        settings = {}
+    settings |= kwargs
+    twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
+    headers = get_auth_headers(session=session)
+    r = session.post(
+        url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
+        headers=headers,
+        json=settings,
+    )
+    return r
 
 
+@log(level=logging.DEBUG, info=['json'])
 def update_content_settings(session: Session, **kwargs):
     """
     Update content settings
@@ -523,52 +451,40 @@ def update_content_settings(session: Session, **kwargs):
     @param kwargs: settings to enable/disable
     @return: updated settings
     """
-    _name = sys._getframe().f_code.co_name
-    try:
-        if kwargs.get('incognito'):
-            kwargs.pop('incognito')
-            settings = {
-                'include_mention_filter': True,
-                'include_nsfw_user_flag': True,
-                'include_nsfw_admin_flag': True,
-                'include_ranked_timeline': True,
-                'include_alt_text_compose': True,
-                'display_sensitive_media': True,
-                'protected': True,
-                'discoverable_by_email': False,
-                'discoverable_by_mobile_phone': False,
-                'allow_dms_from': 'following',  ## {'all'}
-                'dm_quality_filter': 'enabled',  ## {'disabled'}
-                'dm_receipt_setting': 'all_disabled',  ## {'all_enabled'}
-                'allow_media_tagging': 'none',  ## {'all', 'following'}
-                'nsfw_user': False,
-                'geo_enabled': False,  ## add location information to your tweets
-                'allow_ads_personalization': False,
-                'allow_logged_out_device_personalization': False,
-                'allow_sharing_data_for_third_party_personalization': False,
-                'allow_location_history_personalization': False,
-            }
-        else:
-            settings = {}
-        settings |= kwargs
-        headers = get_auth_headers(session=session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        r = session.post(
-            url='https://api.twitter.com/1.1/account/settings.json',
-            headers=headers,
-            data=urlencode(settings),  # case-insensitive, E.g. can be 'TRUE', True, 'true', etc.
-        )
-        if r.status_code == 200:
-            logger.debug(f'[SUCCESS] {_name}: {settings}')
-            return settings
-    except Exception as e:
-        logger.debug(f'[FAILED] {_name}: {e}')
+    if kwargs.get('incognito'):
+        kwargs.pop('incognito')
+        settings = {
+            'include_mention_filter': True,
+            'include_nsfw_user_flag': True,
+            'include_nsfw_admin_flag': True,
+            'include_ranked_timeline': True,
+            'include_alt_text_compose': True,
+            'display_sensitive_media': True,
+            'protected': True,
+            'discoverable_by_email': False,
+            'discoverable_by_mobile_phone': False,
+            'allow_dms_from': 'following',  ## {'all'}
+            'dm_quality_filter': 'enabled',  ## {'disabled'}
+            'dm_receipt_setting': 'all_disabled',  ## {'all_enabled'}
+            'allow_media_tagging': 'none',  ## {'all', 'following'}
+            'nsfw_user': False,
+            'geo_enabled': False,  ## add location information to your tweets
+            'allow_ads_personalization': False,
+            'allow_logged_out_device_personalization': False,
+            'allow_sharing_data_for_third_party_personalization': False,
+            'allow_location_history_personalization': False,
+        }
+    else:
+        settings = {}
+    settings |= kwargs
+    return api_request(settings, 'account/settings.json', session)
 
 
 def build_query(params):
     return '&'.join(f'{k}={ujson.dumps(v)}' for k, v in params.items())
 
 
+@log(level=logging.DEBUG, info=['json'])
 def stats(rest_id: int, session: Session):
     """private endpoint?"""
     operation = Operation.TweetStats.name
@@ -578,5 +494,4 @@ def stats(rest_id: int, session: Session):
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
     r = session.get(url, headers=get_auth_headers(session))
-    return r.json()
-
+    return r
