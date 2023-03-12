@@ -3,7 +3,7 @@ from textwrap import dedent
 
 setup(
     name="twitter-api-client",
-    version="0.1.7",
+    version="0.1.8",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -103,8 +103,7 @@ setup(
         'ios android',
     )
     ```
-    ![](assets/example-search.gif)
-    
+
     - search results are output to `~/data/raw`
     - ~400 search results rate limiting occurs
     
