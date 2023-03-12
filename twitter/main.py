@@ -2,6 +2,8 @@ import asyncio
 import hashlib
 import inspect
 import logging.config
+import mimetypes
+import sys
 from enum import Enum, auto
 from functools import wraps, partial
 from pathlib import Path
@@ -16,6 +18,19 @@ from .config.operations import operations
 from .config.settings import *
 from .login import Session, Response
 from .utils import find_key
+
+try:
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+        nest_asyncio.apply()
+except:
+    ...
+
+if sys.platform != 'win32':
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+else:
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
@@ -146,8 +161,8 @@ async def upload_media(fname: str, auth_session: Session, is_dm=False):
         file = Path(fname)
         total_bytes = file.stat().st_size
         upload_type = 'dm' if is_dm else 'tweet'
-        media_type = MEDIA[file.suffix]['type']
-        media_category = MEDIA[file.suffix]['category'][upload_type]
+        media_type = mimetypes.guess_type(file)[0]
+        media_category = f'{upload_type}_{media_type.split("/")[0]}'
 
         if media_category in {'dm_image', 'tweet_image'} and total_bytes > MAX_IMAGE_SIZE:
             raise Exception(f'Image too large: max is {(MAX_IMAGE_SIZE / 1e6):.2f} MB')

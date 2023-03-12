@@ -3,6 +3,7 @@ import logging.config
 import math
 import random
 import re
+import sys
 import time
 from enum import Enum, auto
 from pathlib import Path
@@ -17,18 +18,18 @@ from .login import Session
 from .utils import find_key
 
 
-# try:
-#     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-#         import nest_asyncio
-#         nest_asyncio.apply()
-# except:
-#     ...
-#
-# if sys.platform != 'win32':
-#     import uvloop
-#     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-# else:
-#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+try:
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+        nest_asyncio.apply()
+except:
+    ...
+
+if sys.platform != 'win32':
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+else:
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 class Operation(Enum):
@@ -292,7 +293,7 @@ def download(session: Session, post_url: str, cdn_url: str, path: str = 'media',
     """
     Path(path).mkdir(parents=True, exist_ok=True)
     name = urlsplit(post_url).path.replace('/', '_')[1:]
-    ext = cdn_url.split('/')[-1]  # Path(urlsplit(cdn_url).path).suffix
+    ext = urlsplit(cdn_url).path.split('/')[-1]
     try:
         with open(f'{path}/{name}_{ext}', 'wb') as fp:
             r = session.get(cdn_url, stream=True)

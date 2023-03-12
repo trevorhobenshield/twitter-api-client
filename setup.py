@@ -1,5 +1,16 @@
+import sys
+
 from setuptools import find_packages, setup
 from textwrap import dedent
+
+install_requires = [
+    "ujson",
+    "nest_asyncio",
+    "aiohttp",
+    "requests",
+]
+if sys.platform != 'win32':
+    install_requires.append('uvloop')
 
 setup(
     name="twitter-api-client",
@@ -124,11 +135,7 @@ setup(
     author="Trevor Hobenshield",
     author_email="trevorhobenshield@gmail.com",
     url="https://github.com/trevorhobenshield/twitter-api",
-    install_requires=[
-        "ujson",
-        "aiohttp",
-        "requests",
-    ],
+    install_requires=install_requires,
     keywords="twitter api client async search automation bot scrape",
     packages=find_packages(),
     include_package_data=True,

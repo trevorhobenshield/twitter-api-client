@@ -4,6 +4,7 @@ import json
 import logging.config
 import random
 import re
+import sys
 import time
 from pathlib import Path
 from urllib.parse import quote, urlencode, parse_qs, urlsplit, urlunsplit
@@ -54,7 +55,7 @@ search_config = {
 }
 
 IN_PATH = Path('~/data/raw').expanduser()
-OUT_PATH = Path(f'~/data/processed/combined_{time.time_ns()}.json').expanduser()
+OUT_PATH = Path(f'~/data/processed/search_results_{time.time_ns()}.json').expanduser()
 
 reset = '\u001b[0m'
 colors = [f'\u001b[{i}m' for i in range(30, 38)]
@@ -62,21 +63,21 @@ logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 
-# try:
-#     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-#         import nest_asyncio
-#         nest_asyncio.apply()
-# except:
-#     ...
-#
-# if sys.platform != 'win32':
-#     try:
-#         import uvloop
-#         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-#     except:
-#         ...
-# else:
-#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+try:
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+        nest_asyncio.apply()
+except:
+    ...
+
+if sys.platform != 'win32':
+    try:
+        import uvloop
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    except:
+        ...
+else:
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 def search(*args, out: str = 'data'):
