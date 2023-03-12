@@ -3,7 +3,7 @@ from textwrap import dedent
 
 setup(
     name="twitter-api-client",
-    version="0.1.6",
+    version="0.1.7",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API

@@ -11,7 +11,7 @@ import ujson
 
 from .config.log_config import log_config
 from .config.operations import operations
-from .login import Session
+from .login import Session, Response
 from .utils import find_key
 
 logging.config.dictConfig(log_config)
@@ -72,7 +72,7 @@ class Operation(Enum):
     TweetStats = auto()
 
 
-def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> any:
+def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> Response:
     qid = operations[operation]['queryId']
     params = operations[operation]
     params['variables'][key] = _id
@@ -81,7 +81,7 @@ def graphql_request(_id: int, operation: any, key: str | int, session: Session) 
     return r
 
 
-def api_request(settings: dict, path: str, session: Session) -> any:
+def api_request(settings: dict, path: str, session: Session) -> Response:
     headers = get_auth_headers(session)
     headers['content-type'] = 'application/x-www-form-urlencoded'
     url = f'https://api.twitter.com/1.1/{path}'
@@ -217,7 +217,7 @@ async def upload_media(fname: str, auth_session: Session):
 
 
 @log(level=logging.DEBUG, info=['text'])
-def add_alt_text(text: str, media_id: int, session: Session):
+def add_alt_text(text: str, media_id: int, session: Session) -> Response:
     params = {"media_id": media_id, "alt_text": {"text": text}}
     url = 'https://api.twitter.com/1.1/media/metadata/create.json'
     r = session.post(url, headers=get_auth_headers(session), json=params)
@@ -225,17 +225,17 @@ def add_alt_text(text: str, media_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['json'])
-def like(tweet_id: int, session: Session):
+def like(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.FavoriteTweet.name, 'tweet_id', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
-def unlike(tweet_id: int, session: Session):
+def unlike(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.UnfavoriteTweet.name, 'tweet_id', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
-def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs):
+def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs) -> Response:
     operation = Operation.CreateTweet.name
     qid = operations[operation]['queryId']
     params = operations[operation]
@@ -270,39 +270,39 @@ def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs)
     return r
 
 
-def comment(text: str, tweet_id: int, session: Session, media: list[dict | str] = None):
+def comment(text: str, tweet_id: int, session: Session, media: list[dict | str] = None) -> Response:
     params = {"reply": {"in_reply_to_tweet_id": tweet_id, "exclude_reply_user_ids": []}}
     return tweet(text, session, media, reply_params=params)
 
 
-def quote(text: str, screen_name: str, tweet_id: int, session: Session, media: list[dict | str] = None):
+def quote(text: str, screen_name: str, tweet_id: int, session: Session, media: list[dict | str] = None) -> Response:
     """ no unquote operation, just DeleteTweet"""
     params = {"attachment_url": f"https://twitter.com/{screen_name}/status/{tweet_id}"}
     return tweet(text, session, media, quote_params=params)
 
 
 @log(level=logging.DEBUG, info=['json'])
-def delete_tweet(tweet_id: int, session: Session):
+def delete_tweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteTweet.name, 'tweet_id', session)
 
 
-def delete_all_tweets(user_id: int, session: Session):
+def delete_all_tweets(user_id: int, session: Session) -> None:
     tweets = get_tweets(user_id, session).json()
     ids = set(map(int, find_key(find_key(tweets, 'tweet_results'), 'rest_id'))) - {user_id}
     [delete_tweet(_id, session) for _id in ids]
 
 
 @log(level=logging.DEBUG, info=['json'])
-def retweet(tweet_id: int, session: Session):
+def retweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.CreateRetweet.name, 'tweet_id', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
-def unretweet(tweet_id: int, session: Session):
+def unretweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteRetweet.name, 'source_tweet_id', session)
 
 
-def get_tweets(user_id: int, session: Session):
+def get_tweets(user_id: int, session: Session) -> Response:
     operation = Operation.UserTweets.name
     qid = operations[operation]['queryId']
     params = operations[operation]
@@ -314,7 +314,7 @@ def get_tweets(user_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['json'])
-def follow(user_id: int, session: Session):
+def follow(user_id: int, session: Session) -> Response:
     settings = {
         "user_id": user_id,
         "include_profile_interstitial_type": "1",
@@ -334,7 +334,7 @@ def follow(user_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['json'])
-def unfollow(user_id: int, session: Session):
+def unfollow(user_id: int, session: Session) -> Response:
     settings = {
         "user_id": user_id,
         "include_profile_interstitial_type": "1",
@@ -354,19 +354,19 @@ def unfollow(user_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['json'])
-def mute(user_id: int, session: Session):
+def mute(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'mutes/users/create.json', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
-def unmute(user_id: int, session: Session):
+def unmute(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'mutes/users/destroy.json', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
-def enable_notifications(user_id: int, session: Session):
+def enable_notifications(user_id: int, session: Session) -> Response:
     settings = {
         "id": user_id,
         "device": "true",
@@ -388,7 +388,7 @@ def enable_notifications(user_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['json'])
-def disable_notifications(user_id: int, session: Session):
+def disable_notifications(user_id: int, session: Session) -> Response:
     settings = {
         "id": user_id,
         "device": "false",
@@ -410,19 +410,19 @@ def disable_notifications(user_id: int, session: Session):
 
 
 @log(level=logging.DEBUG, info=['json'])
-def block(user_id: int, session: Session):
+def block(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'blocks/create.json', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
-def unblock(user_id: int, session: Session):
+def unblock(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'blocks/destroy.json', session)
 
 
 @log(level=logging.DEBUG, info=['text'])
-def update_search_settings(session: Session, **kwargs):
+def update_search_settings(session: Session, **kwargs) -> Response:
     if kwargs.get('incognito'):
         kwargs.pop('incognito')
         settings = {
@@ -443,7 +443,7 @@ def update_search_settings(session: Session, **kwargs):
 
 
 @log(level=logging.DEBUG, info=['json'])
-def update_content_settings(session: Session, **kwargs):
+def update_content_settings(session: Session, **kwargs) -> Response:
     """
     Update content settings
 
@@ -480,12 +480,12 @@ def update_content_settings(session: Session, **kwargs):
     return api_request(settings, 'account/settings.json', session)
 
 
-def build_query(params):
+def build_query(params: dict) -> str:
     return '&'.join(f'{k}={ujson.dumps(v)}' for k, v in params.items())
 
 
 @log(level=logging.DEBUG, info=['json'])
-def stats(rest_id: int, session: Session):
+def stats(rest_id: int, session: Session) -> Response:
     """private endpoint?"""
     operation = Operation.TweetStats.name
     qid = operations[operation]['queryId']

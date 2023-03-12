@@ -1,5 +1,5 @@
 import sys
-from requests import Session
+from requests import Session, Response
 
 
 def update_token(session: Session, key: str, url: str, payload: dict) -> Session:
