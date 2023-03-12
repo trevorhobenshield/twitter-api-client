@@ -22,12 +22,14 @@ from .utils import find_key
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -303,6 +305,7 @@ def unretweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteRetweet.name, 'source_tweet_id', session)
 
 
+@log(level=logging.DEBUG, info=['json'])
 def get_tweets(user_id: int, session: Session) -> Response:
     operation = Operation.UserTweets.name
     qid = operations[operation]['queryId']
@@ -367,13 +370,10 @@ def unblock(user_id: int, session: Session) -> Response:
 
 
 @log(level=logging.DEBUG, info=['text'])
-def update_search_settings(session: Session, **kwargs) -> Response:
-    if kwargs.get('incognito'):
-        kwargs.pop('incognito')
-        settings = account_search_settings.copy()
-    else:
-        settings = {}
-    settings |= kwargs
+def update_search_settings(session: Session, hide_blocked=False, hide_nsfw=False) -> Response:
+    settings = account_search_settings.copy()
+    settings['optInFiltering'] = hide_nsfw
+    settings['optInBlocking'] = hide_blocked
     twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
     headers = get_auth_headers(session=session)
     r = session.post(
@@ -393,13 +393,8 @@ def update_content_settings(session: Session, **kwargs) -> Response:
     @param kwargs: settings to enable/disable
     @return: updated settings
     """
-    if kwargs.get('incognito'):
-        kwargs.pop('incognito')
-        settings = content_settings.copy()
-    else:
-        settings = {}
-    settings |= kwargs
-    return api_request(settings, 'account/settings.json', session)
+    kwargs |= content_settings
+    return api_request(kwargs, 'account/settings.json', session)
 
 
 def build_query(params: dict) -> str:
@@ -420,11 +415,17 @@ def stats(rest_id: int, session: Session) -> Response:
 
 
 @log(level=logging.DEBUG, info=['json'])
-def dm(text: str, sender: int, receiver: int, session: Session, filename: str = '') -> Response:
+def dm(text: str, receivers: list[int], session: Session, filename: str = '') -> Response:
     operation = Operation.useSendMessageMutation.name
     qid = operations[operation]['queryId']
     params = operations[operation]
-    params['variables']['target']['conversation_id'] = '-'.join(map(str, sorted((sender, receiver))))
+
+    ## todo single DM request not needed, `participant_ids` field handles single DM request
+    # if len(receivers) == 1:
+    #     params['variables']['target'] = {'conversation_id': '-'.join(map(str, sorted((sender, *receivers))))}
+    # else:
+    params['variables']['target'] = {"participant_ids": receivers}
+
     params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
     if filename:

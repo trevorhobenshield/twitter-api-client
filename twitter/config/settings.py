@@ -15,7 +15,7 @@ content_settings = {
     'include_ranked_timeline': True,
     'include_alt_text_compose': True,
     'display_sensitive_media': True,
-    'protected': True,
+    'protected': False,
     'discoverable_by_email': False,
     'discoverable_by_mobile_phone': False,
     'allow_dms_from': 'following',  ## {'all'}
@@ -61,6 +61,6 @@ follow_settings = {
 }
 
 account_search_settings = {
-    "optInFiltering": False,
-    "optInBlocking": True,
+    "optInFiltering": True,  # filter out nsfw content
+    "optInBlocking": True,  # filter out blocked accounts
 }

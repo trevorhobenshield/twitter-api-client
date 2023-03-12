@@ -3170,9 +3170,7 @@ operations = {
                 "tweet": None
             },
             "requestId": None,
-            "target": {
-                "conversation_id": None
-            }
+            "target": None,
         },
     }
 }

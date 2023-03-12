@@ -1,7 +1,7 @@
 import sys
+from textwrap import dedent
 
 from setuptools import find_packages, setup
-from textwrap import dedent
 
 install_requires = [
     "ujson",
@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.2.0",
+    version="0.2.1",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
