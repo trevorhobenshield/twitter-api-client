@@ -11,53 +11,12 @@ import ujson
 
 from .config.log_config import log_config
 from .config.operations import operations
+from .config.settings import *
 from .login import Session, Response
 from .utils import find_key
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
-
-MAX_IMAGE_SIZE = 5_242_880  # ~5 MB
-MAX_GIF_SIZE = 15_728_640  # ~15 MB
-MAX_VIDEO_SIZE = 536_870_912  # ~530 MB
-CHUNK_SIZE = 8192
-
-BOLD = '\u001b[1m'
-SUCCESS = '\u001b[32m'
-WARN = '\u001b[31m'
-RESET = '\u001b[0m'
-
-MEDIA = {
-    '.mp4': {
-        'type': 'video/mp4',
-        'category': 'tweet_video'
-    },
-    '.mov': {
-        'type': 'video/quicktime',
-        'category': 'tweet_video'
-    },
-    '.png': {
-        'type': 'image/png',
-        'category': 'tweet_image'
-    },
-    '.jpg': {
-        'type': 'image/jpeg',
-        'category': 'tweet_image'
-    },
-    '.jpeg': {
-        'type': 'image/jpeg',
-        'category': 'tweet_image'
-    },
-    '.jfif': {
-        'type': 'image/jpeg',
-        'category': 'tweet_image'
-    },
-    '.gif': {
-        'type': 'image/gif',
-        'category': 'tweet_gif'
-    },
-}
-
 
 class Operation(Enum):
     CreateTweet = auto()
@@ -68,7 +27,6 @@ class Operation(Enum):
     UnfavoriteTweet = auto()
     CreateRetweet = auto()
     DeleteRetweet = auto()
-
     TweetStats = auto()
 
 
@@ -315,41 +273,15 @@ def get_tweets(user_id: int, session: Session) -> Response:
 
 @log(level=logging.DEBUG, info=['json'])
 def follow(user_id: int, session: Session) -> Response:
-    settings = {
-        "user_id": user_id,
-        "include_profile_interstitial_type": "1",
-        "include_blocking": "1",
-        "include_blocked_by": "1",
-        "include_followed_by": "1",
-        "include_want_retweets": "1",
-        "include_mute_edge": "1",
-        "include_can_dm": "1",
-        "include_can_media_tag": "1",
-        "include_ext_has_nft_avatar": "1",
-        "include_ext_is_blue_verified": "1",
-        "include_ext_verified_type": "1",
-        "skip_status": "1",
-    }
+    settings = follow_settings.copy()
+    settings |= {"user_id": user_id}
     return api_request(settings, 'friendships/create.json', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
 def unfollow(user_id: int, session: Session) -> Response:
-    settings = {
-        "user_id": user_id,
-        "include_profile_interstitial_type": "1",
-        "include_blocking": "1",
-        "include_blocked_by": "1",
-        "include_followed_by": "1",
-        "include_want_retweets": "1",
-        "include_mute_edge": "1",
-        "include_can_dm": "1",
-        "include_can_media_tag": "1",
-        "include_ext_has_nft_avatar": "1",
-        "include_ext_is_blue_verified": "1",
-        "include_ext_verified_type": "1",
-        "skip_status": "1",
-    }
+    settings = follow_settings.copy()
+    settings |= {"user_id": user_id}
     return api_request(settings, 'friendships/destroy.json', session)
 
 
@@ -367,45 +299,15 @@ def unmute(user_id: int, session: Session) -> Response:
 
 @log(level=logging.DEBUG, info=['json'])
 def enable_notifications(user_id: int, session: Session) -> Response:
-    settings = {
-        "id": user_id,
-        "device": "true",
-        "cursor": "-1",
-        "include_profile_interstitial_type": "1",
-        "include_blocking": "1",
-        "include_blocked_by": "1",
-        "include_followed_by": "1",
-        "include_want_retweets": "1",
-        "include_mute_edge": "1",
-        "include_can_dm": "1",
-        "include_can_media_tag": "1",
-        "include_ext_has_nft_avatar": "1",
-        "include_ext_is_blue_verified": "1",
-        "include_ext_verified_type": "1",
-        "skip_status": "1",
-    }
+    settings = notification_settings.copy()
+    settings |= {'id': user_id, 'device': 'true'}
     return api_request(settings, 'friendships/update.json', session)
 
 
 @log(level=logging.DEBUG, info=['json'])
 def disable_notifications(user_id: int, session: Session) -> Response:
-    settings = {
-        "id": user_id,
-        "device": "false",
-        "cursor": "-1",
-        "include_profile_interstitial_type": "1",
-        "include_blocking": "1",
-        "include_blocked_by": "1",
-        "include_followed_by": "1",
-        "include_want_retweets": "1",
-        "include_mute_edge": "1",
-        "include_can_dm": "1",
-        "include_can_media_tag": "1",
-        "include_ext_has_nft_avatar": "1",
-        "include_ext_is_blue_verified": "1",
-        "include_ext_verified_type": "1",
-        "skip_status": "1",
-    }
+    settings = notification_settings.copy()
+    settings |= {'id': user_id, 'device': 'false'}
     return api_request(settings, 'friendships/update.json', session)
 
 
@@ -425,10 +327,7 @@ def unblock(user_id: int, session: Session) -> Response:
 def update_search_settings(session: Session, **kwargs) -> Response:
     if kwargs.get('incognito'):
         kwargs.pop('incognito')
-        settings = {
-            "optInFiltering": False,
-            "optInBlocking": True,
-        }
+        settings = account_search_settings.copy()
     else:
         settings = {}
     settings |= kwargs
@@ -453,27 +352,7 @@ def update_content_settings(session: Session, **kwargs) -> Response:
     """
     if kwargs.get('incognito'):
         kwargs.pop('incognito')
-        settings = {
-            'include_mention_filter': True,
-            'include_nsfw_user_flag': True,
-            'include_nsfw_admin_flag': True,
-            'include_ranked_timeline': True,
-            'include_alt_text_compose': True,
-            'display_sensitive_media': True,
-            'protected': True,
-            'discoverable_by_email': False,
-            'discoverable_by_mobile_phone': False,
-            'allow_dms_from': 'following',  ## {'all'}
-            'dm_quality_filter': 'enabled',  ## {'disabled'}
-            'dm_receipt_setting': 'all_disabled',  ## {'all_enabled'}
-            'allow_media_tagging': 'none',  ## {'all', 'following'}
-            'nsfw_user': False,
-            'geo_enabled': False,  ## add location information to your tweets
-            'allow_ads_personalization': False,
-            'allow_logged_out_device_personalization': False,
-            'allow_sharing_data_for_third_party_personalization': False,
-            'allow_location_history_personalization': False,
-        }
+        settings = content_settings.copy()
     else:
         settings = {}
     settings |= kwargs
