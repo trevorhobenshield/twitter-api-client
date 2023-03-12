@@ -1,8 +1,7 @@
-**(Work in Progress)**
+*Work in Progress
 
 Complete implementation of the undocumented Twitter API
 
-- Frantically written in a day, crude, needs refactoring/redesign, code is repetitive.
 - Includes twitter search, scraper, and automation library.
 
 
