@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.1.9",
+    version="0.2.0",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
