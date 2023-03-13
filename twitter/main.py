@@ -88,21 +88,6 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
     return wrapper
 
 
-@log(level=logging.DEBUG, info=['json'])
-def bookmark(_id: int, session: Session) -> Response:
-    return graphql_request(_id, Operation.CreateBookmark.name, 'tweet_id', session)
-
-
-@log(level=logging.DEBUG, info=['json'])
-def unbookmark(_id: int, session: Session) -> Response:
-    return graphql_request(_id, Operation.DeleteBookmark.name, 'tweet_id', session)
-
-
-@log(level=logging.DEBUG, info=['json'])
-def unbookmark_all(_id: int, session: Session) -> Response:
-    return graphql_request(_id, Operation.BookmarksAllDelete.name, 0, session)
-
-
 def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> Response:
     params = deepcopy(operations[operation])
     qid = params['queryId']
@@ -131,7 +116,7 @@ def get_auth_headers(session: Session) -> dict:
     }
 
 
-def upload_media(filename: str, session: Session, is_dm=False):
+def upload_media(filename: str, session: Session, is_dm: bool = False) -> int:
     url = 'https://upload.twitter.com/1.1/media/upload.json'
     total_bytes = Path(filename).stat().st_size
     headers = get_auth_headers(session)
@@ -197,16 +182,6 @@ def add_alt_text(text: str, media_id: int, session: Session) -> Response:
 
 
 @log(level=logging.DEBUG, info=['json'])
-def like(tweet_id: int, session: Session) -> Response:
-    return graphql_request(tweet_id, Operation.FavoriteTweet.name, 'tweet_id', session)
-
-
-@log(level=logging.DEBUG, info=['json'])
-def unlike(tweet_id: int, session: Session) -> Response:
-    return graphql_request(tweet_id, Operation.UnfavoriteTweet.name, 'tweet_id', session)
-
-
-@log(level=logging.DEBUG, info=['json'])
 def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs) -> Response:
     operation = Operation.CreateTweet.name
     params = deepcopy(operations[operation])
@@ -269,6 +244,16 @@ def unretweet(tweet_id: int, session: Session) -> Response:
 
 
 @log(level=logging.DEBUG, info=['json'])
+def like(tweet_id: int, session: Session) -> Response:
+    return graphql_request(tweet_id, Operation.FavoriteTweet.name, 'tweet_id', session)
+
+
+@log(level=logging.DEBUG, info=['json'])
+def unlike(tweet_id: int, session: Session) -> Response:
+    return graphql_request(tweet_id, Operation.UnfavoriteTweet.name, 'tweet_id', session)
+
+
+@log(level=logging.DEBUG, info=['json'])
 def follow(user_id: int, session: Session) -> Response:
     settings = follow_settings.copy()
     settings |= {"user_id": user_id}
@@ -318,6 +303,21 @@ def block(user_id: int, session: Session) -> Response:
 def unblock(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'blocks/destroy.json', session)
+
+
+@log(level=logging.DEBUG, info=['json'])
+def bookmark(_id: int, session: Session) -> Response:
+    return graphql_request(_id, Operation.CreateBookmark.name, 'tweet_id', session)
+
+
+@log(level=logging.DEBUG, info=['json'])
+def unbookmark(_id: int, session: Session) -> Response:
+    return graphql_request(_id, Operation.DeleteBookmark.name, 'tweet_id', session)
+
+
+@log(level=logging.DEBUG, info=['json'])
+def unbookmark_all(_id: int, session: Session) -> Response:
+    return graphql_request(_id, Operation.BookmarksAllDelete.name, 0, session)
 
 
 @log(level=logging.DEBUG, info=['text'])

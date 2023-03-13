@@ -15,7 +15,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.2.2",
+    version="0.2.3",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -32,15 +32,15 @@ setup(
     session = login(usr, pwd)
     
     
-    # DM one user
-    dm('hello world', [123], session)
+    # DM 1 user
+    dm('hello world', [123], session, filename='test.png')
     
     # DM group of users
-    dm('foo bar', [123, 456, 789], session)
+    dm('foo bar', [123, 456, 789], session, filename='test.mp4')
     
     # create tweet with images, videos, gifs, and tagged users
     r = tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
-    r = tweet('test 123', session, media=['test.jpg', 'test.png'])
+    r = tweet('test 123', session, media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
     r = tweet('test 123', session, media=['test.mp4'])
     r = tweet('test 123', session)
     
