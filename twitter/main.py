@@ -258,12 +258,6 @@ def untweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteTweet.name, 'tweet_id', session)
 
 
-# def __batch_delete_tweets(user_id: int, session: Session) -> None:
-#     tweets = get_tweets(user_id, session).json()
-#     ids = set(map(int, find_key(find_key(tweets, 'tweet_results'), 'rest_id'))) - {user_id}
-#     [untweet(_id, session) for _id in ids]
-
-
 @log(level=logging.DEBUG, info=['json'])
 def retweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.CreateRetweet.name, 'tweet_id', session)
@@ -272,18 +266,6 @@ def retweet(tweet_id: int, session: Session) -> Response:
 @log(level=logging.DEBUG, info=['json'])
 def unretweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteRetweet.name, 'source_tweet_id', session)
-
-
-@log(level=logging.DEBUG, info=['json'])
-def get_tweets(user_id: int, session: Session) -> Response:
-    operation = Operation.UserTweets.name
-    params = deepcopy(operations[operation])
-    qid = params['queryId']
-    params['variables']['userId'] = user_id
-    query = build_query(params)
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
-    r = session.get(url, headers=get_auth_headers(session))
-    return r
 
 
 @log(level=logging.DEBUG, info=['json'])
