@@ -23,14 +23,12 @@ from .login import Session, Response
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
-
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
-
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -321,16 +319,13 @@ def unbookmark_all(_id: int, session: Session) -> Response:
 
 
 @log(level=logging.DEBUG, info=['text'])
-def update_search_settings(session: Session, hide_blocked=False, hide_nsfw=False) -> Response:
-    settings = account_search_settings.copy()
-    settings['optInFiltering'] = hide_nsfw
-    settings['optInBlocking'] = hide_blocked
+def update_search_settings(session: Session, **kwargs) -> Response:
     twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
     headers = get_auth_headers(session=session)
     r = session.post(
         url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
         headers=headers,
-        json=settings,
+        json=kwargs,
     )
     return r
 
@@ -344,7 +339,6 @@ def update_content_settings(session: Session, **kwargs) -> Response:
     @param kwargs: settings to enable/disable
     @return: updated settings
     """
-    kwargs |= content_settings
     return api_request(kwargs, 'account/settings.json', session)
 
 

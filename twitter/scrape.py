@@ -17,7 +17,6 @@ from .config.log_config import log_config
 from .login import Session
 from .utils import find_key
 
-
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
@@ -58,59 +57,59 @@ logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 
-def get_user_tweets(ids: list[int], *, session: Session, limit=math.inf):
+def get_user_tweets(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.UserTweets.name, 'userId', ids, session, limit)
 
 
-def get_tweets_and_replies(ids: list[int], *, session: Session, limit=math.inf):
+def get_tweets_and_replies(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.UserTweetsAndReplies.name, 'userId', ids, session, limit)
 
 
-def get_likes(ids: list[int], *, session: Session, limit=math.inf):
+def get_likes(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.Likes.name, 'userId', ids, session, limit)
 
 
-def get_media(ids: list[int], *, session: Session, limit=math.inf):
+def get_media(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.UserMedia.name, 'userId', ids, session, limit)
 
 
-def get_followers(ids: list[int], *, session: Session, limit=math.inf):
+def get_followers(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.Followers.name, 'userId', ids, session, limit)
 
 
-def get_following(ids: list[int], *, session: Session, limit=math.inf):
+def get_following(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.Following.name, 'userId', ids, session, limit)
 
 
-def get_favoriters(ids: list[int], *, session: Session, limit=math.inf):
+def get_favoriters(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.Favoriters.name, 'tweetId', ids, session, limit)
 
 
-def get_retweeters(ids: list[int], *, session: Session, limit=math.inf):
+def get_retweeters(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.Retweeters.name, 'tweetId', ids, session, limit)
 
 
-def get_tweets(ids: list[int], *, session: Session, limit=math.inf):
+def get_tweets(ids: list[int], session: Session, limit=math.inf):
     return run(Operation.TweetDetail.name, 'focalTweetId', ids, session, limit)
 
 
 # no pagination needed
-def get_tweet_by_rest_id(ids: list[int], *, session: Session):
+def get_tweet_by_rest_id(ids: list[int], session: Session):
     return graphql(ids, Operation.TweetResultByRestId.name, 'tweetId', session)
 
 
 # no pagination needed
-def get_user_by_screen_name(ids: list[str], *, session: Session):
+def get_user_by_screen_name(ids: list[str], session: Session):
     return graphql(ids, Operation.UserByScreenName.name, 'screen_name', session)
 
 
 # no pagination needed
-def get_user_by_rest_id(ids: list[int], *, session: Session):
+def get_user_by_rest_id(ids: list[int], session: Session):
     return graphql(ids, Operation.UserByRestId.name, 'userId', session)
 
 
 # no pagination needed - special batch query
-def get_users_by_rest_ids(ids: list[int], *, session: Session):
+def get_users_by_rest_ids(ids: list[int], session: Session):
     operation = Operation.UsersByRestIds.name
     qid = operations[operation]['queryId']
     operations[operation]['variables']['userIds'] = ids
@@ -303,7 +302,7 @@ def download(session: Session, post_url: str, cdn_url: str, path: str = 'media',
         logger.debug(f'FAILED to download video: {post_url} {e}')
 
 
-def download_media(ids: list[int], *, session: Session, photos: bool = True, videos: bool = True) -> None:
+def download_media(ids: list[int], session: Session, photos: bool = True, videos: bool = True) -> None:
     res = get_tweet_by_rest_id(ids, session=session)
     for r in res:
         user_id = find_key(r, 'user_results')[0]['result']['rest_id']
