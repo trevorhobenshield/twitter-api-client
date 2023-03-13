@@ -4,32 +4,31 @@ import inspect
 import logging.config
 import mimetypes
 import sys
+import time
+from copy import deepcopy
 from enum import Enum, auto
 from functools import wraps, partial
 from pathlib import Path
 from urllib.parse import urlencode
 from uuid import uuid1, getnode
 
-import aiohttp
 import ujson
+from tqdm import tqdm
 
 from .config.log_config import log_config
 from .config.operations import operations
 from .config.settings import *
 from .login import Session, Response
-from .utils import find_key
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
-
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
-
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -103,8 +102,8 @@ def unbookmark_all(_id: int, session: Session) -> Response:
 
 
 def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> Response:
-    qid = operations[operation]['queryId']
-    params = operations[operation]
+    params = deepcopy(operations[operation])
+    qid = params['queryId']
     if key: params['variables'][key] = _id
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
     r = session.post(url, headers=get_auth_headers(session), json=params)
@@ -130,93 +129,149 @@ def get_auth_headers(session: Session) -> dict:
     }
 
 
-async def get_status(media_id: str, auth_session: Session, check_after_secs: int = 1):
-    url = 'https://upload.twitter.com/i/media/upload.json'
-    headers = get_auth_headers(auth_session)
-    params = {'command': 'STATUS', 'media_id': media_id}
-    while 1:
-        await asyncio.sleep(check_after_secs)
-        async with aiohttp.ClientSession(headers=headers) as s:
-            async with s.get(url, params=params) as r:
-                data = await r.json()
-        info = data['processing_info']
-        state = info['state']
-        if state == 'succeeded':
-            logger.debug(f'{media_id}: {SUCCESS}processing complete{RESET}')
-            return data
-        if state == 'in_progress':
-            progress = info["progress_percent"]
-            check_after_secs = info.get('check_after_secs', check_after_secs)
-            logger.debug(f'{media_id}: upload {progress = }%')
-        else:
-            logger.debug(f'{media_id}: upload {state = }')
+# async def get_status(media_id: str, auth_session: Session, check_after_secs: int = 1):
+#     url = 'https://upload.twitter.com/i/media/upload.json'
+#     headers = get_auth_headers(auth_session)
+#     params = {'command': 'STATUS', 'media_id': media_id}
+#     while 1:
+#         await asyncio.sleep(check_after_secs)
+#         async with aiohttp.ClientSession(headers=headers) as s:
+#             async with s.get(url, params=params) as r:
+#                 data = await r.json()
+#         info = data['processing_info']
+#         state = info['state']
+#         if state == 'succeeded':
+#             logger.debug(f'{media_id}: {SUCCESS}processing complete{RESET}')
+#             return data
+#         if state == 'in_progress':
+#             progress = info["progress_percent"]
+#             check_after_secs = info.get('check_after_secs', check_after_secs)
+#             logger.debug(f'{media_id}: upload {progress = }%')
+#         else:
+#             logger.debug(f'{media_id}: upload {state = }')
+#
+#
+# async def upload_media(fname: str, auth_session: Session, is_dm=False):
+#     """
+#     https://developer.twitter.com/en/docs/twitter-api/v1/media/upload-media/uploading-media/media-best-practices
+#     """
+#     url = 'https://upload.twitter.com/i/media/upload.json'
+#     headers = get_auth_headers(auth_session)
+#     conn = aiohttp.TCPConnector(limit=0, ssl=False, ttl_dns_cache=69)
+#     async with aiohttp.ClientSession(headers=headers, connector=conn) as s:
+#         file = Path(fname)
+#         total_bytes = file.stat().st_size
+#         upload_type = 'dm' if is_dm else 'tweet'
+#         media_type = mimetypes.guess_type(file)[0]
+#         media_category = f'{upload_type}_{media_type.split("/")[0]}'
+#
+#         if media_category in {'dm_image', 'tweet_image'} and total_bytes > MAX_IMAGE_SIZE:
+#             raise Exception(f'Image too large: max is {(MAX_IMAGE_SIZE / 1e6):.2f} MB')
+#         if media_category in {'dm_gif', 'tweet_gif'} and total_bytes > MAX_GIF_SIZE:
+#             raise Exception(f'GIF too large: max is {(MAX_GIF_SIZE / 1e6):.2f} MB')
+#         if media_category in {'dm_video', 'tweet_video'} and total_bytes > MAX_VIDEO_SIZE:
+#             raise Exception(f'Video too large: max is {(MAX_VIDEO_SIZE / 1e6):.2f} MB')
+#
+#         params = {
+#             'command': 'INIT',
+#             'total_bytes': total_bytes,
+#             'media_type': media_type,
+#             'media_category': media_category
+#         }
+#         async with s.post(url, headers=headers, params=params) as r:
+#             info = await r.json()
+#             logger.debug(f'INIT {info}')
+#             media_id = info['media_id']
+#
+#         with open(fname, 'rb') as f:
+#             i = 0
+#             while chunk := f.read(MAX_IMAGE_SIZE):  # todo: arbitrary max size for now
+#                 with aiohttp.MultipartWriter('form-data') as mpw:
+#                     part = mpw.append(chunk)
+#                     part.set_content_disposition('form-data', name='media', filename='blob')
+#                     s.cookie_jar.update_cookies(auth_session.cookies)  # csrf cookie/header update
+#                     r = await s.post(
+#                         url,
+#                         data=mpw,
+#                         headers=headers,
+#                         params={'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
+#                     )
+#                     logger.debug(f'APPEND {r.status}')
+#                     i += 1
+#         finalize_params = {
+#             'command': 'FINALIZE',
+#             'media_id': media_id,
+#             'allow_async': 'true'
+#         }
+#         if is_dm:
+#             finalize_params |= {'original_md5': hashlib.md5(Path(fname).read_bytes()).hexdigest()}
+#         async with s.post(url, headers=headers, params=finalize_params) as r:
+#             res = await r.json()
+#             logger.debug(f'FINALIZE {res}')
+#
+#         if processing_info := res.get('processing_info', {}):
+#             state = processing_info.get('state')
+#             if state == 'pending':
+#                 logger.debug(f'{media_id}: {state}')
+#                 return await get_status(media_id, auth_session, processing_info.get('check_after_secs', 1))
+#             logger.debug(f'{media_id}: {SUCCESS}upload complete{RESET}')
+#     return res
 
+def upload_media(filename: str, session: Session, is_dm=False):
+    url = 'https://upload.twitter.com/1.1/media/upload.json'
+    total_bytes = Path(filename).stat().st_size
+    headers = get_auth_headers(session)
 
-async def upload_media(fname: str, auth_session: Session, is_dm=False):
-    """
-    https://developer.twitter.com/en/docs/twitter-api/v1/media/upload-media/uploading-media/media-best-practices
-    """
-    url = 'https://upload.twitter.com/i/media/upload.json'
-    headers = get_auth_headers(auth_session)
-    conn = aiohttp.TCPConnector(limit=0, ssl=False, ttl_dns_cache=69)
-    async with aiohttp.ClientSession(headers=headers, connector=conn) as s:
-        file = Path(fname)
-        total_bytes = file.stat().st_size
-        upload_type = 'dm' if is_dm else 'tweet'
-        media_type = mimetypes.guess_type(file)[0]
-        media_category = f'{upload_type}_{media_type.split("/")[0]}'
+    upload_type = 'dm' if is_dm else 'tweet'
+    media_type = mimetypes.guess_type(filename)[0]
+    media_category = f'{upload_type}_{media_type.split("/")[0]}'
 
-        if media_category in {'dm_image', 'tweet_image'} and total_bytes > MAX_IMAGE_SIZE:
-            raise Exception(f'Image too large: max is {(MAX_IMAGE_SIZE / 1e6):.2f} MB')
-        if media_category in {'dm_gif', 'tweet_gif'} and total_bytes > MAX_GIF_SIZE:
-            raise Exception(f'GIF too large: max is {(MAX_GIF_SIZE / 1e6):.2f} MB')
-        if media_category in {'dm_video', 'tweet_video'} and total_bytes > MAX_VIDEO_SIZE:
-            raise Exception(f'Video too large: max is {(MAX_VIDEO_SIZE / 1e6):.2f} MB')
+    if media_category in {'dm_image', 'tweet_image'} and total_bytes > MAX_IMAGE_SIZE:
+        raise Exception(f'Image too large: max is {(MAX_IMAGE_SIZE / 1e6):.2f} MB')
+    if media_category in {'dm_gif', 'tweet_gif'} and total_bytes > MAX_GIF_SIZE:
+        raise Exception(f'GIF too large: max is {(MAX_GIF_SIZE / 1e6):.2f} MB')
+    if media_category in {'dm_video', 'tweet_video'} and total_bytes > MAX_VIDEO_SIZE:
+        raise Exception(f'Video too large: max is {(MAX_VIDEO_SIZE / 1e6):.2f} MB')
 
-        params = {
-            'command': 'INIT',
-            'total_bytes': total_bytes,
-            'media_type': media_type,
-            'media_category': media_category
-        }
-        async with s.post(url, headers=headers, params=params) as r:
-            info = await r.json()
-            logger.debug(f'INIT {info}')
-            media_id = info['media_id']
-
-        with open(fname, 'rb') as f:
+    data = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes, 'media_category': media_category}
+    r = session.post(url=url, headers=headers, data=data)
+    media_id = r.json()['media_id']
+    with tqdm(total=total_bytes, desc=f"uploading: {filename}") as pbar:
+        with open(filename, 'rb') as f:
             i = 0
-            while chunk := f.read(MAX_IMAGE_SIZE):  # todo: arbitrary max size for now
-                with aiohttp.MultipartWriter('form-data') as mpw:
-                    part = mpw.append(chunk)
-                    part.set_content_disposition('form-data', name='media', filename='blob')
-                    s.cookie_jar.update_cookies(auth_session.cookies)  # csrf cookie/header update
-                    r = await s.post(
-                        url,
-                        data=mpw,
-                        headers=headers,
-                        params={'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
-                    )
-                    logger.debug(f'APPEND {r.status}')
-                    i += 1
-        finalize_params = {
-            'command': 'FINALIZE',
-            'media_id': media_id,
-            'allow_async': 'true'
-        }
-        if is_dm:
-            finalize_params |= {'original_md5': hashlib.md5(Path(fname).read_bytes()).hexdigest()}
-        async with s.post(url, headers=headers, params=finalize_params) as r:
-            res = await r.json()
-            logger.debug(f'FINALIZE {res}')
+            while chunk := f.read(4 * 1024 * 1024):  # todo: arbitrary max size for now
+                data = {'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
+                files = {'media': chunk}
+                r = session.post(url=url, headers=headers, data=data, files=files)
+                if r.status_code < 200 or r.status_code > 299:
+                    logger.debug(f'{r.status_code} {r.text}')
+                    raise Exception('Upload failed')
+                i += 1
+                pbar.update(f.tell() - pbar.n)
 
-        if processing_info := res.get('processing_info', {}):
-            state = processing_info.get('state')
-            if state == 'pending':
-                logger.debug(f'{media_id}: {state}')
-                return await get_status(media_id, auth_session, processing_info.get('check_after_secs', 1))
-            logger.debug(f'{media_id}: {SUCCESS}upload complete{RESET}')
-    return res
+    data = {'command': 'FINALIZE', 'media_id': media_id, 'allow_async': 'true'}
+    if is_dm:
+        data |= {'original_md5': hashlib.md5(Path(filename).read_bytes()).hexdigest()}
+    r = session.post(url=url, headers=headers, data=data)
+    # logger.debug(f'FINALIZE {r.json()}')
+
+    logger.debug(f'processing, please wait...')
+    processing_info = r.json().get('processing_info')
+    while processing_info:
+        state = processing_info['state']
+        if state == 'succeeded':
+            break
+        if state == 'failed':
+            raise Exception('Media processing failed')
+        check_after_secs = processing_info['check_after_secs']
+        # logger.debug(f'{check_after_secs = }')
+        time.sleep(check_after_secs)
+        params = {'command': 'STATUS', 'media_id': media_id}
+        r = session.get(url=url, headers=headers, params=params)
+        processing_info = r.json().get('processing_info')
+    logger.debug('processing complete')
+
+    return media_id
 
 
 @log(level=logging.DEBUG, info=['text'])
@@ -240,24 +295,24 @@ def unlike(tweet_id: int, session: Session) -> Response:
 @log(level=logging.DEBUG, info=['json'])
 def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs) -> Response:
     operation = Operation.CreateTweet.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
+    params = deepcopy(operations[operation])
+    qid = params['queryId']
     params['variables']['tweet_text'] = text
     if media:
         for m in media:
             if isinstance(m, dict):
-                media_info = asyncio.run(upload_media(m['file'], session))
+                media_id = upload_media(m['file'], session)
                 params['variables']['media']['media_entities'].append({
-                    'media_id': media_info['media_id'],
+                    'media_id': media_id,
                     'tagged_users': m.get('tagged_users', [])
                 })
                 if alt := m.get('alt'):
-                    add_alt_text(alt, media_info['media_id'], session)
+                    add_alt_text(alt, media_id, session)
             # for convenience, so we can just pass list of strings
             elif isinstance(m, str):
-                media_info = asyncio.run(upload_media(m, session))
+                media_id = upload_media(m, session)
                 params['variables']['media']['media_entities'].append({
-                    'media_id': media_info['media_id'],
+                    'media_id': media_id,
                     'tagged_users': []
                 })
 
@@ -308,8 +363,8 @@ def unretweet(tweet_id: int, session: Session) -> Response:
 @log(level=logging.DEBUG, info=['json'])
 def get_tweets(user_id: int, session: Session) -> Response:
     operation = Operation.UserTweets.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
+    params = deepcopy(operations[operation])
+    qid = params['queryId']
     params['variables']['userId'] = user_id
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
@@ -405,8 +460,8 @@ def build_query(params: dict) -> str:
 def stats(rest_id: int, session: Session) -> Response:
     """private endpoint?"""
     operation = Operation.TweetStats.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
+    params = deepcopy(operations[operation])
+    qid = params['queryId']
     params['variables']['rest_id'] = rest_id
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
@@ -417,24 +472,15 @@ def stats(rest_id: int, session: Session) -> Response:
 @log(level=logging.DEBUG, info=['json'])
 def dm(text: str, receivers: list[int], session: Session, filename: str = '') -> Response:
     operation = Operation.useSendMessageMutation.name
-    qid = operations[operation]['queryId']
-    params = operations[operation]
-
-    ## todo single DM request not needed, `participant_ids` field handles single DM request
-    # if len(receivers) == 1:
-    #     params['variables']['target'] = {'conversation_id': '-'.join(map(str, sorted((sender, *receivers))))}
-    # else:
+    params = deepcopy(operations[operation])
+    qid = params['queryId']
     params['variables']['target'] = {"participant_ids": receivers}
-
     params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
     if filename:
-        raise NotImplementedError('Sending media in DMs is not working currently')
-        # media_info = asyncio.run(upload_media(filename, session))
-        # params['variables']['message']['media'] = {'id': media_info['media_id'], 'text': text}
+        media_id = upload_media(filename, session, is_dm=True)
+        params['variables']['message']['media'] = {'id': media_id, 'text': text}
     else:
         params['variables']['message']['text'] = {'text': text}
     r = session.post(url, headers=get_auth_headers(session), json=params)
-    # todo: strange errors preventing media from being sent in DM
-    # r = session.post(url, headers=get_auth_headers(session), data=data)
     return r
