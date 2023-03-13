@@ -79,22 +79,22 @@ usernames = [...]
 tweet_ids = [...]
 
 ######### User Data ########
-users = get_user_by_screen_name(usernames, session=session)
-tweets = get_user_tweets(user_ids, session=session)
-likes = get_likes(user_ids, session=session)
-tweets_and_replies = get_tweets_and_replies(user_ids, session=session)
-media = get_media(user_ids, session=session)
-following = get_following(user_ids, session=session)
-followers = get_followers(user_ids, session=session)
+users = get_user_by_screen_name(usernames, session)
+tweets = get_user_tweets(user_ids, session)
+likes = get_likes(user_ids, session)
+tweets_and_replies = get_tweets_and_replies(user_ids, session)
+media = get_media(user_ids, session)
+following = get_following(user_ids, session)
+followers = get_followers(user_ids, session)
 
 ######### Tweet Data ########
-tweet = get_tweet_by_rest_id(tweet_ids, session=session)
-tweet_detail = get_tweets(tweet_ids, session=session)
-retweeters = get_retweeters(tweet_ids, session=session)
-favoriters = get_favoriters(tweet_ids, session=session)
+tweet = get_tweet_by_rest_id(tweet_ids, session)
+tweet_detail = get_tweets(tweet_ids, session)
+retweeters = get_retweeters(tweet_ids, session)
+favoriters = get_favoriters(tweet_ids, session)
 
 ######### Media (Images/Videos) ########
-download_media(tweet_ids, session=session)
+download_media(tweet_ids, session)
 ```
 
 #### Search
