@@ -24,14 +24,12 @@ from .utils import get_auth_headers
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
-
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
-
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -317,9 +315,9 @@ def unbookmark(_id: int, session: Session) -> Response:
     return graphql_request(_id, Operation.DeleteBookmark.name, 'tweet_id', session)
 
 
-@log(info=['json'])
-def unbookmark_all(_id: int, session: Session) -> Response:
-    return graphql_request(_id, Operation.BookmarksAllDelete.name, 0, session)
+# @log(info=['json'])
+# def unbookmark_all(session: Session) -> Response:
+#     return graphql_request(0, Operation.BookmarksAllDelete.name, 0, session)
 
 
 @log(info=['text'])

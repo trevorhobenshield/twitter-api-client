@@ -60,7 +60,6 @@ r = unblock(50393960, session)
 
 r = bookmark(1633609779745820675, session)
 r = unbookmark(1633609779745820675, session)
-r = unbookmark_all(1633609779745820675, session)
 
 r = pin(1635479755364651008, session)
 r = unpin(1635479755364651008, session)

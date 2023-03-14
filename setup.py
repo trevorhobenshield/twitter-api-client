@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.2.6",
+    version="0.2.7",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -71,7 +71,6 @@ setup(
     
     r = bookmark(1633609779745820675, session)
     r = unbookmark(1633609779745820675, session)
-    r = unbookmark_all(1633609779745820675, session)
     
     r = pin(1635479755364651008, session)
     r = unpin(1635479755364651008, session)
