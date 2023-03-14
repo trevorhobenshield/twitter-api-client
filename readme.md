@@ -55,12 +55,17 @@ r = disable_notifications(50393960, session)
 r = block(50393960, session)
 r = unblock(50393960, session)
 
-# some hidden user attribute?
-r = stats(50393960, session)
-
 r = bookmark(1633609779745820675, session)
 r = unbookmark(1633609779745820675, session)
 r = unbookmark_all(1633609779745820675, session)
+
+r = stats(50393960, session)
+
+# update profile
+update_profile_image('profile.jpg', session)
+update_profile_banner('banner.jpg', session)
+update_profile_info(session, name='Foo Bar', description='Test 123', location='Victoria, BC')
+
 
 ```
 

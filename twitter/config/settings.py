@@ -64,3 +64,16 @@ account_search_settings = {
     "optInFiltering": True,  # filter out nsfw content
     "optInBlocking": True,  # filter out blocked accounts
 }
+
+profile_settings = {
+    "birthdate_day": int,
+    "birthdate_month": int,
+    "birthdate_year": int,  # 1985
+    "birthdate_visibility": str,  # "self",
+    "birthdate_year_visibility": str,  # "self",
+    "displayNameMaxLength": int,  # "50",
+    "url": str,  # "https://example.com",
+    "name": str,  # "foo",
+    "description": str,  # "bar",
+    "location": str,  # "world",
+}

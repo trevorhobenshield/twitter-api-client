@@ -19,16 +19,19 @@ from .config.log_config import log_config
 from .config.operations import operations
 from .config.settings import *
 from .login import Session, Response
+from .utils import get_auth_headers
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -65,18 +68,26 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
             if '_id' in k or '_name' in k or 'Id' in k or 'Name' in k
         )
         r = fn(*args, **kwargs)
+
+        limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
+        current_time = int(time.time())
+        wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
+        logger.log(level, f'{WARN}{wait // 60} minutes{RESET} until rate-limit reset. {limits = }')
+
         try:
             if 200 <= r.status_code < 300:
-                # info.remove('status_code')
                 message = f'[{SUCCESS}SUCCESS{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info}'
-                for k in info:
-                    if callable(k):
-                        logger.log(level, f'{message} {k(r)}')
-                    else:
-                        attr = getattr(r, k)
-                        v = attr() if callable(attr) else attr
-                        d = {f"{k}": v}
-                        logger.log(level, f'{message} {d}')
+                if info:
+                    for k in info:
+                        if callable(k):
+                            logger.log(level, f'{message} {k(r)}')
+                        else:
+                            attr = getattr(r, k)
+                            v = attr() if callable(attr) else attr
+                            d = {f"{k}": v}
+                            logger.log(level, f'{message} {d}')
+                else:
+                    logger.log(level, f'{message}')
             else:
                 logger.log(level, f'[{WARN}ERROR{RESET}] ({fn.__name__}) {args_info} {r.status_code} {r.text}')
         except Exception as e:
@@ -103,24 +114,18 @@ def api_request(settings: dict, path: str, session: Session) -> Response:
     return r
 
 
-def get_auth_headers(session: Session) -> dict:
-    return {
-        'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        'accept-encoding': 'gzip, deflate, br',
-        'cookie': '; '.join(f'{k}={v}' for k, v in session.cookies.items()),
-        'referer': 'https://twitter.com/',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-        'x-csrf-token': session.cookies.get('ct0'),
-    }
+def upload_media(filename: str, session: Session, is_dm: bool = False, is_profile=False) -> int:
+    if is_profile:
+        url = 'https://upload.twitter.com/i/media/upload.json'
+    else:
+        url = 'https://upload.twitter.com/1.1/media/upload.json'
 
-
-def upload_media(filename: str, session: Session, is_dm: bool = False) -> int:
-    url = 'https://upload.twitter.com/1.1/media/upload.json'
-    total_bytes = Path(filename).stat().st_size
+    file = Path(filename)
+    total_bytes = file.stat().st_size
     headers = get_auth_headers(session)
 
     upload_type = 'dm' if is_dm else 'tweet'
-    media_type = mimetypes.guess_type(filename)[0]
+    media_type = mimetypes.guess_type(file)[0]
     media_category = f'{upload_type}_{media_type.split("/")[0]}'
 
     if media_category in {'dm_image', 'tweet_image'} and total_bytes > MAX_IMAGE_SIZE:
@@ -133,8 +138,8 @@ def upload_media(filename: str, session: Session, is_dm: bool = False) -> int:
     data = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes, 'media_category': media_category}
     r = session.post(url=url, headers=headers, data=data)
     media_id = r.json()['media_id']
-    with tqdm(total=total_bytes, desc=f"uploading: {filename}") as pbar:
-        with open(filename, 'rb') as f:
+    with tqdm(total=total_bytes, desc=f"uploading: {file.name}") as pbar:
+        with open(file, 'rb') as f:
             i = 0
             while chunk := f.read(4 * 1024 * 1024):  # todo: arbitrary max size for now
                 data = {'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
@@ -148,9 +153,8 @@ def upload_media(filename: str, session: Session, is_dm: bool = False) -> int:
 
     data = {'command': 'FINALIZE', 'media_id': media_id, 'allow_async': 'true'}
     if is_dm:
-        data |= {'original_md5': hashlib.md5(Path(filename).read_bytes()).hexdigest()}
+        data |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
     r = session.post(url=url, headers=headers, data=data)
-    # logger.debug(f'FINALIZE {r.json()}')
 
     logger.debug(f'processing, please wait...')
     processing_info = r.json().get('processing_info')
@@ -171,7 +175,7 @@ def upload_media(filename: str, session: Session, is_dm: bool = False) -> int:
     return media_id
 
 
-@log(level=logging.DEBUG, info=['text'])
+@log(info=['text'])
 def add_alt_text(text: str, media_id: int, session: Session) -> Response:
     params = {"media_id": media_id, "alt_text": {"text": text}}
     url = 'https://api.twitter.com/1.1/media/metadata/create.json'
@@ -179,7 +183,7 @@ def add_alt_text(text: str, media_id: int, session: Session) -> Response:
     return r
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs) -> Response:
     operation = Operation.CreateTweet.name
     params = deepcopy(operations[operation])
@@ -226,99 +230,99 @@ def quote(text: str, screen_name: str, tweet_id: int, session: Session, media: l
     return tweet(text, session, media, quote_params=params)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def untweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteTweet.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def retweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.CreateRetweet.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def unretweet(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.DeleteRetweet.name, 'source_tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def like(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.FavoriteTweet.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def unlike(tweet_id: int, session: Session) -> Response:
     return graphql_request(tweet_id, Operation.UnfavoriteTweet.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def follow(user_id: int, session: Session) -> Response:
     settings = follow_settings.copy()
     settings |= {"user_id": user_id}
     return api_request(settings, 'friendships/create.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def unfollow(user_id: int, session: Session) -> Response:
     settings = follow_settings.copy()
     settings |= {"user_id": user_id}
     return api_request(settings, 'friendships/destroy.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def mute(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'mutes/users/create.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def unmute(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'mutes/users/destroy.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def enable_notifications(user_id: int, session: Session) -> Response:
     settings = notification_settings.copy()
     settings |= {'id': user_id, 'device': 'true'}
     return api_request(settings, 'friendships/update.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def disable_notifications(user_id: int, session: Session) -> Response:
     settings = notification_settings.copy()
     settings |= {'id': user_id, 'device': 'false'}
     return api_request(settings, 'friendships/update.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def block(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'blocks/create.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def unblock(user_id: int, session: Session) -> Response:
     settings = {'user_id': user_id}
     return api_request(settings, 'blocks/destroy.json', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def bookmark(_id: int, session: Session) -> Response:
     return graphql_request(_id, Operation.CreateBookmark.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def unbookmark(_id: int, session: Session) -> Response:
     return graphql_request(_id, Operation.DeleteBookmark.name, 'tweet_id', session)
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def unbookmark_all(_id: int, session: Session) -> Response:
     return graphql_request(_id, Operation.BookmarksAllDelete.name, 0, session)
 
 
-@log(level=logging.DEBUG, info=['text'])
+@log(info=['text'])
 def update_search_settings(session: Session, **kwargs) -> Response:
     twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
     headers = get_auth_headers(session=session)
@@ -330,7 +334,7 @@ def update_search_settings(session: Session, **kwargs) -> Response:
     return r
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def update_content_settings(session: Session, **kwargs) -> Response:
     """
     Update content settings
@@ -346,7 +350,7 @@ def build_query(params: dict) -> str:
     return '&'.join(f'{k}={ujson.dumps(v)}' for k, v in params.items())
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def stats(rest_id: int, session: Session) -> Response:
     """private endpoint?"""
     operation = Operation.TweetStats.name
@@ -359,7 +363,7 @@ def stats(rest_id: int, session: Session) -> Response:
     return r
 
 
-@log(level=logging.DEBUG, info=['json'])
+@log(info=['json'])
 def dm(text: str, receivers: list[int], session: Session, filename: str = '') -> Response:
     operation = Operation.useSendMessageMutation.name
     params = deepcopy(operations[operation])
@@ -374,3 +378,44 @@ def dm(text: str, receivers: list[int], session: Session, filename: str = '') ->
         params['variables']['message']['text'] = {'text': text}
     r = session.post(url, headers=get_auth_headers(session), json=params)
     return r
+
+
+@log(info=['json'])
+def update_profile_image(filename: str, session: Session) -> Response:
+    media_id = upload_media(filename, session, is_profile=True)
+    url = 'https://api.twitter.com/1.1/account/update_profile_image.json'
+    headers = get_auth_headers(session)
+    params = {'media_id': media_id}
+    r = session.post(url, headers=headers, params=params)
+    return r
+
+
+@log
+def update_profile_banner(filename: str, session: Session) -> Response:
+    media_id = upload_media(filename, session, is_profile=True)
+    url = 'https://api.twitter.com/1.1/account/update_profile_banner.json'
+    headers = get_auth_headers(session)
+    params = {'media_id': media_id}
+    r = session.post(url, headers=headers, params=params)
+    return r
+
+
+@log
+def update_profile_info(session: Session, **kwargs) -> Response:
+    url = 'https://api.twitter.com/1.1/account/update_profile.json'
+    headers = get_auth_headers(session)
+    r = session.post(url, headers=headers, params=kwargs)
+    return r
+
+
+## N/A for undocumented API
+# def get_rate_limit_status(resources: list[str], session: Session) -> Response:
+#     """
+#     @param args: list of resources to check
+#     @return: response object
+#     """
+#     url = 'https://api.twitter.com/1.1/application/rate_limit_status.json'
+#     headers = get_auth_headers(session)
+#     params = {'resources': ','.join(resources)} if resources else ''
+#     r = session.get(url, headers=headers, params=params)
+#     return r
