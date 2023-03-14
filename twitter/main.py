@@ -408,14 +408,32 @@ def update_profile_info(session: Session, **kwargs) -> Response:
     return r
 
 
-## N/A for undocumented API
-# def get_rate_limit_status(resources: list[str], session: Session) -> Response:
-#     """
-#     @param args: list of resources to check
-#     @return: response object
-#     """
-#     url = 'https://api.twitter.com/1.1/application/rate_limit_status.json'
-#     headers = get_auth_headers(session)
-#     params = {'resources': ','.join(resources)} if resources else ''
-#     r = session.get(url, headers=headers, params=params)
-#     return r
+@log(info=['json'])
+def create_poll(text: str, choices: list[str], poll_duration: int, session: Session) -> Response:
+    options = {
+        "twitter:card": "poll4choice_text_only",
+        "twitter:api:api:endpoint": "1",
+        "twitter:long:duration_minutes": poll_duration  # max: 10080
+    }
+    for i, c in enumerate(choices):
+        options[f"twitter:string:choice{i + 1}_label"] = c
+
+    headers = get_auth_headers(session)
+    headers['content-type'] = 'application/x-www-form-urlencoded'
+    url = 'https://caps.twitter.com/v2/cards/create.json'
+    r = session.post(url, headers=headers, params={'card_data': ujson.dumps(options)})
+    card_uri = r.json()['card_uri']
+    r = tweet(text, session, poll_params={'card_uri': card_uri})
+    return r
+
+
+@log(info=['json'])
+def pin(tweet_id: int, session: Session) -> Response:
+    settings = {'tweet_mode': 'extended', 'id': tweet_id}
+    return api_request(settings, 'account/pin_tweet.json', session)
+
+
+@log(info=['json'])
+def unpin(tweet_id: int, session: Session) -> Response:
+    settings = {'tweet_mode': 'extended', 'id': tweet_id}
+    return api_request(settings, 'account/unpin_tweet.json', session)

@@ -19,11 +19,14 @@ from twitter.login import login
 usr, pwd = ..., ...
 session = login(usr, pwd)
 
+
+r = create_poll('test poll', ['hello', 'world', 'foo', 'bar'], 10080, session)
+
 # DM 1 user
-dm('hello world', [123], session, filename='test.png')
+r = dm('hello world', [123], session, filename='test.png')
 
 # DM group of users
-dm('foo bar', [123, 456, 789], session, filename='test.mp4')
+r = dm('foo bar', [123, 456, 789], session, filename='test.mp4')
 
 # create tweet with images, videos, gifs, and tagged users
 r = tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
@@ -58,6 +61,9 @@ r = unblock(50393960, session)
 r = bookmark(1633609779745820675, session)
 r = unbookmark(1633609779745820675, session)
 r = unbookmark_all(1633609779745820675, session)
+
+r = pin(1635479755364651008, session)
+r = unpin(1635479755364651008, session)
 
 r = stats(50393960, session)
 

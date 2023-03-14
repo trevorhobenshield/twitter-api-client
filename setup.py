@@ -1,6 +1,5 @@
 import sys
 from textwrap import dedent
-
 from setuptools import find_packages, setup
 
 install_requires = [
@@ -15,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.2.5",
+    version="0.2.6",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -32,15 +31,17 @@ setup(
     session = login(usr, pwd)
     
     
+    r = create_poll('test poll', ['hello', 'world', 'foo', 'bar'], 10080, session)
+    
     # DM 1 user
-    dm('hello world', [123], session, filename='test.png')
+    r = dm('hello world', [123], session, filename='test.png')
     
     # DM group of users
-    dm('foo bar', [123, 456, 789], session, filename='test.mp4')
+    r = dm('foo bar', [123, 456, 789], session, filename='test.mp4')
     
     # create tweet with images, videos, gifs, and tagged users
     r = tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
-    r = tweet('test 123', session, media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
+    r = tweet('test 123', session, media=['test.jpg', 'test.png'])
     r = tweet('test 123', session, media=['test.mp4'])
     r = tweet('test 123', session)
     
@@ -68,12 +69,14 @@ setup(
     r = block(50393960, session)
     r = unblock(50393960, session)
     
-    # some hidden user attribute?
-    r = stats(50393960, session)
-    
     r = bookmark(1633609779745820675, session)
     r = unbookmark(1633609779745820675, session)
     r = unbookmark_all(1633609779745820675, session)
+    
+    r = pin(1635479755364651008, session)
+    r = unpin(1635479755364651008, session)
+    
+    r = stats(50393960, session)
     
     # update profile
     update_profile_image('profile.jpg', session)
@@ -148,5 +151,4 @@ setup(
     keywords="twitter api client async search automation bot scrape",
     packages=find_packages(),
     include_package_data=True,
-    package_data={'src': ['*']}
 )
