@@ -19,7 +19,7 @@ from .config.log_config import log_config
 from .config.operations import operations
 from .config.settings import *
 from .login import Session, Response
-from .utils import get_auth_headers
+from .utils import get_headers
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -100,12 +100,12 @@ def graphql_request(_id: int, operation: any, key: str | int, session: Session) 
     qid = params['queryId']
     if key: params['variables'][key] = _id
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
+    r = session.post(url, headers=get_headers(session), json=params)
     return r
 
 
 def api_request(settings: dict, path: str, session: Session) -> Response:
-    headers = get_auth_headers(session)
+    headers = get_headers(session)
     headers['content-type'] = 'application/x-www-form-urlencoded'
     url = f'https://api.twitter.com/1.1/{path}'
     r = session.post(url, headers=headers, data=urlencode(settings))
@@ -120,7 +120,7 @@ def upload_media(filename: str, session: Session, is_dm: bool = False, is_profil
 
     file = Path(filename)
     total_bytes = file.stat().st_size
-    headers = get_auth_headers(session)
+    headers = get_headers(session)
 
     upload_type = 'dm' if is_dm else 'tweet'
     media_type = mimetypes.guess_type(file)[0]
@@ -136,7 +136,9 @@ def upload_media(filename: str, session: Session, is_dm: bool = False, is_profil
     data = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes, 'media_category': media_category}
     r = session.post(url=url, headers=headers, data=data)
     media_id = r.json()['media_id']
-    with tqdm(total=total_bytes, desc=f"uploading: {file.name}") as pbar:
+
+    desc = f"uploading: {file.name}"
+    with tqdm(total=total_bytes, desc=desc, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
         with open(file, 'rb') as f:
             i = 0
             while chunk := f.read(4 * 1024 * 1024):  # todo: arbitrary max size for now
@@ -177,7 +179,7 @@ def upload_media(filename: str, session: Session, is_dm: bool = False, is_profil
 def add_alt_text(text: str, media_id: int, session: Session) -> Response:
     params = {"media_id": media_id, "alt_text": {"text": text}}
     url = 'https://api.twitter.com/1.1/media/metadata/create.json'
-    r = session.post(url, headers=get_auth_headers(session), json=params)
+    r = session.post(url, headers=get_headers(session), json=params)
     return r
 
 
@@ -213,7 +215,7 @@ def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs)
         params['variables'] |= poll_params
 
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_auth_headers(session), json=params)
+    r = session.post(url, headers=get_headers(session), json=params)
     return r
 
 
@@ -323,7 +325,7 @@ def unbookmark(_id: int, session: Session) -> Response:
 @log(info=['text'])
 def update_search_settings(session: Session, **kwargs) -> Response:
     twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
-    headers = get_auth_headers(session=session)
+    headers = get_headers(session=session)
     r = session.post(
         url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
         headers=headers,
@@ -357,7 +359,7 @@ def stats(rest_id: int, session: Session) -> Response:
     params['variables']['rest_id'] = rest_id
     query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
-    r = session.get(url, headers=get_auth_headers(session))
+    r = session.get(url, headers=get_headers(session))
     return r
 
 
@@ -374,7 +376,7 @@ def dm(text: str, receivers: list[int], session: Session, filename: str = '') ->
         params['variables']['message']['media'] = {'id': media_id, 'text': text}
     else:
         params['variables']['message']['text'] = {'text': text}
-    r = session.post(url, headers=get_auth_headers(session), json=params)
+    r = session.post(url, headers=get_headers(session), json=params)
     return r
 
 
@@ -382,7 +384,7 @@ def dm(text: str, receivers: list[int], session: Session, filename: str = '') ->
 def update_profile_image(filename: str, session: Session) -> Response:
     media_id = upload_media(filename, session, is_profile=True)
     url = 'https://api.twitter.com/1.1/account/update_profile_image.json'
-    headers = get_auth_headers(session)
+    headers = get_headers(session)
     params = {'media_id': media_id}
     r = session.post(url, headers=headers, params=params)
     return r
@@ -392,7 +394,7 @@ def update_profile_image(filename: str, session: Session) -> Response:
 def update_profile_banner(filename: str, session: Session) -> Response:
     media_id = upload_media(filename, session, is_profile=True)
     url = 'https://api.twitter.com/1.1/account/update_profile_banner.json'
-    headers = get_auth_headers(session)
+    headers = get_headers(session)
     params = {'media_id': media_id}
     r = session.post(url, headers=headers, params=params)
     return r
@@ -401,7 +403,7 @@ def update_profile_banner(filename: str, session: Session) -> Response:
 @log
 def update_profile_info(session: Session, **kwargs) -> Response:
     url = 'https://api.twitter.com/1.1/account/update_profile.json'
-    headers = get_auth_headers(session)
+    headers = get_headers(session)
     r = session.post(url, headers=headers, params=kwargs)
     return r
 
@@ -416,7 +418,7 @@ def create_poll(text: str, choices: list[str], poll_duration: int, session: Sess
     for i, c in enumerate(choices):
         options[f"twitter:string:choice{i + 1}_label"] = c
 
-    headers = get_auth_headers(session)
+    headers = get_headers(session)
     headers['content-type'] = 'application/x-www-form-urlencoded'
     url = 'https://caps.twitter.com/v2/cards/create.json'
     r = session.post(url, headers=headers, params={'card_data': ujson.dumps(options)})

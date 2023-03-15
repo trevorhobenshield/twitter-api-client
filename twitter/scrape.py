@@ -5,6 +5,7 @@ import random
 import re
 import sys
 import time
+from copy import deepcopy
 from enum import Enum, auto
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -15,17 +16,19 @@ from aiohttp import ClientSession, TCPConnector
 from .config.operations import operations
 from .config.log_config import log_config
 from .login import Session
-from .utils import find_key
+from .utils import find_key, build_query, get_headers
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -53,6 +56,7 @@ class Operation(Enum):
 
 
 ID = 'ID'
+DUP_LIMIT = 5
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
@@ -95,45 +99,51 @@ def get_tweets(ids: list[int], session: Session, limit=math.inf):
 
 # no pagination needed
 def get_tweet_by_rest_id(ids: list[int], session: Session):
-    return graphql(ids, Operation.TweetResultByRestId.name, 'tweetId', session)
+    return run(Operation.TweetResultByRestId.name, 'tweetId', ids, session)
 
 
 # no pagination needed
 def get_user_by_screen_name(ids: list[str], session: Session):
-    return graphql(ids, Operation.UserByScreenName.name, 'screen_name', session)
+    return run(Operation.UserByScreenName.name, 'screen_name', ids, session)
 
 
 # no pagination needed
 def get_user_by_rest_id(ids: list[int], session: Session):
-    return graphql(ids, Operation.UserByRestId.name, 'userId', session)
+    return run(Operation.UserByRestId.name, 'userId', ids, session)
 
 
-# no pagination needed - special batch query
-def get_users_by_rest_ids(ids: list[int], session: Session):
+# no pagination needed (special batch query)
+def users_by_rest_ids(ids: list[int], session: Session):
     operation = Operation.UsersByRestIds.name
     qid = operations[operation]['queryId']
-    operations[operation]['variables']['userIds'] = ids
-    query = build_query(operations[operation])
+    params = deepcopy(operations[operation])
+    params['variables']['userIds'] = ids
+    query = build_query(params)
     url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
-    headers = get_headers(session=session)
+    headers = get_headers(session)
+    headers['content-type'] = "application/json"
     users = session.get(url, headers=headers).json()
     return users
 
 
-def run(operation: str, key: str, ids: list[str | int], session: Session, limit):
+def run(operation: str, key: str, ids: list[str | int], session: Session, limit=None):
     res = graphql(ids, operation, key, session)
+    if limit is None:
+        return res
     return asyncio.run(pagination(operation, key, res, session, limit))
 
 
 def graphql(ids: list[any], operation: any, key: str | int, session: Session) -> list:
     qid = operations[operation]['queryId']
-    params = operations[operation]
+    params = deepcopy(operations[operation])
     urls = []
     for _id in ids:
         params['variables'][key] = _id
         query = build_query(params)
         urls.append((_id, f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"))
-    res = asyncio.run(process(urls, get_headers(session=session), session))
+    headers = get_headers(session)
+    headers['content-type'] = "application/json"
+    res = asyncio.run(process(urls, headers, session))
     save_data(res, operation)
     return res
 
@@ -159,7 +169,9 @@ async def get(session: ClientSession, url: tuple) -> dict:
 
 async def pagination(operation: any, key: str, res: list, session: Session, limit) -> tuple:
     conn = TCPConnector(limit=len(res), ssl=False, ttl_dns_cache=69)
-    async with ClientSession(headers=get_headers(session=session), connector=conn) as s:
+    headers = get_headers(session)
+    headers['content-type'] = "application/json"
+    async with ClientSession(headers=headers, connector=conn) as s:
         # add cookies from logged-in session
         s.cookie_jar.update_cookies(session.cookies)
         return await asyncio.gather(*(paginate(s, operation, key, data, limit) for data in res))
@@ -177,9 +189,8 @@ async def paginate(session: ClientSession, operation: any, key: str, data: dict,
                         return itemContent['value']  # v2 cursor
                     return content['value']  # v1 cursor
 
-    DUP_LIMIT = 5
     qid = operations[operation]['queryId']
-    params = operations[operation]
+    params = deepcopy(operations[operation])
 
     ids = set()
     counts = []
@@ -239,45 +250,12 @@ async def backoff(fn, retries=12):
             time.sleep(t)
 
 
-def build_query(params):
-    return '&'.join(f'{k}={ujson.dumps(v)}' for k, v in {k: v for k, v in params.items() if k != 'queryId'}.items())
-
-
 def save_data(data: list, operation: str = ''):
     for d in data:
         path = Path(f'data/raw/{d[ID]}')
         path.mkdir(parents=True, exist_ok=True)
         with open(path / f'{time.time_ns()}_{operation}.json', 'w') as fp:
             ujson.dump(d, fp, indent=4)
-
-
-def get_headers(session=False, fname: str = '') -> dict:
-    if fname:
-        with open(fname) as fp:
-            return {y.group(): z.group()
-                    for x in fp.read().splitlines()
-                    if (y := re.search('^[\w-]+(?=:\s)', x),
-                        z := re.search(f'(?<={y.group()}:\s).*', x))}
-    if session:
-        return {
-            "authorization": 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-            "content-type": "application/json",
-            "user-agent": 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
-            "x-guest-token": session.tokens['guest_token'],
-            "x-csrf-token": session.cookies.get("ct0"),
-            "x-twitter-auth-type": "OAuth2Session" if session.cookies.get("auth_token") else '',
-            "x-twitter-active-user": "yes",
-            "x-twitter-client-language": 'en',
-        }
-
-    s = Session()
-    headers = {
-        'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    r = s.post('https://api.twitter.com/1.1/guest/activate.json', headers=headers)
-    headers['x-guest-token'] = r.json()['guest_token']
-    return headers
 
 
 def download(session: Session, post_url: str, cdn_url: str, path: str = 'media', chunk_size: int = 4096) -> None:
