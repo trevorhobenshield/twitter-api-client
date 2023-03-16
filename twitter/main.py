@@ -13,13 +13,13 @@ from urllib.parse import urlencode
 from uuid import uuid1, getnode
 
 import ujson
+from requests import Session, Response
 from tqdm import tqdm
 
 from .config.log_config import log_config
 from .config.operations import operations
 from .config.settings import *
-from .login import Session, Response
-from .utils import get_headers
+from .utils import get_headers, build_query
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -70,7 +70,7 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
         limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
         current_time = int(time.time())
         wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
-        logger.log(level, f'{WARN}{wait // 60} minutes{RESET} until rate-limit reset. {limits = }')
+        logger.log(level, f'{wait // 60} minutes until rate-limit reset. {limits = }')
 
         try:
             if 200 <= r.status_code < 300:
@@ -344,10 +344,6 @@ def update_content_settings(session: Session, **kwargs) -> Response:
     @return: updated settings
     """
     return api_request(kwargs, 'account/settings.json', session)
-
-
-def build_query(params: dict) -> str:
-    return '&'.join(f'{k}={ujson.dumps(v)}' for k, v in params.items())
 
 
 @log(info=['json'])

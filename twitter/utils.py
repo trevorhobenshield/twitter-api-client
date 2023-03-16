@@ -43,7 +43,7 @@ def get_headers(session) -> dict:
         'referer': 'https://twitter.com/',
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
         'x-csrf-token': session.cookies.get('ct0'),
-        "x-guest-token": session.tokens.get('guest_token'),
+        "x-guest-token": session.cookies.get('guest_token'),
         "x-twitter-auth-type": "OAuth2Session" if session.cookies.get("auth_token") else '',
         "x-twitter-active-user": "yes",
         "x-twitter-client-language": 'en',
