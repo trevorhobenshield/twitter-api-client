@@ -2,8 +2,8 @@ Complete implementation of the undocumented Twitter API
 
 Includes tools to **scrape**, **automate**, and **search** twitter
 
-
 ### Installation
+
 ```bash
 pip install twitter-api-client
 ```
@@ -15,8 +15,7 @@ from twitter.main import *
 from twitter.login import login
 
 usr, pwd = ..., ...
-s = login(usr, pwd) # session
-
+s = login(usr, pwd)  # session
 
 create_poll(s, 'test poll', ['hello', 'world', 'foo', 'bar'], 10080)
 
@@ -24,7 +23,7 @@ create_poll(s, 'test poll', ['hello', 'world', 'foo', 'bar'], 10080)
 dm(s, [111], 'hello world', filename='test.png')
 
 # DM group of users
-dm(s, [111,222,333], 'foo bar', filename='test.mp4')
+dm(s, [111, 222, 333], 'foo bar', filename='test.mp4')
 
 # tweets
 tweet(s, 'test 123')
@@ -77,7 +76,7 @@ pin_list(s, 123456)
 unpin_list(s, 123456)
 
 # refresh all pinned lists in this order
-update_pinned_lists(s, [123,234,345,456])
+update_pinned_lists(s, [123, 234, 345, 456])
 
 # unpin all lists
 update_pinned_lists(s, [])
@@ -138,14 +137,15 @@ update_search_settings(s, {
 ```
 
 ### Scraping
-#### User/Tweet data
+
+#### Get all user/tweet data
 
 ```python
 from twitter.scrape import *
 from twitter.login import login
 
 usr, pwd = ..., ...
-s = login(usr, pwd) # session
+s = login(usr, pwd)  # session
 
 user_ids = [...]
 usernames = [...]
@@ -169,6 +169,27 @@ favoriters = get_favoriters(s, tweet_ids)
 download_media(s, tweet_ids)
 ```
 
+#### Most recent ~100 results of user/tweet data
+
+```python
+from twitter.login import login
+from twitter.scrape import query
+from twitter.constants import Operation
+
+from functools import partial
+
+username, password = ..., ...
+session = login(username, password)
+
+user_ids = [123, 234, 345, 456]
+user_query = partial(query, session, user_ids)
+
+tweets = user_query(Operation.Data.UserTweets)
+likes = user_query(Operation.Data.Likes)
+followers = user_query(Operation.Data.Followers)
+
+```
+
 #### Search
 
 ```python   
@@ -184,6 +205,7 @@ search(
     'ios android',
 )
 ```
+
 ![](assets/example-search.gif)
 
 - search results are output to `~/data/raw`

@@ -1,63 +1,71 @@
-from enum import Enum, auto, member
+from enum import Enum, member
+
+
+class Value:
+    def __init__(self, value):
+        self.value = value
 
 
 class Operation(Enum):
+    """
+    Enum with repeated values for GraphQL operations
+    """
+
     def __getattr__(self, item):
-        if item != '_value_':
-            return getattr(self.value, item).name
+        if item != "_value_":
+            attr = getattr(self.value, item)
+            return attr.name, attr.value.value
         raise AttributeError
+
+    @member
+    class Data(Enum):
+        # tweet
+        Favoriters = Value('tweetId')
+        Retweeters = Value('tweetId')
+        TweetDetail = Value('focalTweetId')
+        TweetResultByRestId = Value('tweetId')
+        # user
+        UserTweets = Value('userId')
+        UserTweetsAndReplies = Value('userId')
+        Likes = Value('userId')
+        UserMedia = Value('userId')
+        Followers = Value('userId')
+        Following = Value('userId')
+        UserByScreenName = Value('screen_name')
+        UserByRestId = Value('userId')
+        # batch-user
+        UsersByRestIds = Value('userIds')
 
     @member
     class Account(Enum):
         # tweet
-        CreateTweet = auto()
-        CreateScheduledTweet = auto()
-        DeleteTweet = auto()
-        FavoriteTweet = auto()
-        UnfavoriteTweet = auto()
-        CreateRetweet = auto()
-        DeleteRetweet = auto()
+        CreateTweet = Value(...)
+        CreateScheduledTweet = Value(...)
+        DeleteTweet = Value(...)
+        FavoriteTweet = Value(...)
+        UnfavoriteTweet = Value(...)
+        CreateRetweet = Value(...)
+        DeleteRetweet = Value(...)
         # bookmark
-        CreateBookmark = auto()
-        DeleteBookmark = auto()
-        BookmarksAllDelete = auto()
+        CreateBookmark = Value(...)
+        DeleteBookmark = Value(...)
+        BookmarksAllDelete = Value(...)
         # topic
-        TopicFollow = auto()
-        TopicUnfollow = auto()
+        TopicFollow = Value(...)
+        TopicUnfollow = Value(...)
         # list
-        ListsManagementPageTimeline = auto()
-        CreateList = auto()
-        DeleteList = auto()
-        EditListBanner = auto()
-        DeleteListBanner = auto()
-        ListAddMember = auto()
-        ListRemoveMember = auto()
-        ListsPinMany = auto()
-        ListPinOne = auto()
-        ListUnpinOne = auto()
-        UpdateList = auto()
+        ListsManagementPageTimeline = Value(...)
+        CreateList = Value(...)
+        DeleteList = Value(...)
+        EditListBanner = Value(...)
+        DeleteListBanner = Value(...)
+        ListAddMember = Value(...)
+        ListRemoveMember = Value(...)
+        ListsPinMany = Value(...)
+        ListPinOne = Value(...)
+        ListUnpinOne = Value(...)
+        UpdateList = Value(...)
         # DM
-        useSendMessageMutation = auto()
+        useSendMessageMutation = Value(...)
         # other
-        TweetStats = auto()
-
-    @member
-    class Data(Enum):
-        # tweet operations
-        TweetDetail = auto()
-        TweetResultByRestId = auto()
-        Favoriters = auto()
-        Retweeters = auto()
-
-        # user operations
-        Following = auto()
-        UserTweets = auto()
-        Followers = auto()
-        UserTweetsAndReplies = auto()
-        UserMedia = auto()
-        Likes = auto()
-        UserByScreenName = auto()
-        UserByRestId = auto()
-
-        # batch user operations
-        UsersByRestIds = auto()
+        TweetStats = Value(...)

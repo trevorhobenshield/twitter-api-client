@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.3.3",
+    version="0.3.4",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -151,14 +151,15 @@ setup(
     ```
     
     ### Scraping
-    #### User/Tweet data
+    
+    #### Get all user/tweet data
     
     ```python
     from twitter.scrape import *
     from twitter.login import login
     
     usr, pwd = ..., ...
-    s = login(usr, pwd) # session
+    s = login(usr, pwd)  # session
     
     user_ids = [...]
     usernames = [...]
@@ -180,6 +181,26 @@ setup(
     favoriters = get_favoriters(s, tweet_ids)
     
     download_media(s, tweet_ids)
+    ```
+    
+    #### Most recent ~100 results of user/tweet data
+    
+    ```python
+    from twitter.login import login
+    from twitter.scrape import query
+    from twitter.constants import Operation
+    
+    from functools import partial
+    
+    username, password = ..., ...
+    session = login(username, password)
+    
+    user_ids = [123, 234, 345, 456]
+    user_query = partial(query, session, user_ids)
+    
+    tweets = user_query(Operation.Data.UserTweets)
+    likes = user_query(Operation.Data.Likes)
+    followers = user_query(Operation.Data.Followers)
     ```
     
     #### Search

@@ -24,12 +24,14 @@ from .utils import get_headers, build_query
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -78,11 +80,12 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
     return wrapper
 
 
-def gql(session: Session, operation: str, variables: dict) -> Response:
-    payload = deepcopy(operations[operation])
+def gql(session: Session, operation: tuple, variables: dict) -> Response:
+    name, _ = operation
+    payload = deepcopy(operations[name])
     qid = payload['queryId']
     payload['variables'] |= variables
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    url = f"https://api.twitter.com/graphql/{qid}/{name}"
     r = session.post(url, headers=get_headers(session), json=payload)
     return r
 
@@ -168,8 +171,8 @@ def add_alt_text(session: Session, media_id: int, text: str) -> Response:
 
 @log(info=['json'])
 def tweet(session: Session, text: str, media: list[dict | str] = None, **kwargs) -> Response:
-    operation = Operation.Account.CreateTweet
-    params = deepcopy(operations[operation])
+    name, _ = Operation.Account.CreateTweet
+    params = deepcopy(operations[name])
     qid = params['queryId']
     params['variables']['tweet_text'] = text
     if media:
@@ -197,7 +200,7 @@ def tweet(session: Session, text: str, media: list[dict | str] = None, **kwargs)
     if poll_params := kwargs.get('poll_params', {}):
         params['variables'] |= poll_params
 
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    url = f"https://api.twitter.com/graphql/{qid}/{name}"
     r = session.post(url, headers=get_headers(session), json=params)
     return r
 
@@ -303,24 +306,24 @@ def unblock(session: Session, user_id: int) -> Response:
 @log(info=['json'])
 def stats(session: Session, rest_id: int) -> Response:
     """private endpoint?"""
-    operation = Operation.Account.TweetStats
-    params = deepcopy(operations[operation])
+    name, _ = Operation.Account.TweetStats
+    params = deepcopy(operations[name])
     qid = params['queryId']
     params['variables']['rest_id'] = rest_id
     query = build_query(params)
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
+    url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
     r = session.get(url, headers=get_headers(session))
     return r
 
 
 @log(info=['json'])
 def dm(session: Session, receivers: list[int], text: str, filename: str = '') -> Response:
-    operation = Operation.Account.useSendMessageMutation
-    params = deepcopy(operations[operation])
+    name, _ = Operation.Account.useSendMessageMutation
+    params = deepcopy(operations[name])
     qid = params['queryId']
     params['variables']['target'] = {"participant_ids": receivers}
     params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    url = f"https://api.twitter.com/graphql/{qid}/{name}"
     if filename:
         media_id = upload_media(session, filename, is_dm=True)
         params['variables']['message']['media'] = {'id': media_id, 'text': text}
@@ -444,11 +447,11 @@ def remove_interests(session: Session, *args):
 
 @log(info=['json'])
 def __get_lists(session: Session) -> Response:
-    operation = Operation.Account.ListsManagementPageTimeline
-    params = deepcopy(operations[operation])
+    name, _ = Operation.Account.ListsManagementPageTimeline
+    params = deepcopy(operations[name])
     qid = params['queryId']
     query = build_query(params)
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
+    url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
     r = session.get(url, headers=get_headers(session))
     return r
 
