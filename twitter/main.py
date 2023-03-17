@@ -24,12 +24,14 @@ from .utils import get_headers, build_query
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -39,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 class Operation(Enum):
+    # tweet
     CreateTweet = auto()
     CreateScheduledTweet = auto()
     DeleteTweet = auto()
@@ -47,12 +50,29 @@ class Operation(Enum):
     UnfavoriteTweet = auto()
     CreateRetweet = auto()
     DeleteRetweet = auto()
+    # bookmark
     CreateBookmark = auto()
     DeleteBookmark = auto()
     BookmarksAllDelete = auto()
-    TweetStats = auto()
+    # topic
+    TopicFollow = auto()
+    TopicUnfollow = auto()
+    # list
+    ListsManagementPageTimeline = auto()
+    CreateList = auto()
+    DeleteList = auto()
+    EditListBanner = auto()
+    DeleteListBanner = auto()
+    ListAddMember = auto()
+    ListRemoveMember = auto()
+    ListsPinMany = auto()
+    ListPinOne = auto()
+    ListUnpinOne = auto()
+    UpdateList = auto()
     # DM
     useSendMessageMutation = auto()
+    # other
+    TweetStats = auto()
 
 
 def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
@@ -322,30 +342,6 @@ def unbookmark(_id: int, session: Session) -> Response:
 #     return graphql_request(0, Operation.BookmarksAllDelete.name, 0, session)
 
 
-@log(info=['text'])
-def update_search_settings(session: Session, **kwargs) -> Response:
-    twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
-    headers = get_headers(session=session)
-    r = session.post(
-        url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
-        headers=headers,
-        json=kwargs,
-    )
-    return r
-
-
-@log(info=['json'])
-def update_content_settings(session: Session, **kwargs) -> Response:
-    """
-    Update content settings
-
-    @param session: authenticated session
-    @param kwargs: settings to enable/disable
-    @return: updated settings
-    """
-    return api_request(kwargs, 'account/settings.json', session)
-
-
 @log(info=['json'])
 def stats(rest_id: int, session: Session) -> Response:
     """private endpoint?"""
@@ -433,3 +429,222 @@ def pin(tweet_id: int, session: Session) -> Response:
 def unpin(tweet_id: int, session: Session) -> Response:
     settings = {'tweet_mode': 'extended', 'id': tweet_id}
     return api_request(settings, 'account/unpin_tweet.json', session)
+
+
+@log(info=['text'])
+def update_search_settings(session: Session, **kwargs) -> Response:
+    twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
+    headers = get_headers(session=session)
+    r = session.post(
+        url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
+        headers=headers,
+        json=kwargs,
+    )
+    return r
+
+
+@log(info=['json'])
+def update_content_settings(session: Session, **kwargs) -> Response:
+    """
+    Update content settings
+
+    @param session: authenticated session
+    @param kwargs: settings to enable/disable
+    @return: updated settings
+    """
+    return api_request(kwargs, 'account/settings.json', session)
+
+
+@log(info=['json'])
+def remove_interests(session: Session, *args):
+    url = 'https://api.twitter.com/1.1/account/personalization/twitter_interests.json'
+    r = session.get(url, headers=get_headers(session))
+    current_interests = r.json()['interested_in']
+    if args == 'all':
+        disabled_interests = [x['id'] for x in current_interests]
+    else:
+        disabled_interests = [x['id'] for x in current_interests if x['display_name'] in args]
+    payload = {
+        "preferences": {
+            "interest_preferences": {
+                "disabled_interests": disabled_interests,
+                "disabled_partner_interests": []
+            }
+        }
+    }
+    url = 'https://api.twitter.com/1.1/account/personalization/p13n_preferences.json'
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def __get_lists(session: Session) -> Response:
+    operation = Operation.ListsManagementPageTimeline.name
+    params = deepcopy(operations[operation])
+    qid = params['queryId']
+    query = build_query(params)
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
+    r = session.get(url, headers=get_headers(session))
+    return r
+
+
+@log(info=['json'])
+def create_list(session: Session, name: str, description: str, private: bool) -> Response:
+    operation = Operation.CreateList.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables'] |= {
+        "isPrivate": private,
+        "name": name,
+        "description": description,
+    }
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def update_list(session: Session, list_id: int, name: str, description: str, private: bool) -> Response:
+    operation = Operation.UpdateList.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables'] |= {
+        "listId": list_id,
+        "isPrivate": private,
+        "name": name,
+        "description": description,
+    }
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def update_pinned_lists(session: Session, list_ids: list[int]) -> Response:
+    """
+    Update pinned lists
+
+    Reset all pinned lists and pin all specified lists in the order they are provided.
+
+    @param session: authenticated session
+    @param list_ids: list of list ids to pin
+    @return: response
+    """
+    operation = Operation.ListsPinMany.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables']['listIds'] = list_ids
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def pin_list(session: Session, list_id: int) -> Response:
+    operation = Operation.ListPinOne.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables']['listId'] = list_id
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def unpin_list(session: Session, list_id: int) -> Response:
+    operation = Operation.ListUnpinOne.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables']['listId'] = list_id
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def add_list_member(session: Session, list_id: int, user_id: int) -> Response:
+    operation = Operation.ListAddMember.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables'] |= {
+        "listId": list_id,
+        "userId": user_id,
+    }
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def remove_list_member(session: Session, list_id: int, user_id: int) -> Response:
+    operation = Operation.ListRemoveMember.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables'] |= {
+        "listId": list_id,
+        "userId": user_id,
+    }
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def delete_list(session: Session, list_id: int) -> Response:
+    operation = Operation.DeleteList.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables']['listId'] = list_id
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def update_list_banner(session: Session, list_id: int, filename: str) -> Response:
+    media_id = upload_media(filename, session)
+    operation = Operation.EditListBanner.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables'] |= {
+        'listId': list_id,
+        'mediaId': media_id,
+    }
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def delete_list_banner(session: Session, list_id: int) -> Response:
+    operation = Operation.DeleteListBanner.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables']['listId'] = list_id
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def follow_topic(session: Session, topic_id: int) -> Response:
+    operation = Operation.TopicFollow.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    # Topic operations are the only ones which require the id to be a string, weird
+    payload['variables']['topicId'] = str(topic_id)
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def unfollow_topic(session: Session, topic_id: int) -> Response:
+    operation = Operation.TopicUnfollow.name
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    # Topic operations are the only ones which require the id to be a string, weird
+    payload['variables']['topicId'] = str(topic_id)
+    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r

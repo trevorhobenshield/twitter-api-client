@@ -204,7 +204,7 @@ async def paginate(session: ClientSession, operation: any, key: str, data: dict,
         query = build_query(params)
         url = f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"
 
-        # update csrf header - must be an easier way
+        # update csrf header - must be an easier way without importing yarl
         if k := session.cookie_jar.__dict__['_cookies'].get('twitter.com'):
             if cookie := re.search('(?<=ct0\=)\w+(?=;)', str(k)):
                 session.headers.update({"x-csrf-token": cookie.group()})

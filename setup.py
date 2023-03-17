@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.2.9",
+    version="0.3.0",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -31,57 +31,69 @@ setup(
     session = login(usr, pwd)
     
     
-    r = create_poll('test poll', ['hello', 'world', 'foo', 'bar'], 10080, session)
+    create_poll('test poll', ['hello', 'world', 'foo', 'bar'], 10080, session)
     
     # DM 1 user
-    r = dm('hello world', [123], session, filename='test.png')
+    dm('hello world', [123], session, filename='test.png')
     
     # DM group of users
-    r = dm('foo bar', [123, 456, 789], session, filename='test.mp4')
+    dm('foo bar', [123, 456, 789], session, filename='test.mp4')
     
-    # create tweet with images, videos, gifs, and tagged users
-    r = tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
-    r = tweet('test 123', session, media=['test.jpg', 'test.png'])
-    r = tweet('test 123', session, media=['test.mp4'])
-    r = tweet('test 123', session)
+    # tweets
+    tweet('test 123', session)
+    tweet('test 123', session, media=['test.jpg', 'test.png'])
+    tweet('test 123', session, media=['test.mp4'])
+    tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+    untweet(123, session)
+    retweet(1633609779745820675, session)
+    unretweet(1633609779745820675, session)
+    quote('test 123', 'elonmusk', 1633609779745820675, session)
+    comment('test 123', 1633609779745820675, session)
+    like(1633609779745820675, session)
+    unlike(1633609779745820675, session)
+    bookmark(1633609779745820675, session)
+    unbookmark(1633609779745820675, session)
+    pin(1635479755364651008, session)
+    unpin(1635479755364651008, session)
     
-    # delete tweet
-    r = untweet(123, session)
+    # users
+    follow(50393960, session)
+    unfollow(50393960, session)
+    mute(50393960, session)
+    unmute(50393960, session)
+    enable_notifications(50393960, session)
+    disable_notifications(50393960, session)
+    block(50393960, session)
+    unblock(50393960, session)
     
-    r = retweet(1633609779745820675, session)
-    r = unretweet(1633609779745820675, session)
+    # other
+    stats(50393960, session)
     
-    r = quote('test 123', 'elonmusk', 1633609779745820675, session)
-    r = comment('test 123', 1633609779745820675, session)
-    
-    r = unlike(1633609779745820675, session)
-    r = like(1633609779745820675, session)
-    
-    r = follow(50393960, session)
-    r = unfollow(50393960, session)
-    
-    r = mute(50393960, session)
-    r = unmute(50393960, session)
-    
-    r = enable_notifications(50393960, session)
-    r = disable_notifications(50393960, session)
-    
-    r = block(50393960, session)
-    r = unblock(50393960, session)
-    
-    r = bookmark(1633609779745820675, session)
-    r = unbookmark(1633609779745820675, session)
-    
-    r = pin(1635479755364651008, session)
-    r = unpin(1635479755364651008, session)
-    
-    r = stats(50393960, session)
-    
-    # update profile
+    # user profile
     update_profile_image('profile.jpg', session)
     update_profile_banner('banner.jpg', session)
     update_profile_info(session, name='Foo Bar', description='Test 123', location='Victoria, BC')
-
+    
+    # topics
+    follow_topic(session, 123)
+    unfollow_topic(session, 123)
+    
+    # lists
+    create_list(session, 'My List', 'description of my list', private=False)
+    update_list(session, 456, 'My Updated List', 'some updated description', private=False)
+    update_list_banner(session, 456, 'test.jpg')
+    delete_list_banner(session, 456)
+    add_list_member(session, 456, 678)
+    remove_list_member(session, 456, 678)
+    delete_list(session, 456)
+    pin_list(session, 456)
+    unpin_list(session, 456)
+    # refresh all pinned lists in this order
+    update_pinned_lists(session, [456, 678, 789])
+    # unpin all lists
+    update_pinned_lists(session, [])
+    
+    
     ```
     
     ### Scraping

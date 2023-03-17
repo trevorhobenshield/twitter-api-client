@@ -1541,7 +1541,11 @@ operations = {
     },
     "ListAddMember": {
         "queryId": "P8tyfv2_0HzofrB5f6_ugw",
-        "variables": {},
+        "variables": {
+            "listId": None,
+            "userId": None,
+            "withSuperFollowsUserFields": False,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1552,7 +1556,10 @@ operations = {
     },
     "DeleteListBanner": {
         "queryId": "-bOKetDVCMl20qXn7YDXIA",
-        "variables": {},
+        "variables": {
+            "listId": None,
+            "withSuperFollowsUserFields": False,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1563,7 +1570,11 @@ operations = {
     },
     "EditListBanner": {
         "queryId": "Uk0ZwKSMYng56aQdeJD1yw",
-        "variables": {},
+        "variables": {
+            "listId": None,
+            "mediaId": None,
+            "withSuperFollowsUserFields": False,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1585,7 +1596,12 @@ operations = {
     },
     "CreateList": {
         "queryId": "hQAsnViq2BrMLbPuQ9umDA",
-        "variables": {},
+        "variables": {
+            "isPrivate": None,  # True/False
+            "name": None,
+            "description": None,
+            "withSuperFollowsUserFields": True,  # True/False
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1621,7 +1637,9 @@ operations = {
     },
     "DeleteList": {
         "queryId": "UnN9Th1BDbeLjpgjGSpL3Q",
-        "variables": {},
+        "variables": {
+            "listId": None,
+        },
         "features": {}
     },
     "FetchDraftTweets": {
@@ -1761,7 +1779,10 @@ operations = {
     },
     "ListPinOne": {
         "queryId": "PdFLmbN9FAT3kxuYphbO6A",
-        "variables": {},
+        "variables": {
+            "listId": None,
+            "withSuperFollowsUserFields": True,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1826,7 +1847,11 @@ operations = {
     },
     "ListRemoveMember": {
         "queryId": "DBZowzFN492FFkBPBptCwg",
-        "variables": {},
+        "variables": {
+            "listId": None,
+            "userId": None,
+            "withSuperFollowsUserFields": False,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1878,7 +1903,10 @@ operations = {
     },
     "ListUnpinOne": {
         "queryId": "oVn3dJ4Q1HDvq-UYT8AUdg",
-        "variables": {},
+        "variables": {
+            "listId": None,
+            "withSuperFollowsUserFields": True,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1900,7 +1928,13 @@ operations = {
     },
     "UpdateList": {
         "queryId": "4dCEFWtxEbhnSLcJdJ6PNg",
-        "variables": {},
+        "variables": {
+            "listId": None,
+            "isPrivate": None,  # True/False
+            "description": None,
+            "name": None,
+            "withSuperFollowsUserFields": True,  # True/False
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1936,7 +1970,14 @@ operations = {
     },
     "ListsManagementPageTimeline": {
         "queryId": "-xpH2IARz6JqT0nMkHt3KA",
-        "variables": {},
+        "variables": {
+            "count": 1000,
+            "withDownvotePerspective": False,
+            "withReactionsMetadata": False,
+            "withReactionsPerspective": False,
+            "withSuperFollowsTweetFields": False,
+            "withSuperFollowsUserFields": False,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -1961,7 +2002,10 @@ operations = {
     },
     "ListsPinMany": {
         "queryId": "2X4Vqu6XLneR-XZnGK5MAw",
-        "variables": {},
+        "variables": {
+            "listIds": [],
+            "withSuperFollowsUserFields": True,
+        },
         "features": {
             "responsive_web_twitter_blue_verified_badge_is_enabled": True,
             "responsive_web_graphql_exclude_directive_enabled": True,
@@ -2320,7 +2364,9 @@ operations = {
     },
     "TopicFollow": {
         "queryId": "ElqSLWFmsPL4NlZI5e1Grg",
-        "variables": {},
+        "variables": {
+            "topicId": None
+        },
         "features": {}
     },
     "TopicLandingPage": {
@@ -2390,7 +2436,9 @@ operations = {
     },
     "TopicUnfollow": {
         "queryId": "srwjU6JM_ZKTj_QMfUGNcw",
-        "variables": {},
+        "variables": {
+            "topicId": None
+        },
         "features": {}
     },
     "TopicsManagementPage": {
@@ -3160,6 +3208,7 @@ operations = {
             "responsive_web_graphql_timeline_navigation_enabled": True
         }
     },
+    # not included in operations discovery through `update_operations.py`
     "useSendMessageMutation": {
         "queryId": "MaxK2PKX1F9Z-9SwqwavTw",
         "variables": {
