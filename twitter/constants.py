@@ -2,7 +2,7 @@ from enum import Enum, member
 
 
 class Value:
-    def __init__(self, value):
+    def __init__(self, value: any = None):
         self.value = value
 
 
@@ -39,33 +39,33 @@ class Operation(Enum):
     @member
     class Account(Enum):
         # tweet
-        CreateTweet = Value(...)
-        CreateScheduledTweet = Value(...)
-        DeleteTweet = Value(...)
-        FavoriteTweet = Value(...)
-        UnfavoriteTweet = Value(...)
-        CreateRetweet = Value(...)
-        DeleteRetweet = Value(...)
+        CreateTweet = Value()
+        CreateScheduledTweet = Value()
+        DeleteTweet = Value()
+        FavoriteTweet = Value()
+        UnfavoriteTweet = Value()
+        CreateRetweet = Value()
+        DeleteRetweet = Value()
         # bookmark
-        CreateBookmark = Value(...)
-        DeleteBookmark = Value(...)
-        BookmarksAllDelete = Value(...)
+        CreateBookmark = Value()
+        DeleteBookmark = Value()
+        BookmarksAllDelete = Value()
         # topic
-        TopicFollow = Value(...)
-        TopicUnfollow = Value(...)
+        TopicFollow = Value()
+        TopicUnfollow = Value()
         # list
-        ListsManagementPageTimeline = Value(...)
-        CreateList = Value(...)
-        DeleteList = Value(...)
-        EditListBanner = Value(...)
-        DeleteListBanner = Value(...)
-        ListAddMember = Value(...)
-        ListRemoveMember = Value(...)
-        ListsPinMany = Value(...)
-        ListPinOne = Value(...)
-        ListUnpinOne = Value(...)
-        UpdateList = Value(...)
+        ListsManagementPageTimeline = Value()
+        CreateList = Value()
+        DeleteList = Value()
+        EditListBanner = Value()
+        DeleteListBanner = Value()
+        ListAddMember = Value()
+        ListRemoveMember = Value()
+        ListsPinMany = Value()
+        ListPinOne = Value()
+        ListUnpinOne = Value()
+        UpdateList = Value()
         # DM
-        useSendMessageMutation = Value(...)
+        useSendMessageMutation = Value()
         # other
-        TweetStats = Value(...)
+        TweetStats = Value()
