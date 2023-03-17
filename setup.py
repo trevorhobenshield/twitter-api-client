@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.3.0",
+    version="0.3.1",
     description="Twitter API",
     long_description=dedent('''
     ## The Undocumented Twitter API
@@ -28,70 +28,124 @@ setup(
     from twitter.login import login
     
     usr, pwd = ..., ...
-    session = login(usr, pwd)
+    s = login(usr, pwd) # session
     
     
-    create_poll('test poll', ['hello', 'world', 'foo', 'bar'], 10080, session)
+    create_poll(s, 'test poll', ['hello', 'world', 'foo', 'bar'], 10080)
     
     # DM 1 user
-    dm('hello world', [123], session, filename='test.png')
+    dm(s, [111], 'hello world', filename='test.png')
     
     # DM group of users
-    dm('foo bar', [123, 456, 789], session, filename='test.mp4')
+    dm(s, [111,222,333], 'foo bar', filename='test.mp4')
     
     # tweets
-    tweet('test 123', session)
-    tweet('test 123', session, media=['test.jpg', 'test.png'])
-    tweet('test 123', session, media=['test.mp4'])
-    tweet('test 123', session, media=[{'file': 'image.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
-    untweet(123, session)
-    retweet(1633609779745820675, session)
-    unretweet(1633609779745820675, session)
-    quote('test 123', 'elonmusk', 1633609779745820675, session)
-    comment('test 123', 1633609779745820675, session)
-    like(1633609779745820675, session)
-    unlike(1633609779745820675, session)
-    bookmark(1633609779745820675, session)
-    unbookmark(1633609779745820675, session)
-    pin(1635479755364651008, session)
-    unpin(1635479755364651008, session)
+    tweet(s, 'test 123')
+    tweet(s, 'test 123', media=['test.mp4'])
+    tweet(s, 'test 123', media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
+    tweet(s, 'test 123', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+    untweet(s, 123)
+    retweet(s, 1633609779745820675)
+    unretweet(s, 1633609779745820675)
+    quote(s, 1633609779745820675, 'elonmusk', 'test 123')
+    comment(s, 1633609779745820675, 'test 123')
+    like(s, 1633609779745820675)
+    unlike(s, 1633609779745820675)
+    bookmark(s, 1633609779745820675)
+    unbookmark(s, 1633609779745820675)
+    pin(s, 1635479755364651008)
+    unpin(s, 1635479755364651008)
     
     # users
-    follow(50393960, session)
-    unfollow(50393960, session)
-    mute(50393960, session)
-    unmute(50393960, session)
-    enable_notifications(50393960, session)
-    disable_notifications(50393960, session)
-    block(50393960, session)
-    unblock(50393960, session)
+    follow(s, 50393960)
+    unfollow(s, 50393960)
+    mute(s, 50393960)
+    unmute(s, 50393960)
+    enable_notifications(s, 50393960)
+    disable_notifications(s, 50393960)
+    block(s, 50393960)
+    unblock(s, 50393960)
     
     # other
-    stats(50393960, session)
+    stats(s, 50393960)
     
     # user profile
-    update_profile_image('profile.jpg', session)
-    update_profile_banner('banner.jpg', session)
-    update_profile_info(session, name='Foo Bar', description='Test 123', location='Victoria, BC')
+    update_profile_image(s, 'test.jpg')
+    update_profile_banner(s, 'test.png')
+    update_profile_info(s, name='Foo Bar', description='Test 123', location='Victoria, BC')
     
     # topics
-    follow_topic(session, 123)
-    unfollow_topic(session, 123)
+    follow_topic(s, 808713037230157824)
+    unfollow_topic(s, 808713037230157824)
     
     # lists
-    create_list(session, 'My List', 'description of my list', private=False)
-    update_list(session, 456, 'My Updated List', 'some updated description', private=False)
-    update_list_banner(session, 456, 'test.jpg')
-    delete_list_banner(session, 456)
-    add_list_member(session, 456, 678)
-    remove_list_member(session, 456, 678)
-    delete_list(session, 456)
-    pin_list(session, 456)
-    unpin_list(session, 456)
+    create_list(s, 'My List', 'description of my list', private=False)
+    update_list(s, 123456, 'My Updated List', 'some updated description', private=False)
+    update_list_banner(s, 123456, 'test.png')
+    delete_list_banner(s, 123456)
+    add_list_member(s, 123456, 50393960)
+    remove_list_member(s, 123456, 50393960)
+    delete_list(s, 123456)
+    pin_list(s, 123456)
+    unpin_list(s, 123456)
+    
     # refresh all pinned lists in this order
-    update_pinned_lists(session, [456, 678, 789])
+    update_pinned_lists(s, [123,234,345,456])
+    
     # unpin all lists
-    update_pinned_lists(session, [])
+    update_pinned_lists(s, [])
+    
+    # example configuration
+    update_account_settings(s, {
+        "address_book_live_sync_enabled": False,
+        "allow_ads_personalization": False,
+        "allow_authenticated_periscope_requests": True,
+        "allow_dm_groups_from": "following",
+        "allow_dms_from": "following",
+        "allow_location_history_personalization": False,
+        "allow_logged_out_device_personalization": False,
+        "allow_media_tagging": "none",
+        "allow_sharing_data_for_third_party_personalization": False,
+        "alt_text_compose_enabled": None,
+        "always_use_https": True,
+        "autoplay_disabled": False,
+        "country_code": "us",
+        "discoverable_by_email": False,
+        "discoverable_by_mobile_phone": False,
+        "display_sensitive_media": True,
+        "dm_quality_filter": "enabled",
+        "dm_receipt_setting": "all_disabled",
+        "geo_enabled": False,
+        "include_alt_text_compose": True,
+        "include_mention_filter": True,
+        "include_nsfw_admin_flag": True,
+        "include_nsfw_user_flag": True,
+        "include_ranked_timeline": True,
+        "language": "en",
+        "mention_filter": "unfiltered",
+        "nsfw_admin": False,
+        "nsfw_user": False,
+        "personalized_trends": True,
+        "protected": False,
+        "ranked_timeline_eligible": None,
+        "ranked_timeline_setting": None,
+        "require_password_login": False,
+        "requires_login_verification": False,
+        "sleep_time": {
+            "enabled": False,
+            "end_time": None,
+            "start_time": None
+        },
+        "translator_type": "none",
+        "universal_quality_filtering_enabled": "enabled",
+        "use_cookie_personalization": False,
+    })
+    
+    # example configuration
+    update_search_settings(s, {
+        "optInFiltering": True,  # filter out nsfw content
+        "optInBlocking": True,  # filter out blocked accounts
+    })
     
     
     ```

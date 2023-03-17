@@ -8,26 +8,53 @@ SUCCESS = '\u001b[32m'
 WARN = '\u001b[31m'
 RESET = '\u001b[0m'
 
-content_settings = {
-    'include_mention_filter': True,
-    'include_nsfw_user_flag': True,
-    'include_nsfw_admin_flag': True,
-    'include_ranked_timeline': True,
-    'include_alt_text_compose': True,
-    'display_sensitive_media': True,
-    'protected': False,
-    'discoverable_by_email': False,
-    'discoverable_by_mobile_phone': False,
-    'allow_dms_from': 'following',  ## {'all'}
-    'dm_quality_filter': 'enabled',  ## {'disabled'}
-    'dm_receipt_setting': 'all_disabled',  ## {'all_enabled'}
-    'allow_media_tagging': 'none',  ## {'all', 'following'}
-    'nsfw_user': False,
-    'geo_enabled': False,  ## add location information to your tweets
-    'allow_ads_personalization': False,
-    'allow_logged_out_device_personalization': False,
-    'allow_sharing_data_for_third_party_personalization': False,
-    'allow_location_history_personalization': False,
+account_settings = {
+    "address_book_live_sync_enabled": False,
+    "allow_ads_personalization": False,
+    "allow_authenticated_periscope_requests": True,
+    "allow_dm_groups_from": "following",
+    "allow_dms_from": "following",  # all
+    "allow_location_history_personalization": False,
+    "allow_logged_out_device_personalization": False,
+    "allow_media_tagging": "none",  # all, following
+    "allow_sharing_data_for_third_party_personalization": False,
+    "alt_text_compose_enabled": None,
+    "always_use_https": True,
+    "autoplay_disabled": False,
+    "country_code": "us",
+    "discoverable_by_email": False,
+    "discoverable_by_mobile_phone": False,
+    "display_sensitive_media": True,
+    "dm_quality_filter": "enabled",  # disabled
+    "dm_receipt_setting": "all_disabled",  # all_enabled
+    "geo_enabled": False,
+    "include_alt_text_compose": True,
+    "include_mention_filter": True,
+    "include_nsfw_admin_flag": True,
+    "include_nsfw_user_flag": True,
+    "include_ranked_timeline": True,
+    "language": "en",
+    "mention_filter": "unfiltered",
+    "nsfw_admin": False,
+    "nsfw_user": False,
+    "personalized_trends": True,
+    "protected": False,
+    "ranked_timeline_eligible": None,
+    "ranked_timeline_setting": None,
+    "require_password_login": False,
+    "requires_login_verification": False,
+    "settings_metadata": {},
+    "sleep_time": {
+        "enabled": False,
+        "end_time": None,
+        "start_time": None
+    },
+    "translator_type": "none",
+    "universal_quality_filtering_enabled": "enabled",
+    "use_cookie_personalization": False,
+    ## todo: not yet implemented - requires additional steps
+    # "allow_contributor_request": "all",
+    # "protect_password_reset": False,
 }
 notification_settings = {
     "cursor": "-1",

@@ -115,16 +115,16 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
     return wrapper
 
 
-def graphql_request(_id: int, operation: any, key: str | int, session: Session) -> Response:
-    params = deepcopy(operations[operation])
-    qid = params['queryId']
-    if key: params['variables'][key] = _id
+def gql(session: Session, operation: str, variables: dict) -> Response:
+    payload = deepcopy(operations[operation])
+    qid = payload['queryId']
+    payload['variables'] |= variables
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=params)
+    r = session.post(url, headers=get_headers(session), json=payload)
     return r
 
 
-def api_request(settings: dict, path: str, session: Session) -> Response:
+def api(session: Session, path: str, settings: dict) -> Response:
     headers = get_headers(session)
     headers['content-type'] = 'application/x-www-form-urlencoded'
     url = f'https://api.twitter.com/1.1/{path}'
@@ -132,7 +132,7 @@ def api_request(settings: dict, path: str, session: Session) -> Response:
     return r
 
 
-def upload_media(filename: str, session: Session, is_dm: bool = False, is_profile=False) -> int:
+def upload_media(session: Session, filename: str, is_dm: bool = False, is_profile=False) -> int:
     if is_profile:
         url = 'https://upload.twitter.com/i/media/upload.json'
     else:
@@ -196,7 +196,7 @@ def upload_media(filename: str, session: Session, is_dm: bool = False, is_profil
 
 
 @log(info=['text'])
-def add_alt_text(text: str, media_id: int, session: Session) -> Response:
+def add_alt_text(session: Session, media_id: int, text: str) -> Response:
     params = {"media_id": media_id, "alt_text": {"text": text}}
     url = 'https://api.twitter.com/1.1/media/metadata/create.json'
     r = session.post(url, headers=get_headers(session), json=params)
@@ -204,7 +204,7 @@ def add_alt_text(text: str, media_id: int, session: Session) -> Response:
 
 
 @log(info=['json'])
-def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs) -> Response:
+def tweet(session: Session, text: str, media: list[dict | str] = None, **kwargs) -> Response:
     operation = Operation.CreateTweet.name
     params = deepcopy(operations[operation])
     qid = params['queryId']
@@ -212,16 +212,16 @@ def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs)
     if media:
         for m in media:
             if isinstance(m, dict):
-                media_id = upload_media(m['file'], session)
+                media_id = upload_media(session, m['file'])
                 params['variables']['media']['media_entities'].append({
                     'media_id': media_id,
                     'tagged_users': m.get('tagged_users', [])
                 })
                 if alt := m.get('alt'):
-                    add_alt_text(alt, media_id, session)
+                    add_alt_text(session, media_id, alt)
             # for convenience, so we can just pass list of strings
             elif isinstance(m, str):
-                media_id = upload_media(m, session)
+                media_id = upload_media(session, m)
                 params['variables']['media']['media_entities'].append({
                     'media_id': media_id,
                     'tagged_users': []
@@ -239,111 +239,106 @@ def tweet(text: str, session: Session, media: list[dict | str] = None, **kwargs)
     return r
 
 
-def comment(text: str, tweet_id: int, session: Session, media: list[dict | str] = None) -> Response:
+def comment(session: Session, tweet_id: int, text: str, media: list[dict | str] = None) -> Response:
     params = {"reply": {"in_reply_to_tweet_id": tweet_id, "exclude_reply_user_ids": []}}
-    return tweet(text, session, media, reply_params=params)
+    return tweet(session, text, media, reply_params=params)
 
 
-def quote(text: str, screen_name: str, tweet_id: int, session: Session, media: list[dict | str] = None) -> Response:
+def quote(session: Session, tweet_id: int, screen_name: str, text: str, media: list[dict | str] = None) -> Response:
     """ no unquote operation, just DeleteTweet"""
     params = {"attachment_url": f"https://twitter.com/{screen_name}/status/{tweet_id}"}
-    return tweet(text, session, media, quote_params=params)
+    return tweet(session, text, media, quote_params=params)
 
 
 @log(info=['json'])
-def untweet(tweet_id: int, session: Session) -> Response:
-    return graphql_request(tweet_id, Operation.DeleteTweet.name, 'tweet_id', session)
+def untweet(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.DeleteTweet.name, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
-def retweet(tweet_id: int, session: Session) -> Response:
-    return graphql_request(tweet_id, Operation.CreateRetweet.name, 'tweet_id', session)
+def retweet(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.CreateRetweet.name, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
-def unretweet(tweet_id: int, session: Session) -> Response:
-    return graphql_request(tweet_id, Operation.DeleteRetweet.name, 'source_tweet_id', session)
+def unretweet(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.DeleteRetweet.name, {'source_tweet_id': tweet_id})
 
 
 @log(info=['json'])
-def like(tweet_id: int, session: Session) -> Response:
-    return graphql_request(tweet_id, Operation.FavoriteTweet.name, 'tweet_id', session)
+def like(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.FavoriteTweet.name, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
-def unlike(tweet_id: int, session: Session) -> Response:
-    return graphql_request(tweet_id, Operation.UnfavoriteTweet.name, 'tweet_id', session)
+def unlike(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.UnfavoriteTweet.name, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
-def follow(user_id: int, session: Session) -> Response:
+def bookmark(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.CreateBookmark.name, {'tweet_id': tweet_id})
+
+
+@log(info=['json'])
+def unbookmark(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.DeleteBookmark.name, {'tweet_id': tweet_id})
+
+
+@log(info=['json'])
+def follow(session: Session, user_id: int) -> Response:
     settings = follow_settings.copy()
     settings |= {"user_id": user_id}
-    return api_request(settings, 'friendships/create.json', session)
+    return api(session, 'friendships/create.json', settings)
 
 
 @log(info=['json'])
-def unfollow(user_id: int, session: Session) -> Response:
+def unfollow(session: Session, user_id: int) -> Response:
     settings = follow_settings.copy()
     settings |= {"user_id": user_id}
-    return api_request(settings, 'friendships/destroy.json', session)
+    return api(session, 'friendships/destroy.json', settings)
 
 
 @log(info=['json'])
-def mute(user_id: int, session: Session) -> Response:
+def mute(session: Session, user_id: int) -> Response:
     settings = {'user_id': user_id}
-    return api_request(settings, 'mutes/users/create.json', session)
+    return api(session, 'mutes/users/create.json', settings)
 
 
 @log(info=['json'])
-def unmute(user_id: int, session: Session) -> Response:
+def unmute(session: Session, user_id: int) -> Response:
     settings = {'user_id': user_id}
-    return api_request(settings, 'mutes/users/destroy.json', session)
+    return api(session, 'mutes/users/destroy.json', settings)
 
 
 @log(info=['json'])
-def enable_notifications(user_id: int, session: Session) -> Response:
+def enable_notifications(session: Session, user_id: int) -> Response:
     settings = notification_settings.copy()
     settings |= {'id': user_id, 'device': 'true'}
-    return api_request(settings, 'friendships/update.json', session)
+    return api(session, 'friendships/update.json', settings)
 
 
 @log(info=['json'])
-def disable_notifications(user_id: int, session: Session) -> Response:
+def disable_notifications(session: Session, user_id: int) -> Response:
     settings = notification_settings.copy()
     settings |= {'id': user_id, 'device': 'false'}
-    return api_request(settings, 'friendships/update.json', session)
+    return api(session, 'friendships/update.json', settings)
 
 
 @log(info=['json'])
-def block(user_id: int, session: Session) -> Response:
+def block(session: Session, user_id: int) -> Response:
     settings = {'user_id': user_id}
-    return api_request(settings, 'blocks/create.json', session)
+    return api(session, 'blocks/create.json', settings)
 
 
 @log(info=['json'])
-def unblock(user_id: int, session: Session) -> Response:
+def unblock(session: Session, user_id: int) -> Response:
     settings = {'user_id': user_id}
-    return api_request(settings, 'blocks/destroy.json', session)
+    return api(session, 'blocks/destroy.json', settings)
 
 
 @log(info=['json'])
-def bookmark(_id: int, session: Session) -> Response:
-    return graphql_request(_id, Operation.CreateBookmark.name, 'tweet_id', session)
-
-
-@log(info=['json'])
-def unbookmark(_id: int, session: Session) -> Response:
-    return graphql_request(_id, Operation.DeleteBookmark.name, 'tweet_id', session)
-
-
-# @log(info=['json'])
-# def unbookmark_all(session: Session) -> Response:
-#     return graphql_request(0, Operation.BookmarksAllDelete.name, 0, session)
-
-
-@log(info=['json'])
-def stats(rest_id: int, session: Session) -> Response:
+def stats(session: Session, rest_id: int) -> Response:
     """private endpoint?"""
     operation = Operation.TweetStats.name
     params = deepcopy(operations[operation])
@@ -356,7 +351,7 @@ def stats(rest_id: int, session: Session) -> Response:
 
 
 @log(info=['json'])
-def dm(text: str, receivers: list[int], session: Session, filename: str = '') -> Response:
+def dm(session: Session, receivers: list[int], text: str, filename: str = '') -> Response:
     operation = Operation.useSendMessageMutation.name
     params = deepcopy(operations[operation])
     qid = params['queryId']
@@ -364,7 +359,7 @@ def dm(text: str, receivers: list[int], session: Session, filename: str = '') ->
     params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
     url = f"https://api.twitter.com/graphql/{qid}/{operation}"
     if filename:
-        media_id = upload_media(filename, session, is_dm=True)
+        media_id = upload_media(session, filename, is_dm=True)
         params['variables']['message']['media'] = {'id': media_id, 'text': text}
     else:
         params['variables']['message']['text'] = {'text': text}
@@ -373,8 +368,8 @@ def dm(text: str, receivers: list[int], session: Session, filename: str = '') ->
 
 
 @log(info=['json'])
-def update_profile_image(filename: str, session: Session) -> Response:
-    media_id = upload_media(filename, session, is_profile=True)
+def update_profile_image(session: Session, filename: str) -> Response:
+    media_id = upload_media(session, filename, is_profile=True)
     url = 'https://api.twitter.com/1.1/account/update_profile_image.json'
     headers = get_headers(session)
     params = {'media_id': media_id}
@@ -383,8 +378,8 @@ def update_profile_image(filename: str, session: Session) -> Response:
 
 
 @log
-def update_profile_banner(filename: str, session: Session) -> Response:
-    media_id = upload_media(filename, session, is_profile=True)
+def update_profile_banner(session: Session, filename: str) -> Response:
+    media_id = upload_media(session, filename, is_profile=True)
     url = 'https://api.twitter.com/1.1/account/update_profile_banner.json'
     headers = get_headers(session)
     params = {'media_id': media_id}
@@ -401,7 +396,7 @@ def update_profile_info(session: Session, **kwargs) -> Response:
 
 
 @log(info=['json'])
-def create_poll(text: str, choices: list[str], poll_duration: int, session: Session) -> Response:
+def create_poll(session: Session, text: str, choices: list[str], poll_duration: int) -> Response:
     options = {
         "twitter:card": "poll4choice_text_only",
         "twitter:api:api:endpoint": "1",
@@ -415,44 +410,51 @@ def create_poll(text: str, choices: list[str], poll_duration: int, session: Sess
     url = 'https://caps.twitter.com/v2/cards/create.json'
     r = session.post(url, headers=headers, params={'card_data': ujson.dumps(options)})
     card_uri = r.json()['card_uri']
-    r = tweet(text, session, poll_params={'card_uri': card_uri})
+    r = tweet(session, text, poll_params={'card_uri': card_uri})
     return r
 
 
 @log(info=['json'])
-def pin(tweet_id: int, session: Session) -> Response:
+def pin(session: Session, tweet_id: int) -> Response:
     settings = {'tweet_mode': 'extended', 'id': tweet_id}
-    return api_request(settings, 'account/pin_tweet.json', session)
+    return api(session, 'account/pin_tweet.json', settings)
 
 
 @log(info=['json'])
-def unpin(tweet_id: int, session: Session) -> Response:
+def unpin(session: Session, tweet_id: int) -> Response:
     settings = {'tweet_mode': 'extended', 'id': tweet_id}
-    return api_request(settings, 'account/unpin_tweet.json', session)
+    return api(session, 'account/unpin_tweet.json', settings)
 
 
 @log(info=['text'])
-def update_search_settings(session: Session, **kwargs) -> Response:
+def update_search_settings(session: Session, settings: dict) -> Response:
+    """
+    Update account search settings
+
+    @param session: authenticated session
+    @param settings: search filtering settings to enable/disable
+    @return: authenticated session
+    """
     twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
     headers = get_headers(session=session)
     r = session.post(
         url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
         headers=headers,
-        json=kwargs,
+        json=settings,
     )
     return r
 
 
 @log(info=['json'])
-def update_content_settings(session: Session, **kwargs) -> Response:
+def update_account_settings(session: Session, settings: dict) -> Response:
     """
-    Update content settings
+    Update account settings
 
     @param session: authenticated session
-    @param kwargs: settings to enable/disable
-    @return: updated settings
+    @param settings: settings to enable/disable
+    @return: authenticated session
     """
-    return api_request(kwargs, 'account/settings.json', session)
+    return api(session, 'account/settings.json', settings)
 
 
 @log(info=['json'])
@@ -490,33 +492,23 @@ def __get_lists(session: Session) -> Response:
 
 @log(info=['json'])
 def create_list(session: Session, name: str, description: str, private: bool) -> Response:
-    operation = Operation.CreateList.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables'] |= {
+    variables = {
         "isPrivate": private,
         "name": name,
         "description": description,
     }
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.CreateList.name, variables)
 
 
 @log(info=['json'])
 def update_list(session: Session, list_id: int, name: str, description: str, private: bool) -> Response:
-    operation = Operation.UpdateList.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables'] |= {
+    variables = {
         "listId": list_id,
         "isPrivate": private,
         "name": name,
         "description": description,
     }
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.UpdateList.name, variables)
 
 
 @log(info=['json'])
@@ -530,121 +522,50 @@ def update_pinned_lists(session: Session, list_ids: list[int]) -> Response:
     @param list_ids: list of list ids to pin
     @return: response
     """
-    operation = Operation.ListsPinMany.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables']['listIds'] = list_ids
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.ListsPinMany.name, {'listIds': list_ids})
 
 
 @log(info=['json'])
 def pin_list(session: Session, list_id: int) -> Response:
-    operation = Operation.ListPinOne.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables']['listId'] = list_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.ListPinOne.name, {'listId': list_id})
 
 
 @log(info=['json'])
 def unpin_list(session: Session, list_id: int) -> Response:
-    operation = Operation.ListUnpinOne.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables']['listId'] = list_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.ListUnpinOne.name, {'listId': list_id})
 
 
 @log(info=['json'])
 def add_list_member(session: Session, list_id: int, user_id: int) -> Response:
-    operation = Operation.ListAddMember.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables'] |= {
-        "listId": list_id,
-        "userId": user_id,
-    }
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.ListAddMember.name, {'listId': list_id, "userId": user_id})
 
 
 @log(info=['json'])
 def remove_list_member(session: Session, list_id: int, user_id: int) -> Response:
-    operation = Operation.ListRemoveMember.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables'] |= {
-        "listId": list_id,
-        "userId": user_id,
-    }
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.ListRemoveMember.name, {'listId': list_id, "userId": user_id})
 
 
 @log(info=['json'])
 def delete_list(session: Session, list_id: int) -> Response:
-    operation = Operation.DeleteList.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables']['listId'] = list_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.DeleteList.name, {'listId': list_id})
 
 
 @log(info=['json'])
 def update_list_banner(session: Session, list_id: int, filename: str) -> Response:
-    media_id = upload_media(filename, session)
-    operation = Operation.EditListBanner.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables'] |= {
-        'listId': list_id,
-        'mediaId': media_id,
-    }
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    media_id = upload_media(session, filename)
+    return gql(session, Operation.EditListBanner.name, {'listId': list_id, 'mediaId': media_id})
 
 
 @log(info=['json'])
 def delete_list_banner(session: Session, list_id: int) -> Response:
-    operation = Operation.DeleteListBanner.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    payload['variables']['listId'] = list_id
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
-
-
-@log(info=['json'])
-def follow_topic(session: Session, topic_id: int) -> Response:
-    operation = Operation.TopicFollow.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    # Topic operations are the only ones which require the id to be a string, weird
-    payload['variables']['topicId'] = str(topic_id)
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.DeleteListBanner.name, {'listId': list_id})
 
 
 @log(info=['json'])
 def unfollow_topic(session: Session, topic_id: int) -> Response:
-    operation = Operation.TopicUnfollow.name
-    payload = deepcopy(operations[operation])
-    qid = payload['queryId']
-    # Topic operations are the only ones which require the id to be a string, weird
-    payload['variables']['topicId'] = str(topic_id)
-    url = f"https://api.twitter.com/graphql/{qid}/{operation}"
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
+    return gql(session, Operation.TopicUnfollow.name, {'topicId': str(topic_id)})
+
+
+@log(info=['json'])
+def follow_topic(session: Session, topic_id: int) -> Response:
+    return gql(session, Operation.TopicFollow.name, {'topicId': str(topic_id)})
