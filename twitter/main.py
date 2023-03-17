@@ -6,7 +6,6 @@ import mimetypes
 import sys
 import time
 from copy import deepcopy
-from enum import Enum, auto
 from functools import wraps, partial
 from pathlib import Path
 from urllib.parse import urlencode
@@ -19,60 +18,24 @@ from tqdm import tqdm
 from .config.log_config import log_config
 from .config.operations import operations
 from .config.settings import *
+from .constants import Operation
 from .utils import get_headers, build_query
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
-
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
-
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
-
-
-class Operation(Enum):
-    # tweet
-    CreateTweet = auto()
-    CreateScheduledTweet = auto()
-    DeleteTweet = auto()
-    UserTweets = auto()
-    FavoriteTweet = auto()
-    UnfavoriteTweet = auto()
-    CreateRetweet = auto()
-    DeleteRetweet = auto()
-    # bookmark
-    CreateBookmark = auto()
-    DeleteBookmark = auto()
-    BookmarksAllDelete = auto()
-    # topic
-    TopicFollow = auto()
-    TopicUnfollow = auto()
-    # list
-    ListsManagementPageTimeline = auto()
-    CreateList = auto()
-    DeleteList = auto()
-    EditListBanner = auto()
-    DeleteListBanner = auto()
-    ListAddMember = auto()
-    ListRemoveMember = auto()
-    ListsPinMany = auto()
-    ListPinOne = auto()
-    ListUnpinOne = auto()
-    UpdateList = auto()
-    # DM
-    useSendMessageMutation = auto()
-    # other
-    TweetStats = auto()
 
 
 def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
@@ -205,7 +168,7 @@ def add_alt_text(session: Session, media_id: int, text: str) -> Response:
 
 @log(info=['json'])
 def tweet(session: Session, text: str, media: list[dict | str] = None, **kwargs) -> Response:
-    operation = Operation.CreateTweet.name
+    operation = Operation.Account.CreateTweet
     params = deepcopy(operations[operation])
     qid = params['queryId']
     params['variables']['tweet_text'] = text
@@ -252,37 +215,37 @@ def quote(session: Session, tweet_id: int, screen_name: str, text: str, media: l
 
 @log(info=['json'])
 def untweet(session: Session, tweet_id: int) -> Response:
-    return gql(session, Operation.DeleteTweet.name, {'tweet_id': tweet_id})
+    return gql(session, Operation.Account.DeleteTweet, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
 def retweet(session: Session, tweet_id: int) -> Response:
-    return gql(session, Operation.CreateRetweet.name, {'tweet_id': tweet_id})
+    return gql(session, Operation.Account.CreateRetweet, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
 def unretweet(session: Session, tweet_id: int) -> Response:
-    return gql(session, Operation.DeleteRetweet.name, {'source_tweet_id': tweet_id})
+    return gql(session, Operation.Account.DeleteRetweet, {'source_tweet_id': tweet_id})
 
 
 @log(info=['json'])
 def like(session: Session, tweet_id: int) -> Response:
-    return gql(session, Operation.FavoriteTweet.name, {'tweet_id': tweet_id})
+    return gql(session, Operation.Account.FavoriteTweet, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
 def unlike(session: Session, tweet_id: int) -> Response:
-    return gql(session, Operation.UnfavoriteTweet.name, {'tweet_id': tweet_id})
+    return gql(session, Operation.Account.UnfavoriteTweet, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
 def bookmark(session: Session, tweet_id: int) -> Response:
-    return gql(session, Operation.CreateBookmark.name, {'tweet_id': tweet_id})
+    return gql(session, Operation.Account.CreateBookmark, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
 def unbookmark(session: Session, tweet_id: int) -> Response:
-    return gql(session, Operation.DeleteBookmark.name, {'tweet_id': tweet_id})
+    return gql(session, Operation.Account.DeleteBookmark, {'tweet_id': tweet_id})
 
 
 @log(info=['json'])
@@ -340,7 +303,7 @@ def unblock(session: Session, user_id: int) -> Response:
 @log(info=['json'])
 def stats(session: Session, rest_id: int) -> Response:
     """private endpoint?"""
-    operation = Operation.TweetStats.name
+    operation = Operation.Account.TweetStats
     params = deepcopy(operations[operation])
     qid = params['queryId']
     params['variables']['rest_id'] = rest_id
@@ -352,7 +315,7 @@ def stats(session: Session, rest_id: int) -> Response:
 
 @log(info=['json'])
 def dm(session: Session, receivers: list[int], text: str, filename: str = '') -> Response:
-    operation = Operation.useSendMessageMutation.name
+    operation = Operation.Account.useSendMessageMutation
     params = deepcopy(operations[operation])
     qid = params['queryId']
     params['variables']['target'] = {"participant_ids": receivers}
@@ -481,7 +444,7 @@ def remove_interests(session: Session, *args):
 
 @log(info=['json'])
 def __get_lists(session: Session) -> Response:
-    operation = Operation.ListsManagementPageTimeline.name
+    operation = Operation.Account.ListsManagementPageTimeline
     params = deepcopy(operations[operation])
     qid = params['queryId']
     query = build_query(params)
@@ -497,7 +460,7 @@ def create_list(session: Session, name: str, description: str, private: bool) ->
         "name": name,
         "description": description,
     }
-    return gql(session, Operation.CreateList.name, variables)
+    return gql(session, Operation.Account.CreateList, variables)
 
 
 @log(info=['json'])
@@ -508,7 +471,7 @@ def update_list(session: Session, list_id: int, name: str, description: str, pri
         "name": name,
         "description": description,
     }
-    return gql(session, Operation.UpdateList.name, variables)
+    return gql(session, Operation.Account.UpdateList, variables)
 
 
 @log(info=['json'])
@@ -522,50 +485,50 @@ def update_pinned_lists(session: Session, list_ids: list[int]) -> Response:
     @param list_ids: list of list ids to pin
     @return: response
     """
-    return gql(session, Operation.ListsPinMany.name, {'listIds': list_ids})
+    return gql(session, Operation.Account.ListsPinMany, {'listIds': list_ids})
 
 
 @log(info=['json'])
 def pin_list(session: Session, list_id: int) -> Response:
-    return gql(session, Operation.ListPinOne.name, {'listId': list_id})
+    return gql(session, Operation.Account.ListPinOne, {'listId': list_id})
 
 
 @log(info=['json'])
 def unpin_list(session: Session, list_id: int) -> Response:
-    return gql(session, Operation.ListUnpinOne.name, {'listId': list_id})
+    return gql(session, Operation.Account.ListUnpinOne, {'listId': list_id})
 
 
 @log(info=['json'])
 def add_list_member(session: Session, list_id: int, user_id: int) -> Response:
-    return gql(session, Operation.ListAddMember.name, {'listId': list_id, "userId": user_id})
+    return gql(session, Operation.Account.ListAddMember, {'listId': list_id, "userId": user_id})
 
 
 @log(info=['json'])
 def remove_list_member(session: Session, list_id: int, user_id: int) -> Response:
-    return gql(session, Operation.ListRemoveMember.name, {'listId': list_id, "userId": user_id})
+    return gql(session, Operation.Account.ListRemoveMember, {'listId': list_id, "userId": user_id})
 
 
 @log(info=['json'])
 def delete_list(session: Session, list_id: int) -> Response:
-    return gql(session, Operation.DeleteList.name, {'listId': list_id})
+    return gql(session, Operation.Account.DeleteList, {'listId': list_id})
 
 
 @log(info=['json'])
 def update_list_banner(session: Session, list_id: int, filename: str) -> Response:
     media_id = upload_media(session, filename)
-    return gql(session, Operation.EditListBanner.name, {'listId': list_id, 'mediaId': media_id})
+    return gql(session, Operation.Account.EditListBanner, {'listId': list_id, 'mediaId': media_id})
 
 
 @log(info=['json'])
 def delete_list_banner(session: Session, list_id: int) -> Response:
-    return gql(session, Operation.DeleteListBanner.name, {'listId': list_id})
+    return gql(session, Operation.Account.DeleteListBanner, {'listId': list_id})
 
 
 @log(info=['json'])
 def unfollow_topic(session: Session, topic_id: int) -> Response:
-    return gql(session, Operation.TopicUnfollow.name, {'topicId': str(topic_id)})
+    return gql(session, Operation.Account.TopicUnfollow, {'topicId': str(topic_id)})
 
 
 @log(info=['json'])
 def follow_topic(session: Session, topic_id: int) -> Response:
-    return gql(session, Operation.TopicFollow.name, {'topicId': str(topic_id)})
+    return gql(session, Operation.Account.TopicFollow, {'topicId': str(topic_id)})

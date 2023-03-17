@@ -6,7 +6,6 @@ import re
 import sys
 import time
 from copy import deepcopy
-from enum import Enum, auto
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -15,45 +14,22 @@ from aiohttp import ClientSession, TCPConnector
 
 from .config.operations import operations
 from .config.log_config import log_config
+from .constants import Operation
 from .login import Session
 from .utils import find_key, build_query, get_headers
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
-
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
-
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-
-class Operation(Enum):
-    # tweet operations
-    TweetDetail = auto()
-    TweetResultByRestId = auto()
-    Favoriters = auto()
-    Retweeters = auto()
-
-    # user operations
-    Following = auto()
-    UserTweets = auto()
-    Followers = auto()
-    UserTweetsAndReplies = auto()
-    UserMedia = auto()
-    Likes = auto()
-    UserByScreenName = auto()
-    UserByRestId = auto()
-
-    # batch user operations
-    UsersByRestIds = auto()
-
 
 ID = 'ID'
 DUP_LIMIT = 5
@@ -62,59 +38,59 @@ logger = logging.getLogger(__name__)
 
 
 def get_user_tweets(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.UserTweets.name, 'userId', limit)
+    return run(session, ids, Operation.Data.UserTweets, 'userId', limit)
 
 
 def get_tweets_and_replies(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.UserTweetsAndReplies.name, 'userId', limit)
+    return run(session, ids, Operation.Data.UserTweetsAndReplies, 'userId', limit)
 
 
 def get_likes(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.Likes.name, 'userId', limit)
+    return run(session, ids, Operation.Data.Likes, 'userId', limit)
 
 
 def get_media(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.UserMedia.name, 'userId', limit)
+    return run(session, ids, Operation.Data.UserMedia, 'userId', limit)
 
 
 def get_followers(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.Followers.name, 'userId', limit)
+    return run(session, ids, Operation.Data.Followers, 'userId', limit)
 
 
 def get_following(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.Following.name, 'userId', limit)
+    return run(session, ids, Operation.Data.Following, 'userId', limit)
 
 
 def get_favoriters(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.Favoriters.name, 'tweetId', limit)
+    return run(session, ids, Operation.Data.Favoriters, 'tweetId', limit)
 
 
 def get_retweeters(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.Retweeters.name, 'tweetId', limit)
+    return run(session, ids, Operation.Data.Retweeters, 'tweetId', limit)
 
 
 def get_tweets(session: Session, ids: list[int], limit=math.inf):
-    return run(session, ids, Operation.TweetDetail.name, 'focalTweetId', limit)
+    return run(session, ids, Operation.Data.TweetDetail, 'focalTweetId', limit)
 
 
 # no pagination needed
 def get_tweet_by_rest_id(session: Session, ids: list[int]):
-    return run(session, ids, Operation.TweetResultByRestId.name, 'tweetId')
+    return run(session, ids, Operation.Data.TweetResultByRestId, 'tweetId')
 
 
 # no pagination needed
 def get_user_by_screen_name(session: Session, ids: list[str]):
-    return run(session, ids, Operation.UserByScreenName.name, 'screen_name')
+    return run(session, ids, Operation.Data.UserByScreenName, 'screen_name')
 
 
 # no pagination needed
 def get_user_by_rest_id(session: Session, ids: list[int]):
-    return run(session, ids, Operation.UserByRestId.name, 'userId')
+    return run(session, ids, Operation.Data.UserByRestId, 'userId')
 
 
 # no pagination needed (special batch query)
 def users_by_rest_ids(session: Session, ids: list[int]):
-    operation = Operation.UsersByRestIds.name
+    operation = Operation.Data.UsersByRestIds
     qid = operations[operation]['queryId']
     params = deepcopy(operations[operation])
     params['variables']['userIds'] = ids
