@@ -61,59 +61,59 @@ logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 
-def get_user_tweets(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.UserTweets.name, 'userId', ids, session, limit)
+def get_user_tweets(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.UserTweets.name, 'userId', limit)
 
 
-def get_tweets_and_replies(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.UserTweetsAndReplies.name, 'userId', ids, session, limit)
+def get_tweets_and_replies(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.UserTweetsAndReplies.name, 'userId', limit)
 
 
-def get_likes(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.Likes.name, 'userId', ids, session, limit)
+def get_likes(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.Likes.name, 'userId', limit)
 
 
-def get_media(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.UserMedia.name, 'userId', ids, session, limit)
+def get_media(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.UserMedia.name, 'userId', limit)
 
 
-def get_followers(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.Followers.name, 'userId', ids, session, limit)
+def get_followers(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.Followers.name, 'userId', limit)
 
 
-def get_following(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.Following.name, 'userId', ids, session, limit)
+def get_following(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.Following.name, 'userId', limit)
 
 
-def get_favoriters(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.Favoriters.name, 'tweetId', ids, session, limit)
+def get_favoriters(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.Favoriters.name, 'tweetId', limit)
 
 
-def get_retweeters(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.Retweeters.name, 'tweetId', ids, session, limit)
+def get_retweeters(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.Retweeters.name, 'tweetId', limit)
 
 
-def get_tweets(ids: list[int], session: Session, limit=math.inf):
-    return run(Operation.TweetDetail.name, 'focalTweetId', ids, session, limit)
-
-
-# no pagination needed
-def get_tweet_by_rest_id(ids: list[int], session: Session):
-    return run(Operation.TweetResultByRestId.name, 'tweetId', ids, session)
+def get_tweets(session: Session, ids: list[int], limit=math.inf):
+    return run(session, ids, Operation.TweetDetail.name, 'focalTweetId', limit)
 
 
 # no pagination needed
-def get_user_by_screen_name(ids: list[str], session: Session):
-    return run(Operation.UserByScreenName.name, 'screen_name', ids, session)
+def get_tweet_by_rest_id(session: Session, ids: list[int]):
+    return run(session, ids, Operation.TweetResultByRestId.name, 'tweetId')
 
 
 # no pagination needed
-def get_user_by_rest_id(ids: list[int], session: Session):
-    return run(Operation.UserByRestId.name, 'userId', ids, session)
+def get_user_by_screen_name(session: Session, ids: list[str]):
+    return run(session, ids, Operation.UserByScreenName.name, 'screen_name')
+
+
+# no pagination needed
+def get_user_by_rest_id(session: Session, ids: list[int]):
+    return run(session, ids, Operation.UserByRestId.name, 'userId')
 
 
 # no pagination needed (special batch query)
-def users_by_rest_ids(ids: list[int], session: Session):
+def users_by_rest_ids(session: Session, ids: list[int]):
     operation = Operation.UsersByRestIds.name
     qid = operations[operation]['queryId']
     params = deepcopy(operations[operation])
@@ -126,14 +126,14 @@ def users_by_rest_ids(ids: list[int], session: Session):
     return users
 
 
-def run(operation: str, key: str, ids: list[str | int], session: Session, limit=None):
-    res = graphql(ids, operation, key, session)
+def run(session: Session, ids: list[str | int], operation: str, key: str, limit=None):
+    res = graphql(session, ids, operation, key)
     if limit is None:
         return res
-    return asyncio.run(pagination(operation, key, res, session, limit))
+    return asyncio.run(pagination(session, res, operation, key, limit))
 
 
-def graphql(ids: list[any], operation: any, key: str | int, session: Session) -> list:
+def graphql(session: Session, ids: list[any], operation: any, key: str | int) -> list:
     qid = operations[operation]['queryId']
     params = deepcopy(operations[operation])
     urls = []
@@ -143,12 +143,12 @@ def graphql(ids: list[any], operation: any, key: str | int, session: Session) ->
         urls.append((_id, f"https://api.twitter.com/graphql/{qid}/{operation}?{query}"))
     headers = get_headers(session)
     headers['content-type'] = "application/json"
-    res = asyncio.run(process(urls, headers, session))
+    res = asyncio.run(process(session, urls, headers))
     save_data(res, operation)
     return res
 
 
-async def process(urls: list, headers: dict, session: Session) -> tuple:
+async def process(session: Session, urls: list, headers: dict) -> tuple:
     conn = TCPConnector(limit=0, ssl=False, ttl_dns_cache=69)
     async with ClientSession(headers=headers, connector=conn) as s:
         # add cookies from logged-in session
@@ -167,17 +167,17 @@ async def get(session: ClientSession, url: tuple) -> dict:
         logger.debug(e)
 
 
-async def pagination(operation: any, key: str, res: list, session: Session, limit) -> tuple:
+async def pagination(session: Session, res: list, operation: any, key: str, limit) -> tuple:
     conn = TCPConnector(limit=len(res), ssl=False, ttl_dns_cache=69)
     headers = get_headers(session)
     headers['content-type'] = "application/json"
     async with ClientSession(headers=headers, connector=conn) as s:
         # add cookies from logged-in session
         s.cookie_jar.update_cookies(session.cookies)
-        return await asyncio.gather(*(paginate(s, operation, key, data, limit) for data in res))
+        return await asyncio.gather(*(paginate(s, data, operation, key, limit) for data in res))
 
 
-async def paginate(session: ClientSession, operation: any, key: str, data: dict, limit: int):
+async def paginate(session: ClientSession, data: dict, operation: any, key: str, limit: int):
     def get_cursor(data):
         # inefficient, but need to deal with arbitrary schema
         entries = find_key(data, 'entries')
@@ -260,7 +260,7 @@ def save_data(data: list, operation: str = ''):
 
 def download(session: Session, post_url: str, cdn_url: str, path: str = 'media', chunk_size: int = 4096) -> None:
     """
-    Download media
+    Download file
 
     @param post_url: the actual post url
     @param cdn_url: the cdn url
@@ -280,8 +280,8 @@ def download(session: Session, post_url: str, cdn_url: str, path: str = 'media',
         logger.debug(f'FAILED to download video: {post_url} {e}')
 
 
-def download_media(ids: list[int], session: Session, photos: bool = True, videos: bool = True) -> None:
-    res = get_tweet_by_rest_id(ids, session=session)
+def download_media(session: Session, ids: list[int], photos: bool = True, videos: bool = True) -> None:
+    res = get_tweet_by_rest_id(session, ids)
     for r in res:
         user_id = find_key(r, 'user_results')[0]['result']['rest_id']
         url = f'https://twitter.com/{user_id}/status/{r[ID]}'  # evaluates to username in browser

@@ -145,29 +145,28 @@ from twitter.scrape import *
 from twitter.login import login
 
 usr, pwd = ..., ...
-session = login(usr, pwd)
+s = login(usr, pwd) # session
 
 user_ids = [...]
 usernames = [...]
 tweet_ids = [...]
 
-######### User Data ########
-users = get_user_by_screen_name(usernames, session)
-tweets = get_user_tweets(user_ids, session)
-likes = get_likes(user_ids, session)
-tweets_and_replies = get_tweets_and_replies(user_ids, session)
-media = get_media(user_ids, session)
-following = get_following(user_ids, session)
-followers = get_followers(user_ids, session)
+####### User Data ########
+users = get_user_by_screen_name(s, usernames)
+tweets = get_user_tweets(s, user_ids)
+likes = get_likes(s, user_ids)
+tweets_and_replies = get_tweets_and_replies(s, user_ids)
+media = get_media(s, user_ids)
+following = get_following(s, user_ids)
+followers = get_followers(s, user_ids)
 
-######### Tweet Data ########
-tweet = get_tweet_by_rest_id(tweet_ids, session)
-tweet_detail = get_tweets(tweet_ids, session)
-retweeters = get_retweeters(tweet_ids, session)
-favoriters = get_favoriters(tweet_ids, session)
+######## Tweet Data ########
+tweet = get_tweet_by_rest_id(s, tweet_ids)
+tweet_detail = get_tweets(s, tweet_ids)
+retweeters = get_retweeters(s, tweet_ids)
+favoriters = get_favoriters(s, tweet_ids)
 
-######### Media (Images/Videos) ########
-download_media(tweet_ids, session)
+download_media(s, tweet_ids)
 ```
 
 #### Search
