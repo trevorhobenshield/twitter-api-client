@@ -52,9 +52,6 @@ account.disable_notifications(s, 50393960)
 account.block(s, 50393960)
 account.unblock(s, 50393960)
 
-# other
-account.stats(s, 50393960)
-
 # user profile
 account.update_profile_image(s, 'test.jpg')
 account.update_profile_banner(s, 'test.png')
