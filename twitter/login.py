@@ -1,22 +1,25 @@
 import sys
 from requests import Session
+from .constants import SUCCESS, WARN, BOLD, RESET
 
 
 def update_token(session: Session, key: str, url: str, payload: dict) -> Session:
-    headers = {
-        "authorization": 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        "content-type": "application/json",
-        "user-agent": 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
-        "x-guest-token": session.cookies.get('guest_token'),
-        "x-csrf-token": session.cookies.get("ct0"),
-        "x-twitter-auth-type": "OAuth2Session" if session.cookies.get("auth_token") else '',
-        "x-twitter-active-user": "yes",
-        "x-twitter-client-language": 'en',
-    }
-    r = session.post(url, headers=headers, json=payload).json()
-    status = f'\u001b[32mSUCCESS' if r.get('guest_token') or r.get('flow_token') else f'\u001b[31mFAILED'
-    print(f'{status}\u001b[0m {sys._getframe(1).f_code.co_name}')  # check response data
-    session.cookies.set(key, r[key])
+    try:
+        headers = {
+            "authorization": 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+            "content-type": "application/json",
+            "user-agent": 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
+            "x-guest-token": session.cookies.get('guest_token'),
+            "x-csrf-token": session.cookies.get("ct0"),
+            "x-twitter-auth-type": "OAuth2Session" if session.cookies.get("auth_token") else '',
+            "x-twitter-active-user": "yes",
+            "x-twitter-client-language": 'en',
+        }
+        r = session.post(url, headers=headers, json=payload).json()
+        # print(f'{SUCCESS}{sys._getframe(1).f_code.co_name}{RESET}')
+        session.cookies.set(key, r[key])
+    except KeyError as e:
+        print(f'[{WARN}FAILED{RESET}] failed to update token at {BOLD}{sys._getframe(1).f_code.co_name}{RESET}')
     return session
 
 
@@ -89,4 +92,6 @@ def login(username: str, password: str) -> Session:
         "guest_token": None,
         "flow_token": None,
     })
-    return execute_login_flow(session)
+    session = execute_login_flow(session)
+    print(f'[{SUCCESS}SUCCESS{RESET}] {BOLD}{username}{RESET} logged in successfully')
+    return session

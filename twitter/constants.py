@@ -1,22 +1,40 @@
+import json
 from enum import Enum, member
+
+BOLD = '\u001b[1m'
+SUCCESS = '\u001b[32m'
+WARN = '\u001b[31m'
+RESET = '\u001b[0m'
+
+UPLOAD_CHUNK_SIZE = 4 * 1024 * 1024
+MEDIA_UPLOAD_SUCCEED = 'succeeded'
+MEDIA_UPLOAD_FAIL = 'failed'
 
 
 class Value:
+    __slots__ = 'value'
+
     def __init__(self, value: any = None):
         self.value = value
 
 
-class Operation(Enum):
-    """
-    Enum with repeated values for GraphQL operations
-    """
-
+class CustomEnum(Enum):
     def __getattr__(self, item):
         if item != "_value_":
             attr = getattr(self.value, item)
             return attr.name, attr.value.value
         raise AttributeError
 
+
+class Media(CustomEnum):
+    @member
+    class Type(Enum):
+        image = Value(5_242_880)  # ~5 MB
+        gif = Value(15_728_640)  # ~15 MB
+        video = Value(536_870_912)  # ~530 MB
+
+
+class Operation(CustomEnum):
     @member
     class Data(Enum):
         # tweet

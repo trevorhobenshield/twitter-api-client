@@ -3,6 +3,7 @@ import hashlib
 import inspect
 import logging.config
 import mimetypes
+import random
 import sys
 import time
 from copy import deepcopy
@@ -15,21 +16,23 @@ import ujson
 from requests import Session, Response
 from tqdm import tqdm
 
-from .config.log_config import log_config
+from .config.log import log_config
 from .config.operations import operations
 from .config.settings import *
-from .constants import Operation
+from .constants import *
 from .utils import get_headers, build_query
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -96,73 +99,19 @@ def api(session: Session, path: str, settings: dict) -> Response:
     return r
 
 
-def upload_media(session: Session, filename: str, is_dm: bool = False, is_profile=False) -> int:
-    if is_profile:
-        url = 'https://upload.twitter.com/i/media/upload.json'
+@log(info=['json'])
+def dm(session: Session, receivers: list[int], text: str, filename: str = '') -> Response:
+    name, _ = Operation.Account.useSendMessageMutation
+    params = deepcopy(operations[name])
+    qid = params['queryId']
+    params['variables']['target'] = {"participant_ids": receivers}
+    params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
+    url = f"https://api.twitter.com/graphql/{qid}/{name}"
+    if filename:
+        media_id = upload_media(session, filename, is_dm=True)
+        params['variables']['message']['media'] = {'id': media_id, 'text': text}
     else:
-        url = 'https://upload.twitter.com/1.1/media/upload.json'
-
-    file = Path(filename)
-    total_bytes = file.stat().st_size
-    headers = get_headers(session)
-
-    upload_type = 'dm' if is_dm else 'tweet'
-    media_type = mimetypes.guess_type(file)[0]
-    media_category = f'{upload_type}_{media_type.split("/")[0]}'
-
-    if media_category in {'dm_image', 'tweet_image'} and total_bytes > MAX_IMAGE_SIZE:
-        raise Exception(f'Image too large: max is {(MAX_IMAGE_SIZE / 1e6):.2f} MB')
-    if media_category in {'dm_gif', 'tweet_gif'} and total_bytes > MAX_GIF_SIZE:
-        raise Exception(f'GIF too large: max is {(MAX_GIF_SIZE / 1e6):.2f} MB')
-    if media_category in {'dm_video', 'tweet_video'} and total_bytes > MAX_VIDEO_SIZE:
-        raise Exception(f'Video too large: max is {(MAX_VIDEO_SIZE / 1e6):.2f} MB')
-
-    data = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes, 'media_category': media_category}
-    r = session.post(url=url, headers=headers, data=data)
-    media_id = r.json()['media_id']
-
-    desc = f"uploading: {file.name}"
-    with tqdm(total=total_bytes, desc=desc, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
-        with open(file, 'rb') as f:
-            i = 0
-            while chunk := f.read(4 * 1024 * 1024):  # todo: arbitrary max size for now
-                data = {'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
-                files = {'media': chunk}
-                r = session.post(url=url, headers=headers, data=data, files=files)
-                if r.status_code < 200 or r.status_code > 299:
-                    logger.debug(f'{r.status_code} {r.text}')
-                    raise Exception('Upload failed')
-                i += 1
-                pbar.update(f.tell() - pbar.n)
-
-    data = {'command': 'FINALIZE', 'media_id': media_id, 'allow_async': 'true'}
-    if is_dm:
-        data |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
-    r = session.post(url=url, headers=headers, data=data)
-
-    logger.debug(f'processing, please wait...')
-    processing_info = r.json().get('processing_info')
-    while processing_info:
-        state = processing_info['state']
-        if state == 'succeeded':
-            break
-        if state == 'failed':
-            raise Exception('Media processing failed')
-        check_after_secs = processing_info['check_after_secs']
-        # logger.debug(f'{check_after_secs = }')
-        time.sleep(check_after_secs)
-        params = {'command': 'STATUS', 'media_id': media_id}
-        r = session.get(url=url, headers=headers, params=params)
-        processing_info = r.json().get('processing_info')
-    logger.debug('processing complete')
-
-    return media_id
-
-
-@log(info=['text'])
-def add_alt_text(session: Session, media_id: int, text: str) -> Response:
-    params = {"media_id": media_id, "alt_text": {"text": text}}
-    url = 'https://api.twitter.com/1.1/media/metadata/create.json'
+        params['variables']['message']['text'] = {'text': text}
     r = session.post(url, headers=get_headers(session), json=params)
     return r
 
@@ -199,6 +148,101 @@ def tweet(session: Session, text: str, media: list[dict | str] = None, **kwargs)
         params['variables'] |= poll_params
 
     url = f"https://api.twitter.com/graphql/{qid}/{name}"
+    r = session.post(url, headers=get_headers(session), json=params)
+    return r
+
+
+@log(info=['json'])
+def create_poll(session: Session, text: str, choices: list[str], poll_duration: int) -> Response:
+    options = {
+        "twitter:card": "poll4choice_text_only",
+        "twitter:api:api:endpoint": "1",
+        "twitter:long:duration_minutes": poll_duration  # max: 10080
+    }
+    for i, c in enumerate(choices):
+        options[f"twitter:string:choice{i + 1}_label"] = c
+
+    headers = get_headers(session)
+    headers['content-type'] = 'application/x-www-form-urlencoded'
+    url = 'https://caps.twitter.com/v2/cards/create.json'
+    r = session.post(url, headers=headers, params={'card_data': ujson.dumps(options)})
+    card_uri = r.json()['card_uri']
+    r = tweet(session, text, poll_params={'card_uri': card_uri})
+    return r
+
+
+def check_media(category: str, total_bytes: int) -> None:
+    def check(media):
+        name, size = media
+        fmt = lambda x: f'{(x / 1e6):.2f} MB'
+        if name in category and total_bytes > size:
+            raise Exception(f'cannot upload {fmt(total_bytes)} {name}: max {name} size is {fmt(size)}')
+
+    tuple(map(check, (Media.Type.image, Media.Type.gif, Media.Type.video)))
+
+
+def upload_media(session: Session, filename: str, is_dm: bool = False, is_profile=False) -> int:
+    if is_profile:
+        url = 'https://upload.twitter.com/i/media/upload.json'
+    else:
+        url = 'https://upload.twitter.com/1.1/media/upload.json'
+
+    file = Path(filename)
+    total_bytes = file.stat().st_size
+    headers = get_headers(session)
+
+    upload_type = 'dm' if is_dm else 'tweet'
+    media_type = mimetypes.guess_type(file)[0]
+    media_category = f'{upload_type}_{media_type.split("/")[0]}'
+
+    check_media(media_category, total_bytes)
+
+    data = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes, 'media_category': media_category}
+    r = session.post(url=url, headers=headers, data=data)
+    media_id = r.json()['media_id']
+
+    desc = f"uploading: {file.name}"
+    with tqdm(total=total_bytes, desc=desc, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
+        with open(file, 'rb') as f:
+            i = 0
+            while chunk := f.read(UPLOAD_CHUNK_SIZE):  # todo: arbitrary max size for now
+                data = {'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
+                files = {'media': chunk}
+                r = session.post(url=url, headers=headers, data=data, files=files)
+                if r.status_code < 200 or r.status_code > 299:
+                    logger.debug(f'{r.status_code} {r.text}')
+                    raise Exception('Upload failed')
+                i += 1
+                pbar.update(f.tell() - pbar.n)
+
+    data = {'command': 'FINALIZE', 'media_id': media_id, 'allow_async': 'true'}
+    if is_dm:
+        data |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
+    r = session.post(url=url, headers=headers, data=data)
+
+    logger.debug(f'processing, please wait...')
+    processing_info = r.json().get('processing_info')
+    while processing_info:
+        state = processing_info['state']
+        logger.debug(f'{processing_info = }')
+        if state == MEDIA_UPLOAD_SUCCEED:
+            break
+        if state == MEDIA_UPLOAD_FAIL:
+            raise Exception('Media processing failed')
+        check_after_secs = processing_info.get('check_after_secs', random.randint(1, 5))
+        time.sleep(check_after_secs)
+        params = {'command': 'STATUS', 'media_id': media_id}
+        r = session.get(url=url, headers=headers, params=params)
+        processing_info = r.json().get('processing_info')
+    logger.debug('processing complete')
+
+    return media_id
+
+
+@log(info=['text'])
+def add_alt_text(session: Session, media_id: int, text: str) -> Response:
+    params = {"media_id": media_id, "alt_text": {"text": text}}
+    url = 'https://api.twitter.com/1.1/media/metadata/create.json'
     r = session.post(url, headers=get_headers(session), json=params)
     return r
 
@@ -247,211 +291,6 @@ def bookmark(session: Session, tweet_id: int) -> Response:
 @log(info=['json'])
 def unbookmark(session: Session, tweet_id: int) -> Response:
     return gql(session, Operation.Account.DeleteBookmark, {'tweet_id': tweet_id})
-
-
-@log(info=['json'])
-def follow(session: Session, user_id: int) -> Response:
-    settings = follow_settings.copy()
-    settings |= {"user_id": user_id}
-    return api(session, 'friendships/create.json', settings)
-
-
-@log(info=['json'])
-def unfollow(session: Session, user_id: int) -> Response:
-    settings = follow_settings.copy()
-    settings |= {"user_id": user_id}
-    return api(session, 'friendships/destroy.json', settings)
-
-
-@log(info=['json'])
-def mute(session: Session, user_id: int) -> Response:
-    settings = {'user_id': user_id}
-    return api(session, 'mutes/users/create.json', settings)
-
-
-@log(info=['json'])
-def unmute(session: Session, user_id: int) -> Response:
-    settings = {'user_id': user_id}
-    return api(session, 'mutes/users/destroy.json', settings)
-
-
-@log(info=['json'])
-def enable_notifications(session: Session, user_id: int) -> Response:
-    settings = notification_settings.copy()
-    settings |= {'id': user_id, 'device': 'true'}
-    return api(session, 'friendships/update.json', settings)
-
-
-@log(info=['json'])
-def disable_notifications(session: Session, user_id: int) -> Response:
-    settings = notification_settings.copy()
-    settings |= {'id': user_id, 'device': 'false'}
-    return api(session, 'friendships/update.json', settings)
-
-
-@log(info=['json'])
-def block(session: Session, user_id: int) -> Response:
-    settings = {'user_id': user_id}
-    return api(session, 'blocks/create.json', settings)
-
-
-@log(info=['json'])
-def unblock(session: Session, user_id: int) -> Response:
-    settings = {'user_id': user_id}
-    return api(session, 'blocks/destroy.json', settings)
-
-
-@log(info=['json'])
-def stats(session: Session, rest_id: int) -> Response:
-    """private endpoint?"""
-    name, _ = Operation.Account.TweetStats
-    params = deepcopy(operations[name])
-    qid = params['queryId']
-    params['variables']['rest_id'] = rest_id
-    query = build_query(params)
-    url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
-    r = session.get(url, headers=get_headers(session))
-    return r
-
-
-@log(info=['json'])
-def dm(session: Session, receivers: list[int], text: str, filename: str = '') -> Response:
-    name, _ = Operation.Account.useSendMessageMutation
-    params = deepcopy(operations[name])
-    qid = params['queryId']
-    params['variables']['target'] = {"participant_ids": receivers}
-    params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
-    url = f"https://api.twitter.com/graphql/{qid}/{name}"
-    if filename:
-        media_id = upload_media(session, filename, is_dm=True)
-        params['variables']['message']['media'] = {'id': media_id, 'text': text}
-    else:
-        params['variables']['message']['text'] = {'text': text}
-    r = session.post(url, headers=get_headers(session), json=params)
-    return r
-
-
-@log(info=['json'])
-def update_profile_image(session: Session, filename: str) -> Response:
-    media_id = upload_media(session, filename, is_profile=True)
-    url = 'https://api.twitter.com/1.1/account/update_profile_image.json'
-    headers = get_headers(session)
-    params = {'media_id': media_id}
-    r = session.post(url, headers=headers, params=params)
-    return r
-
-
-@log
-def update_profile_banner(session: Session, filename: str) -> Response:
-    media_id = upload_media(session, filename, is_profile=True)
-    url = 'https://api.twitter.com/1.1/account/update_profile_banner.json'
-    headers = get_headers(session)
-    params = {'media_id': media_id}
-    r = session.post(url, headers=headers, params=params)
-    return r
-
-
-@log
-def update_profile_info(session: Session, **kwargs) -> Response:
-    url = 'https://api.twitter.com/1.1/account/update_profile.json'
-    headers = get_headers(session)
-    r = session.post(url, headers=headers, params=kwargs)
-    return r
-
-
-@log(info=['json'])
-def create_poll(session: Session, text: str, choices: list[str], poll_duration: int) -> Response:
-    options = {
-        "twitter:card": "poll4choice_text_only",
-        "twitter:api:api:endpoint": "1",
-        "twitter:long:duration_minutes": poll_duration  # max: 10080
-    }
-    for i, c in enumerate(choices):
-        options[f"twitter:string:choice{i + 1}_label"] = c
-
-    headers = get_headers(session)
-    headers['content-type'] = 'application/x-www-form-urlencoded'
-    url = 'https://caps.twitter.com/v2/cards/create.json'
-    r = session.post(url, headers=headers, params={'card_data': ujson.dumps(options)})
-    card_uri = r.json()['card_uri']
-    r = tweet(session, text, poll_params={'card_uri': card_uri})
-    return r
-
-
-@log(info=['json'])
-def pin(session: Session, tweet_id: int) -> Response:
-    settings = {'tweet_mode': 'extended', 'id': tweet_id}
-    return api(session, 'account/pin_tweet.json', settings)
-
-
-@log(info=['json'])
-def unpin(session: Session, tweet_id: int) -> Response:
-    settings = {'tweet_mode': 'extended', 'id': tweet_id}
-    return api(session, 'account/unpin_tweet.json', settings)
-
-
-@log(info=['text'])
-def update_search_settings(session: Session, settings: dict) -> Response:
-    """
-    Update account search settings
-
-    @param session: authenticated session
-    @param settings: search filtering settings to enable/disable
-    @return: authenticated session
-    """
-    twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
-    headers = get_headers(session=session)
-    r = session.post(
-        url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
-        headers=headers,
-        json=settings,
-    )
-    return r
-
-
-@log(info=['json'])
-def update_account_settings(session: Session, settings: dict) -> Response:
-    """
-    Update account settings
-
-    @param session: authenticated session
-    @param settings: settings to enable/disable
-    @return: authenticated session
-    """
-    return api(session, 'account/settings.json', settings)
-
-
-@log(info=['json'])
-def remove_interests(session: Session, *args):
-    url = 'https://api.twitter.com/1.1/account/personalization/twitter_interests.json'
-    r = session.get(url, headers=get_headers(session))
-    current_interests = r.json()['interested_in']
-    if args == 'all':
-        disabled_interests = [x['id'] for x in current_interests]
-    else:
-        disabled_interests = [x['id'] for x in current_interests if x['display_name'] in args]
-    payload = {
-        "preferences": {
-            "interest_preferences": {
-                "disabled_interests": disabled_interests,
-                "disabled_partner_interests": []
-            }
-        }
-    }
-    url = 'https://api.twitter.com/1.1/account/personalization/p13n_preferences.json'
-    r = session.post(url, headers=get_headers(session), json=payload)
-    return r
-
-
-@log(info=['json'])
-def __get_lists(session: Session) -> Response:
-    name, _ = Operation.Account.ListsManagementPageTimeline
-    params = deepcopy(operations[name])
-    qid = params['queryId']
-    query = build_query(params)
-    url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
-    r = session.get(url, headers=get_headers(session))
-    return r
 
 
 @log(info=['json'])
@@ -533,3 +372,171 @@ def unfollow_topic(session: Session, topic_id: int) -> Response:
 @log(info=['json'])
 def follow_topic(session: Session, topic_id: int) -> Response:
     return gql(session, Operation.Account.TopicFollow, {'topicId': str(topic_id)})
+
+
+@log(info=['json'])
+def follow(session: Session, user_id: int) -> Response:
+    settings = follow_settings.copy()
+    settings |= {"user_id": user_id}
+    return api(session, 'friendships/create.json', settings)
+
+
+@log(info=['json'])
+def unfollow(session: Session, user_id: int) -> Response:
+    settings = follow_settings.copy()
+    settings |= {"user_id": user_id}
+    return api(session, 'friendships/destroy.json', settings)
+
+
+@log(info=['json'])
+def mute(session: Session, user_id: int) -> Response:
+    settings = {'user_id': user_id}
+    return api(session, 'mutes/users/create.json', settings)
+
+
+@log(info=['json'])
+def unmute(session: Session, user_id: int) -> Response:
+    settings = {'user_id': user_id}
+    return api(session, 'mutes/users/destroy.json', settings)
+
+
+@log(info=['json'])
+def enable_notifications(session: Session, user_id: int) -> Response:
+    settings = notification_settings.copy()
+    settings |= {'id': user_id, 'device': 'true'}
+    return api(session, 'friendships/update.json', settings)
+
+
+@log(info=['json'])
+def disable_notifications(session: Session, user_id: int) -> Response:
+    settings = notification_settings.copy()
+    settings |= {'id': user_id, 'device': 'false'}
+    return api(session, 'friendships/update.json', settings)
+
+
+@log(info=['json'])
+def block(session: Session, user_id: int) -> Response:
+    settings = {'user_id': user_id}
+    return api(session, 'blocks/create.json', settings)
+
+
+@log(info=['json'])
+def unblock(session: Session, user_id: int) -> Response:
+    settings = {'user_id': user_id}
+    return api(session, 'blocks/destroy.json', settings)
+
+
+@log(info=['json'])
+def pin(session: Session, tweet_id: int) -> Response:
+    settings = {'tweet_mode': 'extended', 'id': tweet_id}
+    return api(session, 'account/pin_tweet.json', settings)
+
+
+@log(info=['json'])
+def unpin(session: Session, tweet_id: int) -> Response:
+    settings = {'tweet_mode': 'extended', 'id': tweet_id}
+    return api(session, 'account/unpin_tweet.json', settings)
+
+
+@log(info=['json'])
+def stats(session: Session, rest_id: int) -> Response:
+    """private endpoint?"""
+    name, _ = Operation.Account.TweetStats
+    params = deepcopy(operations[name])
+    qid = params['queryId']
+    params['variables']['rest_id'] = rest_id
+    query = build_query(params)
+    url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
+    r = session.get(url, headers=get_headers(session))
+    return r
+
+
+@log(info=['json'])
+def remove_interests(session: Session, *args):
+    url = 'https://api.twitter.com/1.1/account/personalization/twitter_interests.json'
+    r = session.get(url, headers=get_headers(session))
+    current_interests = r.json()['interested_in']
+    if args == 'all':
+        disabled_interests = [x['id'] for x in current_interests]
+    else:
+        disabled_interests = [x['id'] for x in current_interests if x['display_name'] in args]
+    payload = {
+        "preferences": {
+            "interest_preferences": {
+                "disabled_interests": disabled_interests,
+                "disabled_partner_interests": []
+            }
+        }
+    }
+    url = 'https://api.twitter.com/1.1/account/personalization/p13n_preferences.json'
+    r = session.post(url, headers=get_headers(session), json=payload)
+    return r
+
+
+@log(info=['json'])
+def update_profile_image(session: Session, filename: str) -> Response:
+    media_id = upload_media(session, filename, is_profile=True)
+    url = 'https://api.twitter.com/1.1/account/update_profile_image.json'
+    headers = get_headers(session)
+    params = {'media_id': media_id}
+    r = session.post(url, headers=headers, params=params)
+    return r
+
+
+@log
+def update_profile_banner(session: Session, filename: str) -> Response:
+    media_id = upload_media(session, filename, is_profile=True)
+    url = 'https://api.twitter.com/1.1/account/update_profile_banner.json'
+    headers = get_headers(session)
+    params = {'media_id': media_id}
+    r = session.post(url, headers=headers, params=params)
+    return r
+
+
+@log
+def update_profile_info(session: Session, **kwargs) -> Response:
+    url = 'https://api.twitter.com/1.1/account/update_profile.json'
+    headers = get_headers(session)
+    r = session.post(url, headers=headers, params=kwargs)
+    return r
+
+
+@log(info=['text'])
+def update_search_settings(session: Session, settings: dict) -> Response:
+    """
+    Update account search settings
+
+    @param session: authenticated session
+    @param settings: search filtering settings to enable/disable
+    @return: authenticated session
+    """
+    twid = int(session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
+    headers = get_headers(session=session)
+    r = session.post(
+        url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
+        headers=headers,
+        json=settings,
+    )
+    return r
+
+
+@log(info=['json'])
+def update_settings(session: Session, settings: dict) -> Response:
+    """
+    Update account settings
+
+    @param session: authenticated session
+    @param settings: settings to enable/disable
+    @return: authenticated session
+    """
+    return api(session, 'account/settings.json', settings)
+
+# @log(info=['json'])
+# def __get_lists(session: Session) -> Response:
+#     name, _ = Operation.Account.ListsManagementPageTimeline
+#     params = deepcopy(operations[name])
+#     qid = params['queryId']
+#     query = build_query(params)
+#     url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
+#     r = session.get(url, headers=get_headers(session))
+#     return r

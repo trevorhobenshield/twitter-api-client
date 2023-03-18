@@ -14,89 +14,93 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.3.4",
+    version="0.3.5",
     description="Twitter API",
     long_description=dedent('''
-    ## The Undocumented Twitter API
+    Complete implementation of the undocumented Twitter API
     
-    A free alternative to the Twitter API
-
+    Includes tools to **scrape**, **automate**, and **search** twitter
+    
+    ### Installation
+    
+    ```bash
+    pip install twitter-api-client
+    ```
+    
     ### Automation
     
     ```python
-    from twitter.main import *
+    from twitter import account
     from twitter.login import login
     
-    usr, pwd = ..., ...
-    s = login(usr, pwd) # session
+    username,password = ...,...
+    s = login(username, password)  # session
     
-    
-    create_poll(s, 'test poll', ['hello', 'world', 'foo', 'bar'], 10080)
+    account.create_poll(s, 'test poll', ['hello', 'world', 'foo', 'bar'], 10080)
     
     # DM 1 user
-    dm(s, [111], 'hello world', filename='test.png')
+    account.dm(s, [111], 'hello world', filename='test.png')
     
     # DM group of users
-    dm(s, [111,222,333], 'foo bar', filename='test.mp4')
+    account.dm(s, [111, 222, 333], 'foo bar', filename='test.mp4')
     
     # tweets
-    tweet(s, 'test 123')
-    tweet(s, 'test 123', media=['test.mp4'])
-    tweet(s, 'test 123', media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
-    tweet(s, 'test 123', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
-    untweet(s, 123)
-    retweet(s, 1633609779745820675)
-    unretweet(s, 1633609779745820675)
-    quote(s, 1633609779745820675, 'elonmusk', 'test 123')
-    comment(s, 1633609779745820675, 'test 123')
-    like(s, 1633609779745820675)
-    unlike(s, 1633609779745820675)
-    bookmark(s, 1633609779745820675)
-    unbookmark(s, 1633609779745820675)
-    pin(s, 1635479755364651008)
-    unpin(s, 1635479755364651008)
+    account.tweet(s, 'test 123')
+    account.tweet(s, 'test 123', media=['test.mp4'])
+    account.tweet(s, 'test 123', media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
+    account.tweet(s, 'test 123', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+    account.untweet(s, 123)
+    account.retweet(s, 1633609779745820675)
+    account.unretweet(s, 1633609779745820675)
+    account.quote(s, 1633609779745820675, 'elonmusk', 'test 123')
+    account.comment(s, 1633609779745820675, 'test 123')
+    account.like(s, 1633609779745820675)
+    account.unlike(s, 1633609779745820675)
+    account.bookmark(s, 1633609779745820675)
+    account.unbookmark(s, 1633609779745820675)
+    account.pin(s, 1635479755364651008)
+    account.unpin(s, 1635479755364651008)
     
     # users
-    follow(s, 50393960)
-    unfollow(s, 50393960)
-    mute(s, 50393960)
-    unmute(s, 50393960)
-    enable_notifications(s, 50393960)
-    disable_notifications(s, 50393960)
-    block(s, 50393960)
-    unblock(s, 50393960)
+    account.follow(s, 50393960)
+    account.unfollow(s, 50393960)
+    account.mute(s, 50393960)
+    account.unmute(s, 50393960)
+    account.enable_notifications(s, 50393960)
+    account.disable_notifications(s, 50393960)
+    account.block(s, 50393960)
+    account.unblock(s, 50393960)
     
     # other
-    stats(s, 50393960)
+    account.stats(s, 50393960)
     
     # user profile
-    update_profile_image(s, 'test.jpg')
-    update_profile_banner(s, 'test.png')
-    update_profile_info(s, name='Foo Bar', description='Test 123', location='Victoria, BC')
+    account.update_profile_image(s, 'test.jpg')
+    account.update_profile_banner(s, 'test.png')
+    account.update_profile_info(s, name='Foo Bar', description='Test 123', location='Victoria, BC')
     
     # topics
-    follow_topic(s, 808713037230157824)
-    unfollow_topic(s, 808713037230157824)
+    account.follow_topic(s, 808713037230157824)
+    account.unfollow_topic(s, 808713037230157824)
     
     # lists
-    create_list(s, 'My List', 'description of my list', private=False)
-    update_list(s, 123456, 'My Updated List', 'some updated description', private=False)
-    update_list_banner(s, 123456, 'test.png')
-    delete_list_banner(s, 123456)
-    add_list_member(s, 123456, 50393960)
-    remove_list_member(s, 123456, 50393960)
-    delete_list(s, 123456)
-    pin_list(s, 123456)
-    unpin_list(s, 123456)
-    
+    account.create_list(s, 'My List', 'description of my list', private=False)
+    account.update_list(s, 123456, 'My Updated List', 'some updated description', private=False)
+    account.update_list_banner(s, 123456, 'test.png')
+    account.delete_list_banner(s, 123456)
+    account.add_list_member(s, 123456, 50393960)
+    account.remove_list_member(s, 123456, 50393960)
+    account.delete_list(s, 123456)
+    account.pin_list(s, 123456)
+    account.unpin_list(s, 123456)
     # refresh all pinned lists in this order
-    update_pinned_lists(s, [123,234,345,456])
+    account.update_pinned_lists(s, [123, 234, 345, 456])
     
     # unpin all lists
-    update_pinned_lists(s, [])
+    account.update_pinned_lists(s, [])
     
     # example configuration
-    update_account_settings(s, {
+    account.update_settings(s, {
         "address_book_live_sync_enabled": False,
         "allow_ads_personalization": False,
         "allow_authenticated_periscope_requests": True,
@@ -142,7 +146,7 @@ setup(
     })
     
     # example configuration
-    update_search_settings(s, {
+    account.update_search_settings(s, {
         "optInFiltering": True,  # filter out nsfw content
         "optInBlocking": True,  # filter out blocked accounts
     })
@@ -155,48 +159,43 @@ setup(
     #### Get all user/tweet data
     
     ```python
-    from twitter.scrape import *
+    from twitter import scraper
     from twitter.login import login
     
-    usr, pwd = ..., ...
-    s = login(usr, pwd)  # session
-    
-    user_ids = [...]
-    usernames = [...]
-    tweet_ids = [...]
+    username,password = ...,...
+    s = login(username, password)  # session
     
     ####### User Data ########
-    users = get_user_by_screen_name(s, usernames)
-    tweets = get_user_tweets(s, user_ids)
-    likes = get_likes(s, user_ids)
-    tweets_and_replies = get_tweets_and_replies(s, user_ids)
-    media = get_media(s, user_ids)
-    following = get_following(s, user_ids)
-    followers = get_followers(s, user_ids)
+    users = scraper.get_user_by_screen_name(s, ['bob123', 'jim456', 'stanley789'])
+    tweets = scraper.get_user_tweets(s, [123, 234, 345])
+    likes = scraper.get_likes(s, [123, 234, 345])
+    tweets_and_replies = scraper.get_tweets_and_replies(s, [123, 234, 345])
+    media = scraper.get_media(s, [123, 234, 345])
+    following = scraper.get_following(s, [123, 234, 345])
+    followers = scraper.get_followers(s, [123, 234, 345])
     
     ######## Tweet Data ########
-    tweet = get_tweet_by_rest_id(s, tweet_ids)
-    tweet_detail = get_tweets(s, tweet_ids)
-    retweeters = get_retweeters(s, tweet_ids)
-    favoriters = get_favoriters(s, tweet_ids)
+    tweet = scraper.get_tweets_by_rest_id(s, [456, 567, 678])
+    tweet_detail = scraper.get_tweets(s, [456, 567, 678])
+    retweeters = scraper.get_retweeters(s, [456, 567, 678])
+    favoriters = scraper.get_favoriters(s, [456, 567, 678])
     
-    download_media(s, tweet_ids)
+    scraper.download_media(s, [456, 567, 678])
     ```
     
     #### Most recent ~100 results of user/tweet data
     
     ```python
     from twitter.login import login
-    from twitter.scrape import query
     from twitter.constants import Operation
-    
+    from twitter import scraper
     from functools import partial
     
     username, password = ..., ...
     session = login(username, password)
     
     user_ids = [123, 234, 345, 456]
-    user_query = partial(query, session, user_ids)
+    user_query = partial(scraper.query, session, user_ids)
     
     tweets = user_query(Operation.Data.UserTweets)
     likes = user_query(Operation.Data.Likes)
@@ -218,15 +217,6 @@ setup(
         'ios android',
     )
     ```
-
-    - search results are output to `~/data/raw`
-    - ~400 search results rate limiting occurs
-    
-    **Search Operators Reference**
-    
-    https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-operators
-    
-    https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
     '''),
     long_description_content_type='text/markdown',
     author="Trevor Hobenshield",

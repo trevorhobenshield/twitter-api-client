@@ -12,7 +12,7 @@ from urllib.parse import quote, urlencode, parse_qs, urlsplit, urlunsplit
 import aiohttp
 import requests
 
-from .config.log_config import log_config
+from .config.log import log_config
 from .config.settings import search_config
 
 IN_PATH = Path('~/data/raw').expanduser()

@@ -1,13 +1,3 @@
-MAX_IMAGE_SIZE = 5_242_880  # ~5 MB
-MAX_GIF_SIZE = 15_728_640  # ~15 MB
-MAX_VIDEO_SIZE = 536_870_912  # ~530 MB
-CHUNK_SIZE = 8192
-
-BOLD = '\u001b[1m'
-SUCCESS = '\u001b[32m'
-WARN = '\u001b[31m'
-RESET = '\u001b[0m'
-
 account_settings = {
     "address_book_live_sync_enabled": False,
     "allow_ads_personalization": False,

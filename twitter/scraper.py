@@ -13,20 +13,22 @@ import ujson
 from aiohttp import ClientSession, TCPConnector
 
 from .config.operations import operations
-from .config.log_config import log_config
-from .constants import Operation
+from .config.log import log_config
+from .constants import *
 from .login import Session
 from .utils import find_key, build_query, get_headers
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if sys.platform != 'win32':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -74,7 +76,7 @@ def get_tweets(session: Session, ids: list[int], limit=math.inf):
 
 
 # no pagination needed
-def get_tweet_by_rest_id(session: Session, ids: list[int]):
+def get_tweets_by_rest_id(session: Session, ids: list[int]):
     return run(session, ids, Operation.Data.TweetResultByRestId)
 
 
@@ -138,10 +140,15 @@ async def get(session: ClientSession, url: tuple) -> dict:
     logger.debug(f'processing: {url}')
     try:
         r = await session.get(api_url)
+        limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
+        logger.debug(f'{limits = }')
+        if r.status == 429:
+            logger.debug(f'rate limit exceeded: {url}')
+            return {}
         data = await r.json()
         return {ID: identifier, **data}
     except Exception as e:
-        logger.debug(e)
+        logger.debug(f'failed to download {url}: {e}')
 
 
 async def pagination(session: Session, res: list, operation: tuple, limit: int) -> tuple:
@@ -166,50 +173,53 @@ async def paginate(session: ClientSession, data: dict, operation: tuple, limit: 
                         return itemContent['value']  # v2 cursor
                     return content['value']  # v1 cursor
 
-    name, key = operation
-    params = deepcopy(operations[name])
-    qid = params['queryId']
-
-    ids = set()
-    counts = []
     all_data = []
+    try:
+        name, key = operation
+        params = deepcopy(operations[name])
+        qid = params['queryId']
 
-    params['variables'][key] = data[ID]
-    cursor = get_cursor(data)
+        ids = set()
+        counts = []
 
-    while 1:
-        params['variables']['cursor'] = cursor
-        query = build_query(params)
-        url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
+        params['variables'][key] = data[ID]
+        cursor = get_cursor(data)
 
-        # update csrf header - must be an easier way without importing yarl
-        if k := session.cookie_jar.__dict__['_cookies'].get('twitter.com'):
-            if cookie := re.search('(?<=ct0\=)\w+(?=;)', str(k)):
-                session.headers.update({"x-csrf-token": cookie.group()})
+        while 1:
+            params['variables']['cursor'] = cursor
+            query = build_query(params)
+            url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
 
-        _data = await backoff(lambda: session.get(url))
-        tagged_data = _data | {ID: data[ID]}
-        save_data([tagged_data], name)
-        all_data.append(tagged_data)
-        cursor = get_cursor(_data)
-        logger.debug(f'{cursor = }')
-        ids |= set(find_key(tagged_data, 'rest_id'))
-        logger.debug(f'({data[ID]})\t{len(ids)} unique results')
-        counts.append(len(ids))
+            # code [353]: "This request requires a matching csrf cookie and header."
+            r, _data = await backoff(lambda: session.get(url))
+            if csrf := r.cookies.get("ct0"):
+                session.headers.update({"x-csrf-token": csrf.value})
+            session.cookie_jar.update_cookies(r.cookies)
 
-        # followers/following have "0|"
-        if not cursor or cursor.startswith('0|'):
-            logger.debug(f'[SUCCESS] done pagination\tlast cursor: {cursor}')
-            break
-        if len(ids) >= limit:
-            logger.debug(f'[SUCCESS] done pagination\tsurpassed limit of {limit} results')
-            break
-        # did last 5 requests return duplicate data?
-        if len(counts) > DUP_LIMIT and len(set(counts[-1:-DUP_LIMIT:-1])) == 1:
-            logger.debug(f'[SUCCESS] done pagination\tpast {DUP_LIMIT} requests returned duplicate data')
-            break
+            tagged_data = _data | {ID: data[ID]}
+            save_data([tagged_data], name)
+            all_data.append(tagged_data)
+            cursor = get_cursor(_data)
+            logger.debug(f'{cursor = }')
+            ids |= set(find_key(tagged_data, 'rest_id'))
+            logger.debug(f'({data[ID]})\t{len(ids)} unique results')
+            counts.append(len(ids))
 
-    save_data(all_data, name)
+            success_message = f'[{SUCCESS}SUCCESS{RESET}] done pagination'
+            # followers/following have "0|"
+            if not cursor or cursor.startswith('0|'):
+                logger.debug(f'{success_message}\tlast cursor: {cursor}')
+                break
+            if len(ids) >= limit:
+                logger.debug(f'{success_message}\tsurpassed limit of {limit} results')
+                break
+            # did last 5 requests return duplicate data?
+            if len(counts) > DUP_LIMIT and len(set(counts[-1:-DUP_LIMIT:-1])) == 1:
+                logger.debug(f'{success_message}\tpast {DUP_LIMIT} requests returned duplicate data')
+                break
+    except Exception as e:
+        logger.debug(f'paginate falied: {e}')
+    # save_data(all_data, name)
     return all_data
 
 
@@ -218,10 +228,10 @@ async def backoff(fn, retries=12):
         try:
             r = await fn()
             data = await r.json()
-            return data
+            return r, data
         except Exception as e:
             if i == retries:
-                logger.debug(f'Max retries exceeded\n{e}')
+                logger.debug(f'{WARN}Max retries exceeded{RESET}\n{e}')
                 return
             t = 2 ** i + random.random()
             logger.debug(f'retrying in {f"{t:.2f}"} seconds\t\t{e}')
@@ -229,11 +239,14 @@ async def backoff(fn, retries=12):
 
 
 def save_data(data: list, name: str = ''):
-    for d in data:
-        path = Path(f'data/raw/{d[ID]}')
-        path.mkdir(parents=True, exist_ok=True)
-        with open(path / f'{time.time_ns()}_{name}.json', 'w') as fp:
-            ujson.dump(d, fp, indent=4)
+    try:
+        for d in data:
+            path = Path(f'data/raw/{d[ID]}')
+            path.mkdir(parents=True, exist_ok=True)
+            with open(path / f'{time.time_ns()}_{name}.json', 'w') as fp:
+                ujson.dump(d, fp, indent=4)
+    except KeyError as e:
+        logger.debug(f'failed to save data: {e}')
 
 
 def download(session: Session, post_url: str, cdn_url: str, path: str = 'media', chunk_size: int = 4096) -> None:
@@ -259,7 +272,7 @@ def download(session: Session, post_url: str, cdn_url: str, path: str = 'media',
 
 
 def download_media(session: Session, ids: list[int], photos: bool = True, videos: bool = True) -> None:
-    res = get_tweet_by_rest_id(session, ids)
+    res = get_tweets_by_rest_id(session, ids)
     for r in res:
         user_id = find_key(r, 'user_results')[0]['result']['rest_id']
         url = f'https://twitter.com/{user_id}/status/{r[ID]}'  # evaluates to username in browser
