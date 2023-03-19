@@ -39,54 +39,54 @@ logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 
-def get_user_tweets(session: Session, ids: list[int], limit=math.inf):
+def tweets(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.UserTweets, limit)
 
 
-def get_tweets_and_replies(session: Session, ids: list[int], limit=math.inf):
+def tweets_and_replies(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.UserTweetsAndReplies, limit)
 
 
-def get_likes(session: Session, ids: list[int], limit=math.inf):
+def likes(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.Likes, limit)
 
 
-def get_media(session: Session, ids: list[int], limit=math.inf):
+def media(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.UserMedia, limit)
 
 
-def get_followers(session: Session, ids: list[int], limit=math.inf):
+def followers(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.Followers, limit)
 
 
-def get_following(session: Session, ids: list[int], limit=math.inf):
+def following(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.Following, limit)
 
 
-def get_favoriters(session: Session, ids: list[int], limit=math.inf):
+def favoriters(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.Favoriters, limit)
 
 
-def get_retweeters(session: Session, ids: list[int], limit=math.inf):
+def retweeters(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.Retweeters, limit)
 
 
-def get_tweets(session: Session, ids: list[int], limit=math.inf):
+def tweets_details(session: Session, ids: list[int], limit=math.inf):
     return run(session, ids, Operation.Data.TweetDetail, limit)
 
 
 # no pagination needed
-def get_tweets_by_rest_id(session: Session, ids: list[int]):
+def tweets_by_rest_id(session: Session, ids: list[int]):
     return run(session, ids, Operation.Data.TweetResultByRestId)
 
 
 # no pagination needed
-def get_user_by_screen_name(session: Session, ids: list[str]):
+def user_by_screen_name(session: Session, ids: list[str]):
     return run(session, ids, Operation.Data.UserByScreenName)
 
 
 # no pagination needed
-def get_user_by_rest_id(session: Session, ids: list[int]):
+def user_by_rest_id(session: Session, ids: list[int]):
     return run(session, ids, Operation.Data.UserByRestId)
 
 
@@ -272,7 +272,7 @@ def download(session: Session, post_url: str, cdn_url: str, path: str = 'media',
 
 
 def download_media(session: Session, ids: list[int], photos: bool = True, videos: bool = True) -> None:
-    res = get_tweets_by_rest_id(session, ids)
+    res = tweets_by_rest_id(session, ids)
     for r in res:
         user_id = find_key(r, 'user_results')[0]['result']['rest_id']
         url = f'https://twitter.com/{user_id}/status/{r[ID]}'  # evaluates to username in browser

@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.3.7",
+    version="0.3.8",
     description="Twitter API",
     long_description=dedent('''
     Complete implementation of the undocumented Twitter API
@@ -168,23 +168,23 @@ setup(
     from twitter import scraper
     from twitter.login import login
     
-    username,password = ...,...
+    username, password = ..., ...
     s = login(username, password)  # session
     
     ####### User Data ########
-    users = scraper.get_user_by_screen_name(s, ['bob123', 'jim456', 'stanley789'])
-    tweets = scraper.get_user_tweets(s, [123, 234, 345])
-    likes = scraper.get_likes(s, [123, 234, 345])
-    tweets_and_replies = scraper.get_tweets_and_replies(s, [123, 234, 345])
-    media = scraper.get_media(s, [123, 234, 345])
-    following = scraper.get_following(s, [123, 234, 345])
-    followers = scraper.get_followers(s, [123, 234, 345])
+    users = scraper.user_by_screen_name(s, ['bob123', 'jim456', 'stanley789'])
+    tweets = scraper.tweets(s, [123, 234, 345])
+    likes = scraper.likes(s, [123, 234, 345])
+    tweets_and_replies = scraper.tweets_and_replies(s, [123, 234, 345])
+    media = scraper.media(s, [123, 234, 345])
+    following = scraper.following(s, [123, 234, 345])
+    followers = scraper.followers(s, [123, 234, 345])
     
     ######## Tweet Data ########
-    tweet = scraper.get_tweets_by_rest_id(s, [456, 567, 678])
-    tweet_detail = scraper.get_tweets(s, [456, 567, 678])
-    retweeters = scraper.get_retweeters(s, [456, 567, 678])
-    favoriters = scraper.get_favoriters(s, [456, 567, 678])
+    tweets_by_ids = scraper.tweets_by_rest_id(s, [456, 567, 678])
+    tweets_details = scraper.tweets_details(s, [456, 567, 678])
+    retweeters = scraper.retweeters(s, [456, 567, 678])
+    favoriters = scraper.favoriters(s, [456, 567, 678])
     
     scraper.download_media(s, [456, 567, 678])
     ```

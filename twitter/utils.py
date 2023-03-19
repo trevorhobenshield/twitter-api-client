@@ -30,6 +30,12 @@ def find_key(obj: dict | list[dict], key: str) -> list:
     return helper(obj, key, [])
 
 
+def traverse_dict(d: dict, *args):
+    for k in args:
+        d = d.get(k, {})
+    return d
+
+
 def get_headers(session) -> dict:
     """
     Get the headers required for authenticated requests
