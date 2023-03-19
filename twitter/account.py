@@ -568,6 +568,28 @@ def update_settings(session: Session, settings: dict) -> Response:
     """
     return api(session, 'account/settings.json', settings)
 
+
+@log(info=['json'])
+def change_password(session: Session, old: str, new: str) -> Response:
+    settings = {
+        'current_password': old,
+        'password': new,
+        'password_confirmation': new
+    }
+    headers = get_headers(session)
+    headers['content-type'] = 'application/x-www-form-urlencoded'
+    url = 'https://twitter.com/i/api/i/account/change_password.json'
+    r = session.post(url, headers=headers, data=urlencode(settings))
+    return r
+
+
+@log(info=['json'])
+def logout_all_sessions(session: Session) -> Response:
+    headers = get_headers(session)
+    url = 'https://twitter.com/i/api/account/sessions/revoke_all'
+    r = session.post(url, headers=headers)
+    return r
+
 # @log(info=['json'])
 # def __get_lists(session: Session) -> Response:
 #     name, _ = Operation.Account.ListsManagementPageTimeline

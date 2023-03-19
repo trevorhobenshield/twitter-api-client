@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.3.6",
+    version="0.3.7",
     description="Twitter API",
     long_description=dedent('''
     Complete implementation of the undocumented Twitter API
@@ -154,6 +154,9 @@ setup(
         "optInBlocking": True,  # filter out blocked accounts
     })
     
+    ### danger zone
+    ## account.change_password(s, 'old password', 'new password')
+    ## account.logout_all_sessions(s)
     
     ```
     

@@ -1,8 +1,9 @@
-import re
 import json
-import requests
-import bs4
+import re
 from pathlib import Path
+import bs4
+import requests
+from operations import operations as OLD
 
 
 def find_api_script(res: requests.Response) -> str:
@@ -39,36 +40,41 @@ def get_operations() -> list[dict]:
     return json.loads(f'[{res[:-2]}]')
 
 
-def update_operations(path=Path('operations.json')):
+def update_operations(path=Path('operations_new.json')):
     """
     Update operations.json with queryId and feature definitions
     @param path: path to operations file
     @return: updated operations
     """
+
+    def merge(new, out=Path('operations_new.py')):
+        for k in new:
+            if k in OLD:
+                OLD[k]['features'] |= new[k]['features']
+                OLD[k]['queryId'] = new[k]['queryId']
+            else:
+                print(f'new operation: {k}')
+                OLD[k] = new[k]
+        out.write_text(f'operations = {OLD}')
+
+    operation_types = {}
     operations = get_operations()
-    # update operations file
-    if path.stat().st_size == 0:
-        # empty file, add all operations
-        config = {}
-        for o in operations:
-            config[o['operationName']] = {
-                'queryId': o['queryId'],
-                'variables': {},
-                'features': {k: True for k in o['metadata']['featureSwitches']}
-            }
-    else:
-        config = json.loads(path.read_text())
-        # update queryId and features for all operations
-        for o in operations:
-            config[o['operationName']]['queryId'] = o['queryId']
-            config[o['operationName']]['features'] = {k: True for k in o['metadata']['featureSwitches']}
-    path.write_text(json.dumps(config, indent=2))
-    return config
+    config = {}
+    for o in operations:
+        operation_types.setdefault(o['operationType'], []).append(o["operationName"])
+        config[o['operationName']] = {
+            'queryId': o['queryId'],
+            'variables': {},
+            'features': {k: True for k in o['metadata']['featureSwitches']}
+        }
+    # path.write_text(json.dumps(config, indent=2))
+    # print(f'{operation_types = }')
+    # print(f'{operation_types.keys() = }')
+    merge(config)
 
 
 def main() -> int:
     update_operations()
-    # todo: currently need to manually convert json to python file
     return 0
 
 

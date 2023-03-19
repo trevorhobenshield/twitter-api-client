@@ -135,6 +135,9 @@ account.update_search_settings(s, {
     "optInBlocking": True,  # filter out blocked accounts
 })
 
+### danger zone
+## account.change_password(s, 'old password', 'new password')
+## account.logout_all_sessions(s)
 
 ```
 
