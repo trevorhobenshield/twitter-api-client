@@ -1,4 +1,3 @@
-import json
 from enum import Enum, member
 
 BOLD = '\u001b[1m'
@@ -59,6 +58,8 @@ class Operation(CustomEnum):
         # tweet
         CreateTweet = Value()
         CreateScheduledTweet = Value()
+        DeleteScheduledTweet = Value()
+        FetchScheduledTweets = Value()
         DeleteTweet = Value()
         FavoriteTweet = Value()
         UnfavoriteTweet = Value()

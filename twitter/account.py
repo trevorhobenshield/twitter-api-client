@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import hashlib
 import inspect
 import logging.config
@@ -20,7 +21,7 @@ from .config.log import log_config
 from .config.operations import operations
 from .config.settings import *
 from .constants import *
-from .utils import get_headers, build_query
+from .utils import get_headers, build_query, find_key
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -153,6 +154,36 @@ def tweet(session: Session, text: str, media: list[dict | str] = None, **kwargs)
 
 
 @log(info=['json'])
+def schedule_tweet(session: Session, text: str, execute_at: str | int, *, reply_to: int = None,
+                   media: list[dict | str] = None) -> Response:
+    name, _ = Operation.Account.CreateScheduledTweet
+    params = deepcopy(operations[name])
+    qid = params['queryId']
+    params['variables']['post_tweet_request']['status'] = text
+    params['variables']['execute_at'] = (
+        datetime.strptime(execute_at, "%Y-%m-%d %H:%M").timestamp()
+        if isinstance(execute_at, str)
+        else execute_at
+    )
+    if reply_to:
+        params['variables']['post_tweet_request']['in_reply_to_status_id'] = reply_to
+    if media:
+        for m in media:
+            if isinstance(m, dict):
+                media_id = upload_media(session, m['file'])
+                params['variables']['post_tweet_request']['media_ids'].append(media_id)
+                if alt := m.get('alt'):
+                    add_alt_text(session, media_id, alt)
+            # for convenience, so we can just pass list of strings
+            elif isinstance(m, str):
+                media_id = upload_media(session, m)
+                params['variables']['post_tweet_request']['media_ids'].append(media_id)
+    url = f"https://api.twitter.com/graphql/{qid}/{name}"
+    r = session.post(url, headers=get_headers(session), json=params)
+    return r
+
+
+@log(info=['json'])
 def create_poll(session: Session, text: str, choices: list[str], poll_duration: int) -> Response:
     options = {
         "twitter:card": "poll4choice_text_only",
@@ -247,15 +278,21 @@ def add_alt_text(session: Session, media_id: int, text: str) -> Response:
     return r
 
 
-def comment(session: Session, tweet_id: int, text: str, media: list[dict | str] = None) -> Response:
+def reply(session: Session, tweet_id: int, text: str, media: list[dict | str] = None) -> Response:
+    """ an un-reply operation is just DeleteTweet"""
     params = {"reply": {"in_reply_to_tweet_id": tweet_id, "exclude_reply_user_ids": []}}
     return tweet(session, text, media, reply_params=params)
 
 
 def quote(session: Session, tweet_id: int, screen_name: str, text: str, media: list[dict | str] = None) -> Response:
-    """ no unquote operation, just DeleteTweet"""
+    """ an un-quote operation is just DeleteTweet"""
     params = {"attachment_url": f"https://twitter.com/{screen_name}/status/{tweet_id}"}
     return tweet(session, text, media, quote_params=params)
+
+
+@log(info=['json'])
+def unschedule_tweet(session: Session, tweet_id: int) -> Response:
+    return gql(session, Operation.Account.DeleteScheduledTweet, {'scheduled_tweet_id': tweet_id})
 
 
 @log(info=['json'])

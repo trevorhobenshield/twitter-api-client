@@ -33,7 +33,7 @@ setup(
     from twitter import account
     from twitter.login import login
     
-    username,password = ...,...
+    username, password = ..., ...
     s = login(username, password)  # session
     
     account.create_poll(s, 'test poll', ['hello', 'world', 'foo', 'bar'], 10080)
@@ -44,16 +44,21 @@ setup(
     # DM group of users
     account.dm(s, [111, 222, 333], 'foo bar', filename='test.mp4')
     
+    # schedule a tweet (date str or unix timestamp)
+    account.schedule_tweet(s, 'test 678', 1679412795, media=['test.jpg'])
+    account.schedule_tweet(s, 'test 987', '2023-03-18 19:01', media=['test.jpg'], reply_to=1637237143536795650)
+    account.unschedule_tweet(s, 1637258368287907843)
+    
     # tweets
     account.tweet(s, 'test 123')
-    account.tweet(s, 'test 123', media=['test.mp4'])
-    account.tweet(s, 'test 123', media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
-    account.tweet(s, 'test 123', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+    account.tweet(s, 'test 234', media=['test.mp4'])
+    account.tweet(s, 'test 345', media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
+    account.tweet(s, 'test 456', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
     account.untweet(s, 123)
     account.retweet(s, 1633609779745820675)
     account.unretweet(s, 1633609779745820675)
     account.quote(s, 1633609779745820675, 'elonmusk', 'test 123')
-    account.comment(s, 1633609779745820675, 'test 123')
+    account.reply(s, 1633609779745820675, 'test 123')
     account.like(s, 1633609779745820675)
     account.unlike(s, 1633609779745820675)
     account.bookmark(s, 1633609779745820675)
@@ -70,9 +75,6 @@ setup(
     account.disable_notifications(s, 50393960)
     account.block(s, 50393960)
     account.unblock(s, 50393960)
-    
-    # other
-    account.stats(s, 50393960)
     
     # user profile
     account.update_profile_image(s, 'test.jpg')
@@ -93,6 +95,7 @@ setup(
     account.delete_list(s, 123456)
     account.pin_list(s, 123456)
     account.unpin_list(s, 123456)
+    
     # refresh all pinned lists in this order
     account.update_pinned_lists(s, [123, 234, 345, 456])
     

@@ -979,9 +979,7 @@ operations = {
                 "auto_populate_reply_metadata": False,
                 "status": None,
                 "exclude_reply_user_ids": [],
-                "media_ids": [
-                    None
-                ]
+                "media_ids": []
             },
             "execute_at": None
         },
@@ -1094,7 +1092,9 @@ operations = {
     },
     "DeleteScheduledTweet": {
         "queryId": "CTOVqej0JBXAZSwkp1US0g",
-        "variables": {},
+        "variables": {
+            "scheduled_tweet_id": None,
+        },
         "features": {}
     },
     "DeleteTweet": {
@@ -2304,7 +2304,9 @@ operations = {
     },
     "FetchScheduledTweets": {
         "queryId": "ITtjAzvlZni2wWXwf295Qg",
-        "variables": {},
+        "variables": {
+            "ascending": True
+        },
         "features": {}
     },
     "SharingAudiospacesListeningDataWithFollowersUpdate": {
