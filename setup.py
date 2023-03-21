@@ -46,8 +46,8 @@ setup(
     
     # schedule a tweet (date str or unix timestamp)
     account.schedule_tweet(s, 'test 678', 1679412795, media=['test.jpg'])
-    account.schedule_tweet(s, 'test 987', '2023-03-18 19:01', media=['test.jpg'], reply_to=1637237143536795650)
-    account.unschedule_tweet(s, 1637258368287907843)
+    account.schedule_tweet(s, 'test 987', '2023-03-18 19:01', media=['test.jpg'], reply_to=123)
+    account.unschedule_tweet(s, 234)
     
     # tweets
     account.tweet(s, 'test 123')
