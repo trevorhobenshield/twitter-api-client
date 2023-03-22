@@ -150,47 +150,27 @@ account.update_search_settings({
 #### Get all user/tweet data
 
 ```python
-from twitter import scraper
-from twitter.login import login
+from twitter.scraper import Scraper
 
 username, password = ..., ...
-s = login(username, password)  # session
+scraper = Scraper(username, password)
 
 ####### User Data ########
-users = scraper.user_by_screen_name(s, ['bob123', 'jim456', 'stanley789'])
-tweets = scraper.tweets(s, [123, 234, 345])
-likes = scraper.likes(s, [123, 234, 345])
-tweets_and_replies = scraper.tweets_and_replies(s, [123, 234, 345])
-media = scraper.media(s, [123, 234, 345])
-following = scraper.following(s, [123, 234, 345])
-followers = scraper.followers(s, [123, 234, 345])
+users = scraper.user_by_screen_name(['bob123', 'jim456', 'stanley789'])
+tweets = scraper.tweets([123, 234, 345])
+likes = scraper.likes([123, 234, 345])
+tweets_and_replies = scraper.tweets_and_replies([123, 234, 345])
+media = scraper.media([123, 234, 345])
+following = scraper.following([123, 234, 345])
+followers = scraper.followers([123, 234, 345])
 
 ######## Tweet Data ########
-tweets_by_ids = scraper.tweets_by_rest_id(s, [456, 567, 678])
-tweets_details = scraper.tweets_details(s, [456, 567, 678])
-retweeters = scraper.retweeters(s, [456, 567, 678])
-favoriters = scraper.favoriters(s, [456, 567, 678])
+tweets_by_ids = scraper.tweets_by_rest_id([456, 567, 678])
+tweets_details = scraper.tweets_details([456, 567, 678])
+retweeters = scraper.retweeters([456, 567, 678])
+favoriters = scraper.favoriters([456, 567, 678])
 
-scraper.download_media(s, [456, 567, 678])
-```
-
-#### Most recent ~100 results of user/tweet data
-
-```python
-from twitter.login import login
-from twitter.constants import Operation
-from twitter import scraper
-from functools import partial
-
-username, password = ..., ...
-session = login(username, password)
-
-user_ids = [123, 234, 345, 456]
-user_query = partial(scraper.query, session, user_ids)
-
-tweets = user_query(Operation.Data.UserTweets)
-likes = user_query(Operation.Data.Likes)
-followers = user_query(Operation.Data.Followers)
+scraper.download_media([456, 567, 678])
 ```
 
 #### Search
@@ -220,6 +200,6 @@ https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-
 
 https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
 
-
 ### Notes
-- `/Followers` has extremely low rate limits 
+
+- `/Followers` currently has extremely low rate limit of 50 requests/15 minutes

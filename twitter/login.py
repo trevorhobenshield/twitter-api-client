@@ -16,10 +16,9 @@ def update_token(session: Session, key: str, url: str, payload: dict) -> Session
             "x-twitter-client-language": 'en',
         }
         r = session.post(url, headers=headers, json=payload).json()
-        # print(f'{SUCCESS}{sys._getframe(1).f_code.co_name}{RESET}')
         session.cookies.set(key, r[key])
     except KeyError as e:
-        print(f'[{WARN}FAILED{RESET}] failed to update token at {BOLD}{sys._getframe(1).f_code.co_name}{RESET}')
+        print(f'[{WARN}FAILED{RESET}] failed to update token at {BOLD}{sys._getframe(1).f_code.co_name}{RESET}\n{e}')
     return session
 
 
