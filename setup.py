@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.3.9",
+    version="0.4.0",
     description="Twitter API",
     long_description=dedent('''
     Complete implementation of the undocumented Twitter API
@@ -25,10 +25,9 @@ setup(
     
    ```python
     from twitter.account import Account
-    from twitter.login import login
     
-    username,password = ...,...
-    account = Account(login(username,password))
+    username, password = ..., ...
+    account = Account(username, password)
     
     account.create_poll('test poll 123', ['hello', 'world', 'foo', 'bar'], 10080)
     
@@ -36,7 +35,7 @@ setup(
     account.dm([123], 'hello world', filename='test.png')
     
     # DM group of users
-    account.dm([123,234,345], 'foo bar', filename='test.mp4')
+    account.dm([123, 234, 345], 'foo bar', filename='test.mp4')
     
     # schedule a tweet (date str or timestamp)
     account.schedule_tweet('scheduled hello', 1679912795, media=['test.jpg'])
@@ -49,7 +48,7 @@ setup(
     # tweets
     account.tweet('test 123')
     account.tweet('test 234', media=['test.mp4'])
-    account.tweet('test 345', media=['test.jpg', 'test.png', 'test.jpeg','test.jfif'])
+    account.tweet('test 345', media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
     account.tweet('test 456', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
     account.untweet(123)
     account.retweet(1633609779745820675)
@@ -97,7 +96,7 @@ setup(
     account.unpin_list(543)
     
     # refresh all pinned lists in this order
-    account.update_pinned_lists([543,432,321])
+    account.update_pinned_lists([543, 432, 321])
     
     # unpin all lists
     account.update_pinned_lists([])
@@ -156,6 +155,7 @@ setup(
     
     ## account.change_password('old password', 'new password')
     ## account.logout_all_sessions()
+    
     ```
     
     

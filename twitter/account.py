@@ -14,13 +14,14 @@ from urllib.parse import urlencode
 from uuid import uuid1, getnode
 
 import ujson
-from requests import Session, Response
+from requests import Response
 from tqdm import tqdm
 
 from .config.log import log_config
 from .config.operations import operations
 from .config.settings import *
 from .constants import *
+from .login import login
 from .utils import get_headers, build_query
 
 try:
@@ -82,8 +83,8 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
 
 class Account:
 
-    def __init__(self, session: Session):
-        self.session = session
+    def __init__(self, username: str, password: str):
+        self.session = login(username, password)
 
     def gql(self, operation: tuple, variables: dict) -> Response:
         name, _ = operation
