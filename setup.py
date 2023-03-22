@@ -14,7 +14,7 @@ if sys.platform != 'win32':
 
 setup(
     name="twitter-api-client",
-    version="0.3.8",
+    version="0.3.9",
     description="Twitter API",
     long_description=dedent('''
     Complete implementation of the undocumented Twitter API
@@ -23,87 +23,87 @@ setup(
     
     ### Installation
     
-    ```bash
-    pip install twitter-api-client
-    ```
-    
-    ### Automation
-    
-    ```python
-    from twitter import account
+   ```python
+    from twitter.account import Account
     from twitter.login import login
     
-    username, password = ..., ...
-    s = login(username, password)  # session
+    username,password = ...,...
+    account = Account(login(username,password))
     
-    account.create_poll(s, 'test poll', ['hello', 'world', 'foo', 'bar'], 10080)
+    account.create_poll('test poll 123', ['hello', 'world', 'foo', 'bar'], 10080)
     
     # DM 1 user
-    account.dm(s, [111], 'hello world', filename='test.png')
+    account.dm([123], 'hello world', filename='test.png')
     
     # DM group of users
-    account.dm(s, [111, 222, 333], 'foo bar', filename='test.mp4')
+    account.dm([123,234,345], 'foo bar', filename='test.mp4')
     
-    # schedule a tweet (date str or unix timestamp)
-    account.schedule_tweet(s, 'test 678', 1679412795, media=['test.jpg'])
-    account.schedule_tweet(s, 'test 987', '2023-03-18 19:01', media=['test.jpg'], reply_to=123)
-    account.unschedule_tweet(s, 234)
+    # schedule a tweet (date str or timestamp)
+    account.schedule_tweet('scheduled hello', 1679912795, media=['test.jpg'])
+    
+    # schedule a reply tweet (date str or timestamp)
+    account.schedule_tweet('scheduled world', '2023-03-25 19:11', media=['test.jpg'], reply_to=645)
+    
+    account.unschedule_tweet(321)
     
     # tweets
-    account.tweet(s, 'test 123')
-    account.tweet(s, 'test 234', media=['test.mp4'])
-    account.tweet(s, 'test 345', media=['test.jpg', 'test.png', 'test.jpeg', 'test.jfif'])
-    account.tweet(s, 'test 456', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
-    account.untweet(s, 123)
-    account.retweet(s, 1633609779745820675)
-    account.unretweet(s, 1633609779745820675)
-    account.quote(s, 1633609779745820675, 'elonmusk', 'test 123')
-    account.reply(s, 1633609779745820675, 'test 123')
-    account.like(s, 1633609779745820675)
-    account.unlike(s, 1633609779745820675)
-    account.bookmark(s, 1633609779745820675)
-    account.unbookmark(s, 1633609779745820675)
-    account.pin(s, 1635479755364651008)
-    account.unpin(s, 1635479755364651008)
+    account.tweet('test 123')
+    account.tweet('test 234', media=['test.mp4'])
+    account.tweet('test 345', media=['test.jpg', 'test.png', 'test.jpeg','test.jfif'])
+    account.tweet('test 456', media=[{'file': 'test.jpeg', 'tagged_users': [123234345456], 'alt': 'some image'}])
+    account.untweet(123)
+    account.retweet(1633609779745820675)
+    account.unretweet(1633609779745820675)
+    account.quote(1633609779745820675, 'elonmusk', 'test 123')
+    account.reply(1633609779745820675, 'test 123')
+    account.like(1633609779745820675)
+    account.unlike(1633609779745820675)
+    account.bookmark(1633609779745820675)
+    account.unbookmark(1633609779745820675)
+    account.pin(1635479755364651008)
+    account.unpin(1635479755364651008)
     
     # users
-    account.follow(s, 50393960)
-    account.unfollow(s, 50393960)
-    account.mute(s, 50393960)
-    account.unmute(s, 50393960)
-    account.enable_notifications(s, 50393960)
-    account.disable_notifications(s, 50393960)
-    account.block(s, 50393960)
-    account.unblock(s, 50393960)
+    account.follow(50393960)
+    account.unfollow(50393960)
+    account.mute(50393960)
+    account.unmute(50393960)
+    account.enable_notifications(50393960)
+    account.disable_notifications(50393960)
+    account.block(50393960)
+    account.unblock(50393960)
+    
+    # other
+    account.stats(50393960)
     
     # user profile
-    account.update_profile_image(s, 'test.jpg')
-    account.update_profile_banner(s, 'test.png')
-    account.update_profile_info(s, name='Foo Bar', description='Test 123', location='Victoria, BC')
+    account.update_profile_image('test.jpg')
+    account.update_profile_banner('test.png')
+    account.update_profile_info(name='Foo Bar', description='test 123', location='Victoria, BC')
     
     # topics
-    account.follow_topic(s, 808713037230157824)
-    account.unfollow_topic(s, 808713037230157824)
+    account.follow_topic(808713037230157824)
+    account.unfollow_topic(808713037230157824)
     
     # lists
-    account.create_list(s, 'My List', 'description of my list', private=False)
-    account.update_list(s, 123456, 'My Updated List', 'some updated description', private=False)
-    account.update_list_banner(s, 123456, 'test.png')
-    account.delete_list_banner(s, 123456)
-    account.add_list_member(s, 123456, 50393960)
-    account.remove_list_member(s, 123456, 50393960)
-    account.delete_list(s, 123456)
-    account.pin_list(s, 123456)
-    account.unpin_list(s, 123456)
+    account.create_list('My List', 'description of my list', private=False)
+    account.update_list(543, 'My Updated List', 'some updated description', private=False)
+    account.update_list_banner(543, 'test.png')
+    account.delete_list_banner(543)
+    account.add_list_member(543, 50393960)
+    account.remove_list_member(543, 50393960)
+    account.delete_list(543)
+    account.pin_list(543)
+    account.unpin_list(543)
     
     # refresh all pinned lists in this order
-    account.update_pinned_lists(s, [123, 234, 345, 456])
+    account.update_pinned_lists([543,432,321])
     
     # unpin all lists
-    account.update_pinned_lists(s, [])
+    account.update_pinned_lists([])
     
     # example configuration
-    account.update_settings(s, {
+    account.update_settings({
         "address_book_live_sync_enabled": False,
         "allow_ads_personalization": False,
         "allow_authenticated_periscope_requests": True,
@@ -119,7 +119,7 @@ setup(
         "country_code": "us",
         "discoverable_by_email": False,
         "discoverable_by_mobile_phone": False,
-        "display_sensitive_media": True,
+        "display_sensitive_media": False,
         "dm_quality_filter": "enabled",
         "dm_receipt_setting": "all_disabled",
         "geo_enabled": False,
@@ -149,16 +149,15 @@ setup(
     })
     
     # example configuration
-    account.update_search_settings(s, {
+    account.update_search_settings({
         "optInFiltering": True,  # filter out nsfw content
         "optInBlocking": True,  # filter out blocked accounts
     })
     
-    ### danger zone
-    ## account.change_password(s, 'old password', 'new password')
-    ## account.logout_all_sessions(s)
-    
+    ## account.change_password('old password', 'new password')
+    ## account.logout_all_sessions()
     ```
+    
     
     ### Scraping
     
