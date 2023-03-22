@@ -3,8 +3,8 @@ import hashlib
 import inspect
 import logging.config
 import mimetypes
+import platform
 import random
-import sys
 import time
 from copy import deepcopy
 from datetime import datetime
@@ -27,12 +27,14 @@ from .utils import get_headers, build_query
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
-if sys.platform != 'win32':
+if platform.system() != 'Windows':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

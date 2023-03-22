@@ -1,5 +1,6 @@
-import sys
+import platform
 from textwrap import dedent
+
 from setuptools import find_packages, setup
 
 install_requires = [
@@ -9,12 +10,12 @@ install_requires = [
     "aiohttp",
     "requests",
 ]
-if sys.platform != 'win32':
+if platform.system() != 'Windows':
     install_requires.append('uvloop')
 
 setup(
     name="twitter-api-client",
-    version="0.4.0",
+    version="0.4.1",
     description="Twitter API",
     long_description=dedent('''
     Complete implementation of the undocumented Twitter API

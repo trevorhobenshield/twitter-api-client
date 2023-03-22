@@ -2,9 +2,9 @@ import asyncio
 import atexit
 import json
 import logging.config
+import platform
 import random
 import re
-import sys
 import time
 from pathlib import Path
 from urllib.parse import quote, urlencode, parse_qs, urlsplit, urlunsplit
@@ -23,17 +23,18 @@ colors = [f'\u001b[{i}m' for i in range(30, 38)]
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
-
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
-if sys.platform != 'win32':
+if platform.system() != 'Windows':
     try:
         import uvloop
+
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     except:
         ...

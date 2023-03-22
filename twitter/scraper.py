@@ -1,9 +1,8 @@
 import asyncio
 import logging.config
 import math
+import platform
 import random
-import re
-import sys
 import time
 from copy import deepcopy
 from pathlib import Path
@@ -12,8 +11,8 @@ from urllib.parse import urlsplit
 import ujson
 from aiohttp import ClientSession, TCPConnector
 
-from .config.operations import operations
 from .config.log import log_config
+from .config.operations import operations
 from .constants import *
 from .login import Session
 from .utils import find_key, build_query, get_headers
@@ -26,7 +25,7 @@ try:
 except:
     ...
 
-if sys.platform != 'win32':
+if platform.system() != 'Windows':
     import uvloop
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
