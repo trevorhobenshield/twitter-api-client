@@ -1,4 +1,6 @@
-GRAPHQL_ERROR_CODES = {
+# https://developer.twitter.com/en/support/twitter-api/error-troubleshooting
+
+API_ERROR_CODES = {
     0: "DefaultApiError",
     3: "InvalidCoordinates",
     4: "InvalidGranularity",
