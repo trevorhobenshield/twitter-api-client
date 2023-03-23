@@ -1,4 +1,4 @@
-from enum import Enum, member
+from enum import Enum  # todo:add back in python 3.13 , member
 
 BOLD = '\u001b[1m'
 SUCCESS = '\u001b[32m'
@@ -26,7 +26,7 @@ class CustomEnum(Enum):
 
 
 class Media(CustomEnum):
-    @member
+    #@member
     class Type(Enum):
         image = Value(5_242_880)  # ~5 MB
         gif = Value(15_728_640)  # ~15 MB
@@ -34,7 +34,7 @@ class Media(CustomEnum):
 
 
 class Operation(CustomEnum):
-    @member
+    #@member
     class Data(Enum):
         # tweet
         Favoriters = Value('tweetId')
@@ -53,7 +53,7 @@ class Operation(CustomEnum):
         # batch-user
         UsersByRestIds = Value('userIds')
 
-    @member
+    #@member
     class Account(Enum):
         # tweet
         CreateTweet = Value()
