@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class Scraper:
+    GRAPHQL_URL = 'https://api.twitter.com/graphql'
 
     def __init__(self, username: str, password: str):
         self.session = login(username, password)
@@ -89,7 +90,7 @@ class Scraper:
         qid = params['queryId']
         params['variables']['userIds'] = ids
         q = build_query(params)
-        url = f"https://api.twitter.com/graphql/{qid}/{name}?{q}"
+        url = f"{self.GRAPHQL_URL}/{qid}/{name}?{q}"
         headers = get_headers(self.session)
         headers['content-type'] = "application/json"
         users = self.session.get(url, headers=headers).json()
@@ -109,7 +110,7 @@ class Scraper:
         for _id in ids:
             params['variables'][key] = _id
             q = build_query(params)
-            urls.append((_id, f"https://api.twitter.com/graphql/{qid}/{name}?{q}"))
+            urls.append((_id, f"{self.GRAPHQL_URL}/{qid}/{name}?{q}"))
         headers = get_headers(self.session)
         headers['content-type'] = "application/json"
         res = asyncio.run(self.process(urls, headers))
@@ -130,8 +131,6 @@ class Scraper:
             r = await session.get(api_url)
             limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
             logger.debug(f'{limits = }')
-            text = await r.text()
-            logger.debug(f'{text = }')
             if r.status == 429:
                 logger.debug(f'rate limit exceeded: {url}')
                 return {}
@@ -176,7 +175,7 @@ class Scraper:
             while 1:
                 params['variables']['cursor'] = cursor
                 query = build_query(params)
-                url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
+                url = f"{self.GRAPHQL_URL}/{qid}/{name}?{query}"
 
                 # code [353]: "This request requires a matching csrf cookie and header."
                 r, _data = await self.backoff(lambda: session.get(url))

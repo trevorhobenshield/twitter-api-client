@@ -84,6 +84,9 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
 
 
 class Account:
+    V1_URL = 'https://api.twitter.com/1.1'
+    V2_URL = 'https://api.twitter.com/2'  # /search
+    GRAPHQL_URL = 'https://api.twitter.com/graphql'
 
     def __init__(self, username: str, password: str):
         self.session = login(username, password)
@@ -93,14 +96,14 @@ class Account:
         payload = deepcopy(operations[name])
         qid = payload['queryId']
         payload['variables'] |= variables
-        url = f"https://api.twitter.com/graphql/{qid}/{name}"
+        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
         r = self.session.post(url, headers=get_headers(self.session), json=payload)
         return r
 
     def api(self, path: str, settings: dict) -> Response:
         headers = get_headers(self.session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = f'https://api.twitter.com/1.1/{path}'
+        url = f'{self.V1_URL}/{path}'
         r = self.session.post(url, headers=headers, data=urlencode(settings))
         return r
 
@@ -111,7 +114,7 @@ class Account:
         qid = params['queryId']
         params['variables']['target'] = {"participant_ids": receivers}
         params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
-        url = f"https://api.twitter.com/graphql/{qid}/{name}"
+        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
         if filename:
             media_id = self.upload_media(filename, is_dm=True)
             params['variables']['message']['media'] = {'id': media_id, 'text': text}
@@ -151,7 +154,7 @@ class Account:
         if poll_params := kwargs.get('poll_params', {}):
             params['variables'] |= poll_params
 
-        url = f"https://api.twitter.com/graphql/{qid}/{name}"
+        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
 
@@ -180,7 +183,7 @@ class Account:
                 elif isinstance(m, str):
                     media_id = self.upload_media(m)
                     params['variables']['post_tweet_request']['media_ids'].append(media_id)
-        url = f"https://api.twitter.com/graphql/{qid}/{name}"
+        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
 
@@ -272,7 +275,7 @@ class Account:
     @log(info=['text'])
     def add_alt_text(self, media_id: int, text: str) -> Response:
         params = {"media_id": media_id, "alt_text": {"text": text}}
-        url = 'https://api.twitter.com/1.1/media/metadata/create.json'
+        url = f'{self.V1_URL}/media/metadata/create.json'
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
 
@@ -341,9 +344,9 @@ class Account:
     def update_pinned_lists(self, list_ids: list[int]) -> Response:
         """
         Update pinned lists
-    
+
         Reset all pinned lists and pin all specified lists in the order they are provided.
-    
+
         @param list_ids: list of list ids to pin
         @return: response
         """
@@ -448,13 +451,13 @@ class Account:
         qid = params['queryId']
         params['variables']['rest_id'] = rest_id
         query = build_query(params)
-        url = f"https://api.twitter.com/graphql/{qid}/{name}?{query}"
+        url = f"{self.GRAPHQL_URL}/{qid}/{name}?{query}"
         r = self.session.get(url, headers=get_headers(self.session))
         return r
 
     @log(info=['json'])
     def remove_interests(self, *args):
-        url = 'https://api.twitter.com/1.1/account/personalization/twitter_interests.json'
+        url = f'{self.V1_URL}/account/personalization/twitter_interests.json'
         r = self.session.get(url, headers=get_headers(self.session))
         current_interests = r.json()['interested_in']
         if args == 'all':
@@ -469,14 +472,14 @@ class Account:
                 }
             }
         }
-        url = 'https://api.twitter.com/1.1/account/personalization/p13n_preferences.json'
+        url = f'{self.V1_URL}/account/personalization/p13n_preferences.json'
         r = self.session.post(url, headers=get_headers(self.session), json=payload)
         return r
 
     @log(info=['json'])
     def update_profile_image(self, filename: str) -> Response:
         media_id = self.upload_media(filename, is_profile=True)
-        url = 'https://api.twitter.com/1.1/account/update_profile_image.json'
+        url = f'{self.V1_URL}/account/update_profile_image.json'
         headers = get_headers(self.session)
         params = {'media_id': media_id}
         r = self.session.post(url, headers=headers, params=params)
@@ -485,7 +488,7 @@ class Account:
     @log
     def update_profile_banner(self, filename: str) -> Response:
         media_id = self.upload_media(filename, is_profile=True)
-        url = 'https://api.twitter.com/1.1/account/update_profile_banner.json'
+        url = f'{self.V1_URL}/account/update_profile_banner.json'
         headers = get_headers(self.session)
         params = {'media_id': media_id}
         r = self.session.post(url, headers=headers, params=params)
@@ -493,7 +496,7 @@ class Account:
 
     @log
     def update_profile_info(self, **kwargs) -> Response:
-        url = 'https://api.twitter.com/1.1/account/update_profile.json'
+        url = f'{self.V1_URL}/account/update_profile.json'
         headers = get_headers(self.session)
         r = self.session.post(url, headers=headers, params=kwargs)
         return r
@@ -502,14 +505,14 @@ class Account:
     def update_search_settings(self, settings: dict) -> Response:
         """
         Update account search settings
-    
+
         @param settings: search filtering settings to enable/disable
         @return: authenticated session
         """
         twid = int(self.session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
         headers = get_headers(self.session)
         r = self.session.post(
-            url=f'https://api.twitter.com/1.1/strato/column/User/{twid}/search/searchSafety',
+            url=f'{self.V1_URL}/strato/column/User/{twid}/search/searchSafety',
             headers=headers,
             json=settings,
         )

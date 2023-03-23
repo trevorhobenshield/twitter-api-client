@@ -1,3 +1,4 @@
+import ast
 import json
 import re
 import subprocess
@@ -16,10 +17,16 @@ def find_api_script(res: requests.Response) -> str:
     @param res: response from homepage: https://twitter.com
     @return: url to api script
     """
+    base = 'https://abs.twimg.com/responsive-web/client-web'
     for s in bs4.BeautifulSoup(res.text, 'html.parser').select('script'):
-        if x := re.search('(?<=api:")\w+(?=")', s.text):
-            key = x.group() + 'a'  # wtf?
-            return f'https://abs.twimg.com/responsive-web/client-web/api.{key}.js'
+        temp = s.text.split('+"."+')[-1].split('[e]+"a.js"')[0]
+        # temp = s.text.split('function(e){return e+"."+')[-1].split('[e]+"a.js"')[0]
+        if temp.startswith('{'):
+            endpoints = json.loads(temp.replace('vendor:', '"vendor":').replace('api:', '"api":'))
+            Path('endpoints.json').write_text(json.dumps(endpoints, indent=2))
+            Path('endpoint_urls.txt').write_text('\n'.join((f'{base}/{k}.{v}a.js' for k,v in endpoints.items())))
+            js = 'api.' + endpoints['api'] + "a.js"  # search for `+"a.js"` in homepage source
+            return f'{base}/{js}'
 
 
 def get_operations(session: Session) -> tuple:
@@ -28,7 +35,7 @@ def get_operations(session: Session) -> tuple:
     @return: list of operations
     """
     headers = {
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
     }
     r1 = session.get('https://twitter.com', headers=headers)
     script = find_api_script(r1)
