@@ -124,7 +124,7 @@ class Account:
         return r
 
     @log(info=['json'])
-    def tweet(self, text: str, media: list[dict | str] = None, **kwargs) -> Response:
+    def tweet(self, text: str, media: list = None, **kwargs) -> Response:
         name, _ = Operation.Account.CreateTweet
         params = deepcopy(operations[name])
         qid = params['queryId']
@@ -159,8 +159,8 @@ class Account:
         return r
 
     @log(info=['json'])
-    def schedule_tweet(self, text: str, execute_at: str | int, *, reply_to: int = None,
-                       media: list[dict | str] = None) -> Response:
+    def schedule_tweet(self, text: str, execute_at: any, *, reply_to: int = None,
+                       media: list = None) -> Response:
         name, _ = Operation.Account.CreateScheduledTweet
         params = deepcopy(operations[name])
         qid = params['queryId']
@@ -279,12 +279,12 @@ class Account:
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
 
-    def reply(self, tweet_id: int, text: str, media: list[dict | str] = None) -> Response:
+    def reply(self, tweet_id: int, text: str, media: list = None) -> Response:
         """ an un-reply operation is just DeleteTweet"""
         params = {"reply": {"in_reply_to_tweet_id": tweet_id, "exclude_reply_user_ids": []}}
         return self.tweet(text, media, reply_params=params)
 
-    def quote(self, tweet_id: int, screen_name: str, text: str, media: list[dict | str] = None) -> Response:
+    def quote(self, tweet_id: int, screen_name: str, text: str, media: list = None) -> Response:
         """ an un-quote operation is just DeleteTweet"""
         params = {"attachment_url": f"https://twitter.com/{screen_name}/status/{tweet_id}"}
         return self.tweet(text, media, quote_params=params)

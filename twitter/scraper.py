@@ -96,7 +96,7 @@ class Scraper:
         users = self.session.get(url, headers=headers).json()
         return users
 
-    def run(self, ids: list[str | int], operation: tuple, limit=None):
+    def run(self, ids: list, operation: tuple, limit=None):
         res = self.query(ids, operation)
         if limit is None:
             return res

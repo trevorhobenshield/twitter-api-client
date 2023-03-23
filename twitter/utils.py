@@ -1,7 +1,7 @@
 import ujson
 
 
-def find_key(obj: dict | list[dict], key: str) -> list:
+def find_key(obj: any, key: str) -> list:
     """
     Find all values of a given key within a nested dict or list of dicts
 
