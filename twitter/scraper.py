@@ -72,7 +72,7 @@ class Scraper:
         return self.run(ids, Operation.Data.TweetDetail, limit)
 
     # no pagination needed
-    def tweets_by_rest_id(self, ids: list[int]):
+    def tweet_by_rest_id(self, ids: list[int]):
         return self.run(ids, Operation.Data.TweetResultByRestId)
 
     # no pagination needed
@@ -255,7 +255,7 @@ class Scraper:
             logger.debug(f'FAILED to download video: {post_url} {e}')
 
     def download_media(self, ids: list[int], photos: bool = True, videos: bool = True) -> None:
-        res = self.tweets_by_rest_id(ids)
+        res = self.tweet_by_rest_id(ids)
         for r in res:
             user_id = find_key(r, 'user_results')[0]['result']['rest_id']
             url = f'https://twitter.com/{user_id}/status/{r[ID]}'  # evaluates to username in browser

@@ -13,8 +13,8 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.4.7",
-    python_requires=">=3.9",
+    version="0.4.8",
+    python_requires=">=3.9.7",
     description="Twitter API",
     long_description=dedent('''
     Complete implementation of the undocumented Twitter API
@@ -179,7 +179,7 @@ setup(
     followers = scraper.followers([123, 234, 345])
     
     ######## Tweet Data ########
-    tweets_by_ids = scraper.tweets_by_rest_id([456, 567, 678])
+    tweets_by_ids = scraper.tweet_by_rest_id([456, 567, 678])
     tweets_details = scraper.tweets_details([456, 567, 678])
     retweeters = scraper.retweeters([456, 567, 678])
     favoriters = scraper.favoriters([456, 567, 678])
