@@ -2530,7 +2530,6 @@ operations = {
         "queryId": "zXaXQgfyR4GxE21uwYQSyA",
         "variables": {
             "focalTweetId": None,
-            "count": 1000,
             "with_rux_injections": False,
             "includePromotedContent": True,
             "withCommunity": True,
