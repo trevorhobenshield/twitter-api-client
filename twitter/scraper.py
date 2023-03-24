@@ -20,14 +20,12 @@ from .utils import find_key, build_query, get_headers
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
-
         nest_asyncio.apply()
 except:
     ...
 
 if platform.system() != 'Windows':
     import uvloop
-
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
