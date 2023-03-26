@@ -1,4 +1,11 @@
+from urllib.parse import urlsplit, urlencode, urlunsplit, parse_qs, quote
+
 import ujson
+
+
+def set_qs(url: str, qs: dict, update=False, **kwargs) -> str:
+    *_, q, f = urlsplit(url)
+    return urlunsplit((*_, urlencode(qs | parse_qs(q) if update else qs, doseq=True, quote_via=quote, safe=kwargs.get('safe','')), f))
 
 
 def find_key(obj: any, key: str) -> list:

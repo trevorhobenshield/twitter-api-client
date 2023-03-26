@@ -7,13 +7,13 @@ import random
 import re
 import time
 from pathlib import Path
-from urllib.parse import quote, urlencode, parse_qs, urlsplit, urlunsplit
 
 import aiohttp
 import requests
 
 from .config.log import log_config
 from .config.settings import search_config
+from .utils import set_qs
 
 IN_PATH = Path('~/data/raw').expanduser()
 OUT_PATH = Path(f'~/data/processed/search_results_{time.time_ns()}.json').expanduser()
@@ -86,7 +86,7 @@ async def backoff(fn, info, retries=12):
 
 
 async def get(session: aiohttp.ClientSession, api: str, params: dict) -> tuple[dict, str]:
-    url = set_qs(api, params, update=True)
+    url = set_qs(api, params, update=True, safe='()')
     r = await session.get(url)
     data = await r.json()
     next_cursor = get_cursor(data)
@@ -106,11 +106,6 @@ def get_cursor(res: dict):
                     return entry['content']['operation']['cursor']['value']
     except Exception as e:
         logger.debug(e)
-
-
-def set_qs(url: str, qs: dict, update=False) -> str:
-    *_, q, f = urlsplit(url)
-    return urlunsplit((*_, urlencode(qs | parse_qs(q) if update else qs, doseq=True, quote_via=quote, safe='()'), f))
 
 
 def __get_headers(fname: str = None) -> dict:
