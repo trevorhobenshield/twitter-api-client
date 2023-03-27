@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 import ujson
 from aiohttp import ClientSession, TCPConnector
+from tqdm import tqdm
 
 from .config.log import log_config
 from .config.operations import operations
@@ -118,7 +119,7 @@ class Scraper:
         return res
 
     async def process(self, urls: list, headers: dict) -> tuple:
-        conn = TCPConnector(limit=0, ssl=False, ttl_dns_cache=69)
+        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
         async with ClientSession(headers=headers, connector=conn) as s:
             # add cookies from logged-in session
             s.cookie_jar.update_cookies(self.session.cookies)
@@ -140,7 +141,7 @@ class Scraper:
             logger.debug(f'failed to download {url}: {e}')
 
     async def pagination(self, res: list, operation: tuple, limit: int) -> tuple:
-        conn = TCPConnector(limit=len(res), ssl=False, ttl_dns_cache=69)
+        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
         headers = get_headers(self.session)
         headers['content-type'] = "application/json"
         async with ClientSession(headers=headers, connector=conn) as s:
@@ -247,12 +248,21 @@ class Scraper:
         name = urlsplit(post_url).path.replace('/', '_')[1:]
         ext = urlsplit(cdn_url).path.split('/')[-1]
         try:
-            with open(f'{path}/{name}_{ext}', 'wb') as fp:
-                r = self.session.get(cdn_url, stream=True)
-                for chunk in r.iter_content(chunk_size=chunk_size):
-                    fp.write(chunk)
+            # with open(f'{path}/{name}_{ext}', 'wb') as fp:
+            #     r = self.session.get(cdn_url, stream=True)
+            #     for chunk in r.iter_content(chunk_size=chunk_size):
+            #         fp.write(chunk)
+
+            r = self.session.get(cdn_url, stream=True)
+            total_bytes = int(r.headers.get('Content-Length', 0))
+            desc = f'downloading: {name}'
+            with tqdm(total=total_bytes, desc=desc, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
+                with open(f'{path}/{name}_{ext}', 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=chunk_size):
+                        f.write(chunk)
+                        pbar.update(f.tell() - pbar.n)
         except Exception as e:
-            logger.debug(f'FAILED to download video: {post_url} {e}')
+            logger.debug(f'FAILED to download media: {post_url} {e}')
 
     def download_media(self, ids: list[int], photos: bool = True, videos: bool = True) -> None:
         res = self.tweet_by_rest_id(ids)
@@ -262,13 +272,13 @@ class Scraper:
             media = [y for x in find_key(r, 'media') for y in x]  # in case of arbitrary schema
             if photos:
                 photos = list({u for m in media if 'ext_tw_video_thumb' not in (u := m['media_url_https'])})
-                logger.debug(f'{photos = }')
+                # logger.debug(f'{photos = }')
                 if photos:
                     [self.download(url, photo) for photo in photos]
             if videos:
                 videos = [x['variants'] for m in media if (x := m.get('video_info'))]
                 hq_videos = {sorted(v, key=lambda d: d.get('bitrate', 0))[-1]['url'] for v in videos}
-                logger.debug(f'{videos = }')
-                logger.debug(f'{hq_videos = }')
+                # logger.debug(f'{videos = }')
+                # logger.debug(f'{hq_videos = }')
                 if hq_videos:
                     [self.download(url, video) for video in hq_videos]
