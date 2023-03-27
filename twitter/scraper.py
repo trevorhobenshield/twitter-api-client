@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class Scraper:
-    GRAPHQL_URL = 'https://api.twitter.com/graphql'
+    GRAPHQL_URL = 'https://twitter.com/i/api/graphql/'
 
     def __init__(self, username: str, password: str):
         self.session = login(username, password)
@@ -98,7 +98,7 @@ class Scraper:
         res = self.query(ids, operation)
         if limit is None:
             return res
-        return asyncio.run(self.pagination(res, operation, limit))
+        return asyncio.run(self.pagination(res, operation, limit)) + res
 
     def query(self, ids: list[any], operation: tuple) -> list:
         name, key = operation
