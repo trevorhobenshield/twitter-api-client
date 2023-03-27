@@ -20,12 +20,14 @@ from .utils import find_key, build_query, get_headers
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
 
 if platform.system() != 'Windows':
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -37,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class Scraper:
-    GRAPHQL_URL = 'https://twitter.com/i/api/graphql/'
+    GRAPHQL_URL = 'https://api.twitter.com/graphql'
 
     def __init__(self, username: str, password: str):
         self.session = login(username, password)
