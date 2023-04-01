@@ -78,6 +78,7 @@ dm/destroy
 dm/inbox_initial_state
 dm/inbox_timeline/${i}
 dm/new
+dm/new2
 dm/permissions
 dm/permissions/secret
 dm/reaction/delete
