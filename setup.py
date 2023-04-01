@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 install_requires = [
     "tqdm",
-    "ujson",
+    "orjson",
     "nest_asyncio",
     "aiohttp",
     "requests",
@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.5.4",
+    version="0.5.5",
     python_requires=">=3.9.7",
     description="Twitter API",
     long_description=dedent('''

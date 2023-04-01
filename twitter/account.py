@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 from uuid import uuid1, getnode
 
-import ujson
+import orjson
 from requests import Response
 from tqdm import tqdm
 
@@ -22,7 +22,7 @@ from .config.operations import operations
 from .config.settings import *
 from .constants import *
 from .login import login
-from .utils import get_headers, build_query
+from .utils import get_headers, build_query, find_key
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -98,6 +98,7 @@ class Account:
         payload['variables'] |= variables
         url = f"{self.GRAPHQL_URL}/{qid}/{name}"
         r = self.session.post(url, headers=get_headers(self.session), json=payload)
+        self.check_response(r)
         return r
 
     def api(self, path: str, settings: dict) -> Response:
@@ -105,6 +106,7 @@ class Account:
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = f'{self.V1_URL}/{path}'
         r = self.session.post(url, headers=headers, data=urlencode(settings))
+        self.check_response(r)
         return r
 
     @log(info=['json'])
@@ -200,7 +202,7 @@ class Account:
         headers = get_headers(self.session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
         url = 'https://caps.twitter.com/v2/cards/create.json'
-        r = self.session.post(url, headers=headers, params={'card_data': ujson.dumps(options)})
+        r = self.session.post(url, headers=headers, params={'card_data': orjson.dumps(options).decode()})
         card_uri = r.json()['card_uri']
         r = self.tweet(text, poll_params={'card_uri': card_uri})
         return r
@@ -547,3 +549,10 @@ class Account:
         url = 'https://twitter.com/i/api/account/self.sessions/revoke_all'
         r = self.session.post(url, headers=headers)
         return r
+
+    @staticmethod
+    def check_response(r):
+        if r.status_code == 429:
+            raise Exception(f'rate limit exceeded: {r.url}')
+        if find_key(data := r.json(), 'errors'):
+            logger.debug(f'[{WARN}ERROR{RESET}]: {data}')

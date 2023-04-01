@@ -1,11 +1,12 @@
 from urllib.parse import urlsplit, urlencode, urlunsplit, parse_qs, quote
 
-import ujson
+import orjson
 
 
 def set_qs(url: str, qs: dict, update=False, **kwargs) -> str:
     *_, q, f = urlsplit(url)
-    return urlunsplit((*_, urlencode(qs | parse_qs(q) if update else qs, doseq=True, quote_via=quote, safe=kwargs.get('safe','')), f))
+    return urlunsplit((*_, urlencode(qs | parse_qs(q) if update else qs, doseq=True, quote_via=quote,
+                                     safe=kwargs.get('safe', '')), f))
 
 
 def find_key(obj: any, key: str) -> list:
@@ -64,4 +65,4 @@ def get_headers(session) -> dict:
 
 
 def build_query(params):
-    return '&'.join(f'{k}={ujson.dumps(v)}' for k, v in params.items())
+    return '&'.join(f'{k}={orjson.dumps(v).decode()}' for k, v in params.items())

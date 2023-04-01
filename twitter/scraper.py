@@ -8,15 +8,16 @@ from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlsplit
 
-import ujson
+import orjson
 from aiohttp import ClientSession, TCPConnector
 from tqdm import tqdm
 
 from .config.log import log_config
 from .config.operations import operations
+from .config.settings import trending_params
 from .constants import *
 from .login import login
-from .utils import find_key, build_query, get_headers
+from .utils import find_key, build_query, get_headers, set_qs
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -215,10 +216,15 @@ class Scraper:
             try:
                 r = await fn()
                 data = await r.json()
+                if r.status == 429:
+                    logger.debug(f'rate limit exceeded: {r.url}')
+                    return r, {}
+                if find_key(data, 'errors'):
+                    logger.debug(f'[{WARN}ERROR{RESET}]: {data}')
                 return r, data
             except Exception as e:
                 if i == retries:
-                    logger.debug(f'{WARN}Max retries exceeded{RESET}\n{e}')
+                    logger.debug(f'{WARN} Max retries exceeded{RESET}\n{e}')
                     return
                 t = 2 ** i + random.random()
                 logger.debug(f'retrying in {f"{t:.2f}"} seconds\t\t{e}')
@@ -229,8 +235,9 @@ class Scraper:
             for d in data:
                 path = Path(f'data/raw/{d[ID]}')
                 path.mkdir(parents=True, exist_ok=True)
-                with open(path / f'{time.time_ns()}_{name}.json', 'w') as fp:
-                    ujson.dump(d, fp, indent=4)
+                (path / f'{time.time_ns()}_{name}.json').write_text(
+                    orjson.dumps(d, option=orjson.OPT_INDENT_2).decode())
+
         except KeyError as e:
             logger.debug(f'failed to save data: {e}')
 
@@ -248,11 +255,6 @@ class Scraper:
         name = urlsplit(post_url).path.replace('/', '_')[1:]
         ext = urlsplit(cdn_url).path.split('/')[-1]
         try:
-            # with open(f'{path}/{name}_{ext}', 'wb') as fp:
-            #     r = self.session.get(cdn_url, stream=True)
-            #     for chunk in r.iter_content(chunk_size=chunk_size):
-            #         fp.write(chunk)
-
             r = self.session.get(cdn_url, stream=True)
             total_bytes = int(r.headers.get('Content-Length', 0))
             desc = f'downloading: {name}'
@@ -282,3 +284,25 @@ class Scraper:
                 # logger.debug(f'{hq_videos = }')
                 if hq_videos:
                     [self.download(url, video) for video in hq_videos]
+
+    def trends(self) -> dict:
+        """Get trends for all UTC offsets"""
+        url = set_qs('https://twitter.com/i/api/2/guide.json', trending_params)
+        headers = get_headers(self.session)
+        offsets = [f"{str(i).zfill(3)}00" if i < 0 else f"+{str(i).zfill(2)}00" for i in range(-12, 15)]
+        res = []
+        for offset in offsets:
+            headers['x-twitter-utcoffset'] = offset
+            r = self.session.get(url, headers=headers)
+            res.append(r.json())
+            logger.debug(f'getting trends for: {offset = }')
+        all_trends = {}
+        for data in res:
+            trends = find_key(data, 'item')
+            for t in trends:
+                all_trends |= {t['content']['trend']['name']: t}
+        path = Path(f'data/raw/trends')
+        path.mkdir(parents=True, exist_ok=True)
+        (path / f'{time.time_ns()}.json').write_text(
+            orjson.dumps(all_trends, option=orjson.OPT_INDENT_2).decode())
+        return all_trends
