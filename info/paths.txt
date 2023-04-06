@@ -119,9 +119,9 @@ jot/external_referer
 keyregistry/extract_public_keys/${r}
 keyregistry/register
 lists/memberships
-live_event/1/${_}/timeline
-live_event/1/${o}/subscription
-live_event/timeline/${r}
+live_event/1/${n}/subscription
+live_event/1/${o}/timeline
+live_event/timeline/${_}
 live_pipeline/update_subscriptions
 media/media_tags/delete
 media/metadata/create
@@ -145,9 +145,9 @@ mutes/keywords/list
 mutes/keywords/update
 mutes/users/create
 mutes/users/destroy
+notifications/${_}
 notifications/${i}/last_seen_cursor
 notifications/${i}/unread_count
-notifications/${r}
 notifications/settings/checkin
 notifications/settings/login
 notifications/settings/logout
@@ -181,15 +181,13 @@ statuses/lookup
 statuses/retweet
 statuses/unretweet
 statuses/update
-strato/column/None/${o},${encodeURIComponent(t)},${n}/clients/permissionsState
-strato/column/None/profileUserId=${i},destinationLanguage=None,translationSource=Some(Google)/translation/service/translateProfile
+strato/column/None/${o},${encodeURIComponent(
+                  t
+                )},${n}/clients/permissionsState
 strato/column/None/profileUserId=${o},destinationLanguage=None,translationSource=Some(Google)/translation/service/translateProfile
 strato/column/None/profileUserId=${r},destinationLanguage=None,translationSource=Some(Google)/translation/service/translateProfile
-strato/column/None/profileUserId=${s},destinationLanguage=None,translationSource=Some(Google)/translation/service/translateProfile
 strato/column/None/tweetId=${i},destinationLanguage=${p},translationSource=Some(${c}),feature=None,timeout=None,onlyCached=None/translation/service/translateTweet
-strato/column/None/tweetId=${o},destinationLanguage=${p},translationSource=Some(${c}),feature=None,timeout=None,onlyCached=None/translation/service/translateTweet
-strato/column/None/tweetId=${r},destinationLanguage=${c},translationSource=Some(${u}),feature=None,timeout=None,onlyCached=None/translation/service/translateTweet
-strato/column/User/${o}/account-security/twoFactorAuthSettings2
+strato/column/User/${a}/account-security/twoFactorAuthSettings2
 strato/column/User/${o}/onboarding/hasLaunchedPWA
 strato/column/User/${r}/search/searchSafety
 strato/column/User/${r}/search/searchSafetyReadonly
