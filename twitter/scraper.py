@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import orjson
-from aiohttp import ClientSession, TCPConnector, AsyncResolver
+from aiohttp import ClientSession, TCPConnector
 from tqdm import tqdm
 
 from .config.log import log_config
@@ -120,7 +120,7 @@ class Scraper:
         return res
 
     async def process(self, urls: list, headers: dict) -> tuple:
-        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69, resolver=AsyncResolver())
+        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
         async with ClientSession(headers=headers, connector=conn) as s:
             # add cookies from logged-in session
             s.cookie_jar.update_cookies(self.session.cookies)
@@ -142,7 +142,7 @@ class Scraper:
             logger.debug(f'failed to download {url}: {e}')
 
     async def pagination(self, res: list, operation: tuple, limit: int) -> tuple:
-        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69, resolver=AsyncResolver())
+        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
         headers = get_headers(self.session)
         headers['content-type'] = "application/json"
         async with ClientSession(headers=headers, connector=conn) as s:

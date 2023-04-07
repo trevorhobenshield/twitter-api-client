@@ -3,20 +3,19 @@ from textwrap import dedent
 from setuptools import find_packages, setup
 
 install_requires = [
-    'aiodns',
-    'aiohttp',
+    "nest_asyncio",
+    "aiohttp",
+    "requests",
+    "tqdm",
+    "orjson",
     'uvloop; platform_system != "Windows"',
-    'nest_asyncio',
-    'requests',
-    'tqdm',
-    'orjson',
 ]
 
 setup(
-    name='twitter-api-client',
-    version='0.5.6',
-    python_requires='>=3.11.0',
-    description='Twitter API',
+    name="twitter-api-client",
+    version="0.5.8",
+    python_requires=">=3.11.0",
+    description="Twitter API",
     long_description=dedent('''
     Complete implementation of the undocumented Twitter API
     
@@ -205,11 +204,11 @@ setup(
     ```
     '''),
     long_description_content_type='text/markdown',
-    author='Trevor Hobenshield',
-    author_email='trevorhobenshield@gmail.com',
-    url='https://github.com/trevorhobenshield/twitter-api',
+    author="Trevor Hobenshield",
+    author_email="trevorhobenshield@gmail.com",
+    url="https://github.com/trevorhobenshield/twitter-api",
     install_requires=install_requires,
-    keywords='twitter api client async search automation bot scrape',
+    keywords="twitter api client async search automation bot scrape",
     packages=find_packages(),
     include_package_data=True,
 )

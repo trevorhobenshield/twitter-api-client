@@ -104,7 +104,7 @@ def get_headers(filename: str = 'headers.txt') -> dict:
                           '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 
 
-async def process(fn: callable, headers: dict, urls: any, **kwargs) -> tuple:
+async def process(fn: callable, headers: dict, urls: any, **kwargs) -> list:
     conn = aiohttp.TCPConnector(ssl=False, limit=420, ttl_dns_cache=69)
     async with aiohttp.ClientSession(headers=headers, connector=conn) as s:
         return await asyncio.gather(*(fn(s, u, **kwargs) for u in urls))
