@@ -120,6 +120,7 @@ async def get(session: aiohttp.ClientSession, url: str, **kwargs) -> tuple[str, 
         logger.debug(f"[{WARN}FAILED{RESET}]: {url}\n{e}")
 
 
+
 def find_paths():
     res = set()
     for p in OUT_PATH.iterdir():
