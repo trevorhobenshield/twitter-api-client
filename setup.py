@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 install_requires = [
     'aiodns',
     'aiohttp',
-    'uvloop; platform_system != "Windows"'
+    'uvloop; platform_system != "Windows"',
     'nest_asyncio',
     'requests',
     'tqdm',
