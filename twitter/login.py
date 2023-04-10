@@ -1,9 +1,13 @@
 import sys
+
 from requests import Session
-from .constants import SUCCESS, WARN, BOLD, RESET
+
+from .constants import SUCCESS, WARN, ERROR, BOLD, RESET
+from .utils import find_key
 
 
 def update_token(session: Session, key: str, url: str, payload: dict) -> Session:
+    caller_name = sys._getframe(1).f_code.co_name
     try:
         headers = {
             "authorization": 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
@@ -15,10 +19,17 @@ def update_token(session: Session, key: str, url: str, payload: dict) -> Session
             "x-twitter-active-user": "yes",
             "x-twitter-client-language": 'en',
         }
-        r = session.post(url, headers=headers, json=payload).json()
-        session.cookies.set(key, r[key])
+        r = session.post(url, headers=headers, json=payload)
+        info = r.json()
+
+        for s in info.get('subtasks', []):
+            if s.get('enter_text', {}).get('keyboard_type') == 'email':
+                print(f"[{WARN}warning{RESET}] {' '.join(find_key(s, 'text'))}")
+                session.cookies.set('confirm_email', 'true')  # signal that email challenge must be solved
+
+        session.cookies.set(key, info[key])
     except KeyError as e:
-        print(f'[{WARN}FAILED{RESET}] failed to update token at {BOLD}{sys._getframe(1).f_code.co_name}{RESET}\n{e}')
+        print(f'[{ERROR}error{RESET}] failed to update token at {BOLD}{caller_name}{RESET}\n{e}')
     return session
 
 
@@ -76,21 +87,41 @@ def flow_duplication_check(session: Session) -> Session:
     })
 
 
+def confirm_email(session: Session) -> Session:
+    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', {
+        "flow_token": session.cookies.get('flow_token'),
+        "subtask_inputs": [
+            {
+                "subtask_id": "LoginAcid",
+                "enter_text": {
+                    "text": session.cookies.get('email'),
+                    "link": "next_link"
+                }
+            }]
+    })
+
+
 def execute_login_flow(session: Session) -> Session:
     session = init_guest_token(session)
     for fn in [flow_start, flow_instrumentation, flow_username, flow_password, flow_duplication_check]:
         session = fn(session)
+
+    # solve email challenge
+    if session.cookies.get('confirm_email') == 'true':
+        session = confirm_email(session)
+
     return session
 
 
-def login(username: str, password: str) -> Session:
+def login(email: str, username: str, password: str) -> Session:
     session = Session()
     session.cookies.update({
+        "email": email,
         "username": username,
         "password": password,
         "guest_token": None,
         "flow_token": None,
     })
     session = execute_login_flow(session)
-    print(f'[{SUCCESS}SUCCESS{RESET}] {BOLD}{username}{RESET} logged in successfully')
+    print(f'[{SUCCESS}success{RESET}] {BOLD}{username}{RESET} logged in successfully')
     return session

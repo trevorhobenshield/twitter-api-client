@@ -5,6 +5,7 @@ import logging.config
 import mimetypes
 import platform
 import random
+import re
 import time
 from copy import deepcopy
 from datetime import datetime
@@ -62,7 +63,13 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
 
         try:
             if 200 <= r.status_code < 300:
-                message = f'[{SUCCESS}SUCCESS{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info}'
+                typenames = find_key(r.json(), '__typename')
+                errors = ','.join([t for t in typenames if re.search('fail|error', t, flags=re.I)])
+                if errors:
+                    message = f'[{ERROR}error{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info} {WARN}{errors}{RESET}'
+                else:
+                    message = f'[{SUCCESS}success{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info}'
+
                 if info:
                     for k in info:
                         if callable(k):
@@ -75,9 +82,9 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
                 else:
                     logger.log(level, f'{message}')
             else:
-                logger.log(level, f'[{WARN}ERROR{RESET}] ({fn.__name__}) {args_info} {r.status_code} {r.text}')
+                logger.log(level, f'[{ERROR}error{RESET}] ({fn.__name__}) {args_info} {r.status_code} {r.text}')
         except Exception as e:
-            logger.log(level, f'[{WARN}FAILED{RESET}] ({fn.__name__}) {args_info} {r.status_code} {e}')
+            logger.log(level, f'[{ERROR}error{RESET}] ({fn.__name__}) {args_info} {r.status_code} {e}')
         return r
 
     return wrapper
@@ -88,8 +95,8 @@ class Account:
     V2_URL = 'https://api.twitter.com/2'  # /search
     GRAPHQL_URL = 'https://api.twitter.com/graphql'
 
-    def __init__(self, username: str, password: str):
-        self.session = login(username, password)
+    def __init__(self, email: str, username: str, password: str):
+        self.session = login(email, username, password)
 
     def gql(self, operation: tuple, variables: dict) -> Response:
         name, _ = operation
@@ -247,7 +254,7 @@ class Account:
                     r = self.session.post(url=url, headers=headers, data=data, files=files)
                     if r.status_code < 200 or r.status_code > 299:
                         logger.debug(f'{r.status_code} {r.text}')
-                        raise Exception('Upload failed')
+                        raise Exception(f'[{ERROR}error{RESET}] upload failed')
                     i += 1
                     pbar.update(f.tell() - pbar.n)
 
@@ -264,7 +271,7 @@ class Account:
             if state == MEDIA_UPLOAD_SUCCEED:
                 break
             if state == MEDIA_UPLOAD_FAIL:
-                raise Exception('Media processing failed')
+                raise Exception(f'[{ERROR}error{RESET}] media processing failed')
             check_after_secs = processing_info.get('check_after_secs', random.randint(1, 5))
             time.sleep(check_after_secs)
             params = {'command': 'STATUS', 'media_id': media_id}
@@ -555,4 +562,4 @@ class Account:
         if r.status_code == 429:
             raise Exception(f'rate limit exceeded: {r.url}')
         if find_key(data := r.json(), 'errors'):
-            logger.debug(f'[{WARN}ERROR{RESET}]: {data}')
+            logger.debug(f'[{ERROR}error{RESET}] {data}')

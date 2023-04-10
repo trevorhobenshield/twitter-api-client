@@ -43,8 +43,8 @@ logger = logging.getLogger(__name__)
 class Scraper:
     GRAPHQL_URL = 'https://api.twitter.com/graphql'
 
-    def __init__(self, username: str, password: str):
-        self.session = login(username, password)
+    def __init__(self, email: str, username: str, password: str):
+        self.session = login(email, username, password)
 
     def tweets(self, ids: list[int], limit=math.inf):
         return self.run(ids, Operation.Data.UserTweets, limit)
@@ -119,7 +119,7 @@ class Scraper:
         self.save_data(res, name)
         return res
 
-    async def process(self, urls: list, headers: dict) -> tuple:
+    async def process(self, urls: list, headers: dict) -> list:
         conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
         async with ClientSession(headers=headers, connector=conn) as s:
             # add cookies from logged-in session
@@ -139,9 +139,9 @@ class Scraper:
             data = await r.json()
             return {ID: identifier, **data}
         except Exception as e:
-            logger.debug(f'failed to download {url}: {e}')
+            logger.debug(f'[{ERROR}error{RESET}] failed to download {url}: {e}')
 
-    async def pagination(self, res: list, operation: tuple, limit: int) -> tuple:
+    async def pagination(self, res: list, operation: tuple, limit: int) -> list:
         conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
         headers = get_headers(self.session)
         headers['content-type'] = "application/json"
@@ -194,7 +194,7 @@ class Scraper:
                 logger.debug(f'({data[ID]})\t{len(ids)} unique results')
                 counts.append(len(ids))
 
-                success_message = f'[{SUCCESS}SUCCESS{RESET}] done pagination'
+                success_message = f'[{SUCCESS}success{RESET}] done pagination'
                 # followers/following have "0|"
                 if not cursor or cursor.startswith('0|'):
                     logger.debug(f'{success_message}\tlast cursor: {cursor}')
@@ -207,7 +207,7 @@ class Scraper:
                     logger.debug(f'{success_message}\tpast {DUP_LIMIT} requests returned duplicate data')
                     break
         except Exception as e:
-            logger.debug(f'paginate falied: {e}')
+            logger.debug(f'[{ERROR}error{RESET}] paginate falied: {e}')
         # save_data(all_data, name)
         return all_data
 
@@ -217,17 +217,17 @@ class Scraper:
                 r = await fn()
                 data = await r.json()
                 if r.status == 429:
-                    logger.debug(f'rate limit exceeded: {r.url}')
+                    logger.debug(f'[{ERROR}error{RESET}] rate limit exceeded: {r.url}')
                     return r, {}
                 if find_key(data, 'errors'):
-                    logger.debug(f'[{WARN}ERROR{RESET}]: {data}')
+                    logger.debug(f'[{ERROR}error{RESET}] twitter errors: {data}')
                 return r, data
             except Exception as e:
                 if i == retries:
-                    logger.debug(f'{WARN} Max retries exceeded{RESET}\n{e}')
+                    logger.debug(f'[{ERROR}error{RESET}] max retries exceeded{RESET}\n{e}')
                     return
                 t = 2 ** i + random.random()
-                logger.debug(f'retrying in {f"{t:.2f}"} seconds\t\t{e}')
+                logger.debug(f'{WARN}retrying in {f"{t:.2f}"} seconds{RESET}\t\t{e}')
                 time.sleep(t)
 
     def save_data(self, data: list, name: str = ''):
@@ -239,7 +239,7 @@ class Scraper:
                     orjson.dumps(d, option=orjson.OPT_INDENT_2).decode())
 
         except KeyError as e:
-            logger.debug(f'failed to save data: {e}')
+            logger.debug(f'[{ERROR}error{RESET}] failed to save data: {e}')
 
     def download(self, post_url: str, cdn_url: str, path: str = 'media', chunk_size: int = 4096) -> None:
         """
@@ -264,7 +264,7 @@ class Scraper:
                         f.write(chunk)
                         pbar.update(f.tell() - pbar.n)
         except Exception as e:
-            logger.debug(f'FAILED to download media: {post_url} {e}')
+            logger.debug(f'[{ERROR}error{RESET}] failed to download media: {post_url} {e}')
 
     def download_media(self, ids: list[int], photos: bool = True, videos: bool = True) -> None:
         res = self.tweet_by_rest_id(ids)
