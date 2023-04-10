@@ -13,8 +13,8 @@ pip install twitter-api-client
 ```python
 from twitter.account import Account
 
-username, password = ..., ...
-account = Account(username, password)
+email, username, password = ..., ..., ...
+account = Account(email, username, password)
 
 account.create_poll('test poll 123', ['hello', 'world', 'foo', 'bar'], 10080)
 
@@ -152,8 +152,8 @@ account.update_search_settings({
 ```python
 from twitter.scraper import Scraper
 
-username, password = ..., ...
-scraper = Scraper(username, password)
+email, username, password = ..., ..., ...
+scraper = Scraper(email, username, password)
 
 ####### User Data ########
 users = scraper.user_by_screen_name(['bob123', 'jim456', 'stanley789'])
