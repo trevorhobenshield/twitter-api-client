@@ -10,6 +10,8 @@ pip install twitter-api-client
 
 ### Automation
 
+![](assets/account.gif)
+
 ```python
 from twitter.account import Account
 
@@ -149,6 +151,8 @@ account.update_search_settings({
 
 #### Get all user/tweet data
 
+![](assets/scrape.gif)
+
 ```python
 from twitter.scraper import Scraper
 
@@ -175,6 +179,8 @@ scraper.download_media([456, 567, 678])
 
 #### Search
 
+![](assets/search.gif)
+
 ```python   
 from twitter.search import search
 
@@ -188,8 +194,6 @@ search(
     'ios android',
 )
 ```
-
-![](assets/example-search.gif)
 
 - search results are output to `~/data/raw`
 - ~400 search results rate limiting occurs
