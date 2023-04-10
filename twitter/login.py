@@ -29,6 +29,7 @@ def update_token(session: Session, key: str, url: str, payload: dict) -> Session
 
         session.cookies.set(key, info[key])
     except KeyError as e:
+        session.cookies.set('flow_errors', 'true')  # signal that an error occurred somewhere in the flow
         print(f'[{ERROR}error{RESET}] failed to update token at {BOLD}{caller_name}{RESET}\n{e}')
     return session
 
@@ -123,5 +124,8 @@ def login(email: str, username: str, password: str) -> Session:
         "flow_token": None,
     })
     session = execute_login_flow(session)
-    print(f'[{SUCCESS}success{RESET}] {BOLD}{username}{RESET} logged in successfully')
+    if session.cookies.get('flow_errors') == 'true':
+        print(f'[{ERROR}error{RESET}] {BOLD}{username}{RESET} login failed')
+    else:
+        print(f'[{SUCCESS}success{RESET}] {BOLD}{username}{RESET} login success')
     return session
