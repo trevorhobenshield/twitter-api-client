@@ -140,7 +140,9 @@ def main():
     update_operations(Session())
     urls = (
         f'{_base}/{k}.{v}{_a}'
-        for k, v in orjson.loads(JS.read_text()).items() if 'endpoint' in k
+        for k, v in orjson.loads(JS.read_text()).items()
+        # if not re.search('i18n|icons\/',k)
+        if 'endpoint' in k
     )
     headers = get_headers()
     res = asyncio.run(process(get, headers, urls))
