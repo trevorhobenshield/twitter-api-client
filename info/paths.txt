@@ -1,6 +1,3 @@
-${t}/${e}/FAILURE
-${t}/${e}/REQUEST
-${t}/${e}/SUCCESS
 /12/measurement/dcm_local_id
 /12/targeting_criteria/locations
 /2/oauth2/authorize
@@ -9,7 +6,6 @@ ${t}/${e}/SUCCESS
 /account/sessions/revoke_all
 /fleets/v1/avatar_content
 /fleets/v1/fleetline
-/i/spaces/${e}/peek
 /i/users/username_available.json
 /verify/1.0/access
 /verify/1.0/account-eligibility
@@ -57,7 +53,6 @@ contacts/destroy/all
 contacts/upload_v2
 device/unregister
 foundmedia/categories
-foundmedia/categories/${r}
 foundmedia/search
 friends/following/list
 friends/list
@@ -68,7 +63,6 @@ friendships/destroy_all
 friendships/incoming
 friendships/update
 geo/delete_location_data
-geo/id/${t}
 geo/places
 guide/explore_locations_with_auto_complete
 guide/get_explore_settings
@@ -82,23 +76,13 @@ https://twitter.com
 jot/client_event
 jot/error_log
 jot/external_referer
-keyregistry/extract_public_keys/${r}
 keyregistry/register
 lists/memberships
-live_event/1/${n}/subscription
-live_event/1/${o}/timeline
-live_event/timeline/${i}
 live_pipeline/update_subscriptions
 media/metadata/create
 media/subtitles/create
-moments/capsule/${t.id}
 moments/create
-moments/curate/${t.id}
-moments/curate_metadata/${t.id}
-moments/delete/${t.moment_id}
 moments/list_user_moments
-moments/publish/${t.id}
-moments/update/${t.id}
 multipart/form-data
 mutes/advanced_filters
 mutes/keywords/create
@@ -106,16 +90,12 @@ mutes/keywords/destroy
 mutes/keywords/discouraged
 mutes/keywords/list
 mutes/keywords/update
-notifications/${_}/last_seen_cursor
-notifications/${_}/unread_count
-notifications/${i}
 notifications/settings/checkin
 notifications/settings/login
 notifications/settings/logout
 notifications/settings/save
 oauth/list
 oauth/revoke
-onboarding/${s}
 onboarding/begin_verification
 onboarding/bounce
 onboarding/contacts_authorize
@@ -132,18 +112,10 @@ promoted_content/log
 report/flow
 rux/logged_out/segmentations
 saved_searches/create
-saved_searches/destroy/${s.id}
 saved_searches/list
 search/adaptive
 search/typeahead
 sso/delete_connection
-strato/column/None/${o},${encodeURIComponent(
-                  t
-                )},${n}/clients/permissionsState
-strato/column/User/${a}/account-security/twoFactorAuthSettings2
-strato/column/User/${o}/onboarding/hasLaunchedPWA
-strato/column/User/${r}/search/searchSafety
-strato/column/User/${r}/search/searchSafetyReadonly
 text/vcard
 timeline/fixture
 timeline/reactive

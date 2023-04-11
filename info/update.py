@@ -117,15 +117,6 @@ async def get(session: aiohttp.ClientSession, url: str, **kwargs) -> tuple[str, 
         logger.debug(f"[{WARN}FAILED{RESET}]: {url}\n{e}")
 
 
-def find_paths():
-    res = set()
-    for p in ENDPOINTS.iterdir():
-        data = p.read_text()
-        if x := re.findall('"[^"]*"|`[^`]*`|\'[^\']*\'', data):
-            res |= set(x[1:-1] for x in x if '/' in x)
-    PATHS.write_text('\n'.join(sorted(res)))
-
-
 def update_endpoints(res: list):
     # update endpoints, remove old files
     current_files = {p.name.split('.')[1]: p.name for p in ENDPOINTS.iterdir()}
@@ -144,6 +135,7 @@ def find_strings():
         s |= set(x.strip() for x in re.split('["\'`]', p.read_text()) if
                  ((len(x) < 120) and (not re.search('[\[\]\{\}\(\)]', x))))
     STRINGS.write_text('\n'.join(sorted(s, reverse=True)))
+    PATHS.write_text('\n'.join(sorted(s for s in s if '/' in s)))
 
 
 def main():
@@ -155,7 +147,6 @@ def main():
     headers = get_headers()
     res = asyncio.run(process(get, headers, urls))
     update_endpoints(res)
-    find_paths()
     find_strings()
 
 
