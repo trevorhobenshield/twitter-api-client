@@ -5,7 +5,6 @@ import subprocess
 from pathlib import Path
 
 import aiohttp
-import nest_asyncio
 import orjson
 import requests
 import uvloop
@@ -16,7 +15,6 @@ from twitter.config.operations import operations as OLD
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
-nest_asyncio.apply()
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 BOLD = '\u001b[1m'
