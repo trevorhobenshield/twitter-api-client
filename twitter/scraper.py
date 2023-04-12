@@ -236,7 +236,9 @@ class Scraper:
                 path = Path(f'data/raw/{d[ID]}')
                 path.mkdir(parents=True, exist_ok=True)
                 (path / f'{time.time_ns()}_{name}.json').write_text(
-                    orjson.dumps(d, option=orjson.OPT_INDENT_2).decode())
+                    orjson.dumps(d, option=orjson.OPT_INDENT_2).decode(),
+                    encoding='utf-8'
+                )
 
         except KeyError as e:
             logger.debug(f'[{ERROR}error{RESET}] failed to save data: {e}')
@@ -274,14 +276,11 @@ class Scraper:
             media = [y for x in find_key(r, 'media') for y in x]  # in case of arbitrary schema
             if photos:
                 photos = list({u for m in media if 'ext_tw_video_thumb' not in (u := m['media_url_https'])})
-                # logger.debug(f'{photos = }')
                 if photos:
                     [self.download(url, photo) for photo in photos]
             if videos:
                 videos = [x['variants'] for m in media if (x := m.get('video_info'))]
                 hq_videos = {sorted(v, key=lambda d: d.get('bitrate', 0))[-1]['url'] for v in videos}
-                # logger.debug(f'{videos = }')
-                # logger.debug(f'{hq_videos = }')
                 if hq_videos:
                     [self.download(url, video) for video in hq_videos]
 
@@ -304,5 +303,7 @@ class Scraper:
         path = Path(f'data/raw/trends')
         path.mkdir(parents=True, exist_ok=True)
         (path / f'{time.time_ns()}.json').write_text(
-            orjson.dumps(all_trends, option=orjson.OPT_INDENT_2).decode())
+            orjson.dumps(all_trends, option=orjson.OPT_INDENT_2).decode(),
+            encoding='utf-8'
+        )
         return all_trends

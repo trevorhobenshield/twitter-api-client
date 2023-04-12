@@ -64,7 +64,10 @@ async def paginate(query: str, session: aiohttp.ClientSession, config: dict, out
         config['cursor'] = next_cursor
         data, next_cursor = await backoff(lambda: get(session, api, config), query)
         data['query'] = query
-        (out / f'raw/{time.time_ns()}.json').write_text(orjson.dumps(data, option=orjson.OPT_INDENT_2).decode())
+        (out / f'raw/{time.time_ns()}.json').write_text(
+            orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
+            encoding='utf-8'
+        )
         all_data.append(data)
     return all_data
 
@@ -140,6 +143,6 @@ def combine_results(in_path: Path = IN_PATH, out_path: Path = OUT_PATH):
             k: v
             for p in in_path.iterdir() if p.suffix == '.json'
             for k, v in orjson.loads(p.read_text())['globalObjects']['tweets'].items()
-        }, option=orjson.OPT_INDENT_2).decode())
+        }, option=orjson.OPT_INDENT_2).decode(), encoding='utf-8')
     except Exception as e:
         logger.debug(f'FAILED to combine search results, {e}')
