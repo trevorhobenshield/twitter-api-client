@@ -39,10 +39,9 @@ def find_api_script(res: requests.Response) -> str:
     @param res: response from homepage: https://twitter.com
     @return: url to api script
     """
-    # temp = re.findall('\+"\."\+(\{.*\})\[e\]\+?"a\.js",', res.text)[0]
     temp = re.findall('\+"\."\+(\{.*\})\[e\]\+?' + '"' + _a + '"', res.text)[0]
     endpoints = orjson.loads(temp.replace('vendor:', '"vendor":').replace('api:', '"api":'))
-    JS.write_bytes(orjson.dumps(endpoints))
+    JS.write_bytes(orjson.dumps(dict(sorted(endpoints.items()))))
     js = 'api.' + endpoints['api'] + _a  # search for `+"a.js"` in homepage source
     return f'{_base}/{js}'
 

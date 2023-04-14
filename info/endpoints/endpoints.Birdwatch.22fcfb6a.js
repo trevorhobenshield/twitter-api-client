@@ -112,7 +112,7 @@
         metadata: { featureSwitches: [] },
       };
     },
-    68339: (e) => {
+    39406: (e) => {
       e.exports = {
         queryId: "pMbW6Y4LuS5MzlSOEqERJQ",
         operationName: "BirdwatchFetchAuthenticatedUserProfile",
@@ -328,7 +328,7 @@
         E = a.n(T),
         C = a(65655),
         O = a.n(C),
-        G = a(68339),
+        G = a(39406),
         D = a.n(G),
         R = a(5963),
         Z = a.n(R),
@@ -533,4 +533,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Birdwatch.b149873a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Birdwatch.22fcfb6a.js.map
