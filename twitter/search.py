@@ -142,15 +142,3 @@ def make_output_dirs(path: str) -> Path:
     (p / 'processed').mkdir(parents=True, exist_ok=True)
     (p / 'final').mkdir(parents=True, exist_ok=True)
     return p
-
-
-# @atexit.register
-# def combine_results(in_path: Path = IN_PATH, out_path: Path = OUT_PATH):
-#     try:
-#         out_path.write_text(orjson.dumps({
-#             k: v
-#             for p in in_path.iterdir() if p.suffix == '.json'
-#             for k, v in orjson.loads(p.read_text())['globalObjects']['tweets'].items()
-#         }, option=orjson.OPT_INDENT_2).decode(), encoding='utf-8')
-#     except Exception as e:
-#         logger.debug(f'FAILED to combine search results, {e}')
