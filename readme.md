@@ -196,6 +196,7 @@ search(
     'skateboarding baseball guitar',
     'cheese bread butter',
     'ios android',
+    # limit=1000, # optional limit
 )
 ```
 
