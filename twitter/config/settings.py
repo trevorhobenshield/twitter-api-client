@@ -126,7 +126,7 @@ search_config = {
     "send_error_codes": "true",
     "simple_quoted_tweet": "true",
     "query_source": "typed_query",
-    "count": 100,
+    "count": 1000,
     "q": "",
     "requestContext": "launch",
     "pc": 1,

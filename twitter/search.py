@@ -1,5 +1,7 @@
 import asyncio
 import atexit
+import math
+
 import orjson
 import logging.config
 import platform
@@ -13,6 +15,7 @@ import requests
 
 from .config.log import log_config
 from .config.settings import search_config
+from .constants import *
 from .utils import set_qs
 
 IN_PATH = Path('~/data/raw').expanduser()
@@ -42,24 +45,29 @@ else:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
-def search(*args, out: str = 'data'):
+def search(*args, out: str = 'data', **kwargs):
     out_path = make_output_dirs(out)
-    return asyncio.run(process(args, search_config, out_path))
+    return asyncio.run(process(args, search_config, out_path, **kwargs))
 
 
-async def process(queries: tuple, config: dict, out: Path) -> tuple:
+async def process(queries: tuple, config: dict, out: Path, **kwargs) -> list:
     conn = aiohttp.TCPConnector(limit=len(queries), ssl=False)
     async with aiohttp.ClientSession(headers=__get_headers(), connector=conn) as s:
-        return await asyncio.gather(*(paginate(q, s, config, out) for q in queries))
+        return await asyncio.gather(*(paginate(q, s, config, out, **kwargs) for q in queries))
 
 
-async def paginate(query: str, session: aiohttp.ClientSession, config: dict, out: Path) -> list[dict]:
+async def paginate(query: str, session: aiohttp.ClientSession, config: dict, out: Path, **kwargs) -> list[dict]:
     api = 'https://api.twitter.com/2/search/adaptive.json?'
     config['q'] = query
     data, next_cursor = await backoff(lambda: get(session, api, config), query)
-    all_data = []
+    all_data = [data]
     c = colors.pop() if colors else ''
+    ids = set()
     while next_cursor:
+        ids |= set(data['globalObjects']['tweets'])
+        if len(ids) >= kwargs.get('limit', math.inf):
+            logger.debug(f'[{SUCCESS}success{RESET}] returned {len(ids)} search results for {c}{query}{reset}')
+            return all_data
         logger.debug(f'{c}{query}{reset}')
         config['cursor'] = next_cursor
         data, next_cursor = await backoff(lambda: get(session, api, config), query)
@@ -136,13 +144,13 @@ def make_output_dirs(path: str) -> Path:
     return p
 
 
-@atexit.register
-def combine_results(in_path: Path = IN_PATH, out_path: Path = OUT_PATH):
-    try:
-        out_path.write_text(orjson.dumps({
-            k: v
-            for p in in_path.iterdir() if p.suffix == '.json'
-            for k, v in orjson.loads(p.read_text())['globalObjects']['tweets'].items()
-        }, option=orjson.OPT_INDENT_2).decode(), encoding='utf-8')
-    except Exception as e:
-        logger.debug(f'FAILED to combine search results, {e}')
+# @atexit.register
+# def combine_results(in_path: Path = IN_PATH, out_path: Path = OUT_PATH):
+#     try:
+#         out_path.write_text(orjson.dumps({
+#             k: v
+#             for p in in_path.iterdir() if p.suffix == '.json'
+#             for k, v in orjson.loads(p.read_text())['globalObjects']['tweets'].items()
+#         }, option=orjson.OPT_INDENT_2).decode(), encoding='utf-8')
+#     except Exception as e:
+#         logger.debug(f'FAILED to combine search results, {e}')
