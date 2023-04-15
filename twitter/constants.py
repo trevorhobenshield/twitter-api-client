@@ -56,6 +56,9 @@ class Operation(CustomEnum):
 
     # @member
     class Account(Enum):
+        # user
+        HomeTimeline = Value()
+        HomeLatestTimeline = Value()
         # tweet
         CreateTweet = Value()
         CreateScheduledTweet = Value()

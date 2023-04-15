@@ -4,7 +4,7 @@
   {
     39296: (e) => {
       e.exports = {
-        queryId: "wEEtgEL1HvIGkNpYPXQejA",
+        queryId: "o9FyvnC-xg8mVBXqL4g-rg",
         operationName: "ArticleTimeline",
         operationType: "query",
         metadata: {
@@ -34,7 +34,7 @@
     },
     33278: (e) => {
       e.exports = {
-        queryId: "TlYQ1KJau8y96EqI_Fs9Ww",
+        queryId: "x4ywSpvg6BesoDszkfbFQg",
         operationName: "ArticleTweetsTimeline",
         operationType: "query",
         metadata: {
@@ -73,26 +73,26 @@
       var t = _(72599),
         n = _(27024),
         l = _(17360),
-        a = _(83175),
-        r = _(39296),
-        s = _.n(r),
+        r = _(83175),
+        a = _(39296),
+        s = _.n(a),
         o = _(33278),
         d = _.n(o),
         p = _(82249);
       const b = (e, i) => {
           var _, n;
-          const a =
+          const r =
             null == i ||
             null == (_ = i.article_by_rest_id) ||
             null == (n = _.tweets_timeline)
               ? void 0
               : n.timeline;
           return (
-            a ||
+            r ||
               (0, t.ZP)(
                 "GQL Top Articles: Failed query for article Tweets timeline"
               ),
-            !a && (0, l.jB)(e)
+            !r && (0, l.jB)(e)
           );
         },
         c = (e, i) => {
@@ -112,7 +112,7 @@
                 ? "FriendsOfFriends"
                 : "FollowingList";
             return e
-              .graphQL(d(), { ..._, ...(0, a.d)(i), articleListSeedType: t }, b)
+              .graphQL(d(), { ..._, ...(0, r.d)(i), articleListSeedType: t }, b)
               .then((e) => {
                 var i, _;
                 return (
@@ -130,7 +130,7 @@
                 ? "FriendsOfFriends"
                 : "FollowingList";
             return e
-              .graphQL(s(), { ..._, ...(0, a.d)(i), articleListSeedType: t }, c)
+              .graphQL(s(), { ..._, ...(0, r.d)(i), articleListSeedType: t }, c)
               .then((e) => {
                 var i;
                 return (
@@ -144,4 +144,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.TopArticles.ea9f190a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.TopArticles.8517a34a.js.map

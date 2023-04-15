@@ -4,7 +4,7 @@
   {
     60992: (e) => {
       e.exports = {
-        queryId: "MXadnowW4uG_ol0ZKrXICg",
+        queryId: "13H7EUATwethsj-XxX5ohw",
         operationName: "BookmarkFolderTimeline",
         operationType: "query",
         metadata: {
@@ -50,7 +50,7 @@
     },
     2061: (e) => {
       e.exports = {
-        queryId: "ThwoU-Q6_9oZHwxtWdpoPw",
+        queryId: "tmd4ifV8RHltzn8ymGg1aw",
         operationName: "Bookmarks",
         operationType: "query",
         metadata: {
@@ -124,15 +124,15 @@
       t.r(o), t.d(o, { default: () => I, isFatalBookmarksAllDelete: () => Q });
       var r = t(6899),
         a = t(72599),
-        n = t(17360),
-        i = t(83175);
+        i = t(17360),
+        n = t(83175);
       const l = new r.fK.Entity("bookmarkFolders", {});
       var _ = t(17305),
         s = t.n(_),
         d = t(60992),
         m = t.n(d),
-        p = t(2061),
-        k = t.n(p),
+        k = t(2061),
+        p = t.n(k),
         u = t(85419),
         b = t.n(u),
         c = t(5509),
@@ -141,8 +141,8 @@
         h = t.n(v),
         f = t(86558),
         g = t.n(f),
-        F = t(51792),
-        y = t.n(F),
+        y = t(51792),
+        F = t.n(y),
         B = t(68831),
         q = t.n(B),
         T = t(82249);
@@ -151,11 +151,11 @@
           const t = "Done" === (null == o ? void 0 : o.bookmark_all_delete);
           return (
             t || (0, a.ZP)("GQL Bookmarks: Failed to delete all bookmarks"),
-            (0, n.jB)(e) || !t
+            (0, i.jB)(e) || !t
           );
         },
         L = (e, o) => {
-          var t, r, i;
+          var t, r, n;
           const l =
               null == o ||
               null == (t = o.viewer) ||
@@ -164,15 +164,15 @@
                 : r.result,
             _ = "User" === (null == l ? void 0 : l.__typename) ? l : void 0,
             s =
-              null == _ || null == (i = _.bookmark_collections_slice)
+              null == _ || null == (n = _.bookmark_collections_slice)
                 ? void 0
-                : i.items;
+                : n.items;
           return (
             s ||
               (0, a.ZP)(
                 "GQL Bookmark Folders: Failed to render Bookmark Folders timeline"
               ),
-            !s && (0, n.jB)(e)
+            !s && (0, i.jB)(e)
           );
         },
         S = (e, o) => {
@@ -186,7 +186,7 @@
               (0, a.ZP)(
                 "GQL Bookmark Folders: Failed to render Bookmark Folders timeline"
               ),
-            !r && (0, n.jB)(e)
+            !r && (0, i.jB)(e)
           );
         },
         I = ({ apiClient: e, featureSwitches: o }) => ({
@@ -194,7 +194,7 @@
             e.graphQL(
               b(),
               { ...o },
-              (0, n.kj)(
+              (0, i.kj)(
                 (e) => !e.bookmark_collection_tweet_put,
                 "GQL Bookmark Folders: failed to Add Tweet to Bookmark Folder"
               )
@@ -203,7 +203,7 @@
             e.graphQL(
               w(),
               { ...o },
-              (0, n.kj)(
+              (0, i.kj)(
                 (e) => !e.bookmark_collection_create,
                 "GQL Bookmark Folders: failed to Create Bookmark Folder"
               )
@@ -215,7 +215,7 @@
           },
           editBookmarkFolder(o) {
             const { bookmarkFolderId: t, name: r } = o;
-            return e.graphQL(y(), { bookmark_collection_id: t, name: r });
+            return e.graphQL(F(), { bookmark_collection_id: t, name: r });
           },
           removeTweetFromBookmarkFolder(o) {
             const { bookmarkFolderId: t, tweetId: r } = o;
@@ -224,12 +224,12 @@
           fetchBookmarksTimeline: ({ count: t, cursor: r }) =>
             e
               .graphQL(
-                k(),
+                p(),
                 {
                   count: t,
                   cursor: r,
                   includePromotedContent: !0,
-                  ...(0, i.d)(o),
+                  ...(0, n.d)(o),
                 },
                 (e, o) => {
                   var t, r;
@@ -266,7 +266,7 @@
                   bookmark_collection_id: t,
                   cursor: r,
                   includePromotedContent: !0,
-                  ...(0, i.d)(o),
+                  ...(0, n.d)(o),
                 },
                 S
               )
@@ -288,14 +288,14 @@
                       null == (t = o.user_results)
                         ? void 0
                         : t.result,
-                    n =
+                    i =
                       "User" === (null == a ? void 0 : a.__typename)
                         ? a
                         : void 0,
-                    i = null == n ? void 0 : n.bookmark_collections_slice;
-                  if (i) {
-                    const { entities: e, result: o } = (0, r.Fv)(i.items, [l]);
-                    return { entities: e, result: o, slice_info: i.slice_info };
+                    n = null == i ? void 0 : i.bookmark_collections_slice;
+                  if (n) {
+                    const { entities: e, result: o } = (0, r.Fv)(n.items, [l]);
+                    return { entities: e, result: o, slice_info: n.slice_info };
                   }
                   return x;
                 })
@@ -304,4 +304,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Bookmarks.519dfb2a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Bookmarks.cdbe2e6a.js.map

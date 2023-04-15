@@ -1,11 +1,11 @@
 (self.webpackChunk_twitter_responsive_web =
   self.webpackChunk_twitter_responsive_web || []).push([
-  ["endpoints.RitoFlaggedTweets"],
+  ["endpoints.RitoActionedTweets"],
   {
-    4149: (e) => {
+    69108: (e) => {
       e.exports = {
-        queryId: "CMPDkW0aEs4ra-fXkd_X9Q",
-        operationName: "RitoFlaggedTweetsTimeline",
+        queryId: "px9Zbs48D-YdQPEROK6-nA",
+        operationName: "RitoActionedTweetsTimeline",
         operationType: "query",
         metadata: {
           featureSwitches: [
@@ -32,59 +32,59 @@
         },
       };
     },
-    89910: (e, _, t) => {
+    56563: (e, t, _) => {
       "use strict";
-      t.r(_),
-        t.d(_, {
+      _.r(t),
+        _.d(t, {
           default: () => d,
-          isFatalRitoFlaggedTweetsTimelineError: () => o,
+          isFatalRitoActionedTweetsTimelineError: () => o,
         });
-      var i = t(72599),
-        n = t(17360),
-        a = t(83175),
-        r = t(4149),
-        s = t.n(r),
-        l = t(82249);
-      const o = (e, _) => {
-          var t;
-          const a =
-            null == _ || null == (t = _.user_result_by_rest_id)
+      var i = _(72599),
+        n = _(17360),
+        s = _(83175),
+        r = _(69108),
+        a = _.n(r),
+        l = _(82249);
+      const o = (e, t) => {
+          var _;
+          const s =
+            null == t || null == (_ = t.user_result_by_rest_id)
               ? void 0
-              : t.result;
+              : _.result;
           return (
-            a ||
+            s ||
               (0, i.ZP)(
-                "GQL RitoFlaggedTweets: Failed to query for Rito Flagged Tweets timeline"
+                "GQL RitoActionedTweets: Failed to query for Rito Actioned Tweets timeline"
               ),
-            !a && (0, n.jB)(e)
+            !s && (0, n.jB)(e)
           );
         },
-        d = ({ apiClient: e, featureSwitches: _ }) => ({
-          fetchRitoFlaggedTweets: ({ cursor: t, userId: i }) =>
+        d = ({ apiClient: e, featureSwitches: t }) => ({
+          fetchRitoActionedTweets: ({ cursor: _, userId: i }) =>
             e
               .graphQL(
-                s(),
+                a(),
                 {
-                  cursor: t,
+                  cursor: _,
                   rest_id: i,
-                  ...(0, a.d)(_),
-                  withSafetyModeUserFields: _.isTrue(
+                  ...(0, s.d)(t),
+                  withSafetyModeUserFields: t.isTrue(
                     "rito_safety_mode_blocked_profile_enabled"
                   ),
                 },
                 o
               )
               .then((e) => {
-                var _;
-                const t =
-                  null == e || null == (_ = e.user_result_by_rest_id)
+                var t;
+                const _ =
+                  null == e || null == (t = e.user_result_by_rest_id)
                     ? void 0
-                    : _.result;
+                    : t.result;
                 let i = l.cY;
                 var n;
-                "User" === (null == t ? void 0 : t.__typename) &&
+                "User" === (null == _ ? void 0 : _.__typename) &&
                   (i =
-                    null == (n = t.rito_flagged_tweets_timeline)
+                    null == (n = _.rito_actioned_tweets_timeline)
                       ? void 0
                       : n.timeline);
                 return i || l.cY;
@@ -93,4 +93,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.RitoFlaggedTweets.042b2a3a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.RitoActionedTweets.38eab9fa.js.map

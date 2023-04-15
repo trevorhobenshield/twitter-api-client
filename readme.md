@@ -90,6 +90,10 @@ account.update_pinned_lists([543, 432, 321])
 # unpin all lists
 account.update_pinned_lists([])
 
+# get timelines
+timeline = account.home_timeline()
+latest_timeline = account.home_latest_timeline(limit=100)
+    
 # example configuration
 account.update_settings({
     "address_book_live_sync_enabled": False,

@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 from uuid import uuid1, getnode
 
 import orjson
-from requests import Response
+from requests import Response, Session
 from tqdm import tqdm
 
 from .config.log import log_config
@@ -43,6 +43,9 @@ else:
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
+ID = 'ID'
+DUP_LIMIT = 5
+
 
 def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
     if fn is None:
@@ -62,9 +65,18 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
         logger.log(level, f'{wait // 60} minutes until rate-limit reset. {limits = }')
 
         try:
+            data = {}
             if 200 <= r.status_code < 300:
-                typenames = find_key(r.json(), '__typename')
+                if 'json' in r.headers.get('content-type', ''):
+                    data = r.json()
+                    if data.get('errors'):
+                        logger.log(level, f'[{ERROR}error{RESET}] ({fn.__name__}) {args_info} {r.status_code} {r.text}')
+                        return r
+
+                typenames = find_key(data, '__typename')
+                logger.log(level, f'{typenames = }')
                 errors = ','.join([t for t in typenames if re.search('fail|error', t, flags=re.I)])
+
                 if errors:
                     message = f'[{ERROR}error{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info} {WARN}{errors}{RESET}'
                 else:
@@ -329,6 +341,79 @@ class Account:
     @log(info=['json'])
     def unbookmark(self, tweet_id: int) -> Response:
         return self.gql(Operation.Account.DeleteBookmark, {'tweet_id': tweet_id})
+
+    @log(info=['json'])
+    def home_timeline(self):
+        return self.gql(Operation.Account.HomeTimeline, {})
+
+    def home_latest_timeline(self, limit: int = 100):
+        r = self.gql(Operation.Account.HomeLatestTimeline, {})
+        data = r.json() | {ID: self.session.cookies.get('username')}
+        return self.paginate(self.session, data, Operation.Account.HomeTimeline, limit)
+
+    # todo: a lot of duplicated code here, will need to refactor
+    def paginate(self, session: Session, data: dict, operation: tuple, limit: int):
+
+        def get_cursor(data):
+            # inefficient, but need to deal with arbitrary schema
+            entries = find_key(data, 'entries')
+            if entries:
+                for entry in entries.pop():
+                    if entry.get('entryId', '').startswith('cursor-bottom'):
+                        content = entry['content']
+                        if itemContent := content.get('itemContent'):
+                            return itemContent['value']  # v2 cursor
+                        return content['value']  # v1 cursor
+
+        all_data = []
+        try:
+            name, key = operation
+            params = deepcopy(operations[name])
+            ids = set()
+            counts = []
+            # params['variables'][key] = data[ID]
+            cursor = get_cursor(data)
+            while 1:
+                params['variables']['cursor'] = cursor
+
+                r = self.gql(operation, params['variables'])
+                _data = r.json()
+
+                if csrf := r.cookies.get("ct0"):
+                    session.headers.update({"x-csrf-token": csrf.value})
+                session.cookies.update(r.cookies)
+
+                path = Path(f'data/raw/{data[ID]}')
+                path.mkdir(parents=True, exist_ok=True)
+                (path / f'{time.time_ns()}_{name}.json').write_text(
+                    orjson.dumps(_data, option=orjson.OPT_INDENT_2).decode(),
+                    encoding='utf-8'
+                )
+
+                all_data.append(_data)
+                cursor = get_cursor(_data)
+                logger.debug(f'{cursor = }')
+                ids |= set(find_key(_data, 'rest_id'))
+                logger.debug(f'({data[ID]})\t{len(ids)} unique results')
+                counts.append(len(ids))
+
+                success_message = f'[{SUCCESS}success{RESET}] done pagination'
+                # followers/following have "0|"
+                if not cursor or cursor.startswith('0|'):
+                    logger.debug(f'{success_message}\tlast cursor: {cursor}')
+                    break
+                if len(ids) >= limit:
+                    logger.debug(f'{success_message}\tsurpassed limit of {limit} results')
+                    break
+                # did last 5 requests return duplicate data?
+                if len(counts) > DUP_LIMIT and len(set(counts[-1:-DUP_LIMIT:-1])) == 1:
+                    logger.debug(f'{success_message}\tpast {DUP_LIMIT} requests returned duplicate data')
+                    break
+
+        except Exception as e:
+            logger.debug(f'[{ERROR}error{RESET}] paginate falied: {e}')
+        # save_data(all_data, name)
+        return all_data
 
     @log(info=['json'])
     def create_list(self, name: str, description: str, private: bool) -> Response:

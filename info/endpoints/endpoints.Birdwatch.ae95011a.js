@@ -12,7 +12,7 @@
     },
     59070: (e) => {
       e.exports = {
-        queryId: "vy9rXmA6u1xdvVw-OXxkbw",
+        queryId: "t6r3Wq7wripUW9gB3FQNBw",
         operationName: "BirdwatchFetchContributorNotesSlice",
         operationType: "query",
         metadata: {
@@ -130,7 +130,7 @@
     },
     74535: (e) => {
       e.exports = {
-        queryId: "QwNEuYekGwN_labab_4kGQ",
+        queryId: "L3LftPt6fhYqoQ5Vnxm7UQ",
         operationName: "BirdwatchFetchGlobalTimeline",
         operationType: "query",
         metadata: {
@@ -313,35 +313,35 @@
         v = a(59070),
         g = a.n(v),
         y = a(47266),
-        S = a.n(y),
-        q = a(46222),
-        N = a.n(q),
-        B = a(64544),
-        x = a.n(B),
+        q = a.n(y),
+        S = a(46222),
+        B = a.n(S),
+        N = a(64544),
+        x = a.n(N),
         L = a(68885),
         Q = a.n(L),
-        k = a(43142),
-        A = a.n(k),
-        F = a(46294),
-        I = a.n(F),
-        T = a(83101),
-        E = a.n(T),
+        A = a(43142),
+        F = a.n(A),
+        I = a(46294),
+        T = a.n(I),
+        k = a(83101),
+        E = a.n(k),
         C = a(65655),
         O = a.n(C),
-        G = a(39406),
-        D = a.n(G),
-        R = a(5963),
-        Z = a.n(R),
+        D = a(39406),
+        R = a.n(D),
+        Z = a(5963),
+        G = a.n(Z),
         M = a(74535),
         P = a.n(M),
         z = a(69499),
-        K = a.n(z),
-        U = a(39452),
-        X = a.n(U),
+        U = a.n(z),
+        K = a(39452),
+        W = a.n(K),
         j = a(79758),
-        Y = a.n(j),
-        J = a(99759),
-        W = a.n(J),
+        X = a.n(j),
+        Y = a(99759),
+        J = a.n(Y),
         $ = a(82249);
       const V = { result: [], entities: {}, slice_info: {} },
         H = (e, t) => {
@@ -365,11 +365,11 @@
             return n && t < 5 ? (0, r.Z)(n).then(() => ee(e, t + 1)) : i;
           }),
         te = ({ apiClient: e, featureSwitches: t }) => ({
-          acknowledgeEarnOut: () => e.graphQL(W(), {}),
-          createAppeal: (t) => e.graphQL(S(), { note_id: t.note_id }),
+          acknowledgeEarnOut: () => e.graphQL(J(), {}),
+          createAppeal: (t) => e.graphQL(q(), { note_id: t.note_id }),
           createNote: (a) =>
             e
-              .graphQL(N(), {
+              .graphQL(B(), {
                 tweet_id: a.tweet_id,
                 is_media_note: a.is_media_note,
                 data_v1: a.data,
@@ -415,24 +415,24 @@
             });
           },
           deleteNote: (t) => e.graphQL(Q(), { note_id: t.note_id }),
-          deleteRating: (t) => e.graphQL(A(), { note_id: t.note_id }),
+          deleteRating: (t) => e.graphQL(F(), { note_id: t.note_id }),
           editNotificationSettings: (t) =>
-            e.graphQL(I(), { settings: t.settings }),
+            e.graphQL(T(), { settings: t.settings }),
           fetchOneNote: (a) =>
-            e.graphQL(X(), { note_id: a.note_id, ...(0, o.S)(t) }).then((e) => {
+            e.graphQL(W(), { note_id: a.note_id, ...(0, o.S)(t) }).then((e) => {
               const t = { ...e.birdwatch_note_by_rest_id };
               return t && (0, i.Fv)(t, w);
             }),
           fetchNotes(a) {
             const { tweet_id: r } = a;
-            return e.graphQL(K(), { tweet_id: r, ...(0, o.S)(t) }).then((e) => {
+            return e.graphQL(U(), { tweet_id: r, ...(0, o.S)(t) }).then((e) => {
               const t = e.tweet_result_by_rest_id.result,
                 a = { ...(null != t && t.tweet ? t.tweet : t), tweet_id: r };
               return a && (0, i.Fv)(a, h);
             });
           },
           fetchBirdwatchProfile: (t) =>
-            e.graphQL(Z(), { alias: t.alias }).then((e) => {
+            e.graphQL(G(), { alias: t.alias }).then((e) => {
               const t = { ...e.birdwatch_profile_by_alias };
               return t && (0, i.Fv)(t, u);
             }),
@@ -506,7 +506,7 @@
               : Promise.resolve(V),
           fetchAuthenticatedUserProfile: () =>
             e
-              .graphQL(D(), {})
+              .graphQL(R(), {})
               .then((e) => e.authenticated_user_birdwatch_profile),
           fetchAliasSelfSelectStatus: () =>
             e
@@ -518,7 +518,7 @@
           selectAlias: (t) => e.graphQL(m(), { alias: t.alias }),
           fetchPublicData: () =>
             e
-              .graphQL(Y(), {})
+              .graphQL(X(), {})
               .then((e) => ({ ...e.birdwatch_latest_public_data_file_bundle })),
           fetchGlobalTimeline: () =>
             e.graphQL(P(), { ...(0, o.d)(t) }, H).then((e) => {
@@ -533,4 +533,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Birdwatch.22fcfb6a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Birdwatch.ae95011a.js.map

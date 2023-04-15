@@ -4,7 +4,7 @@
   {
     44967: (e) => {
       e.exports = {
-        queryId: "HuHJZRkC-XedlqPC-jVm1Q",
+        queryId: "aV-sm-IkvwplcxdYDoLZHQ",
         operationName: "TwitterArticleCreate",
         operationType: "mutation",
         metadata: {
@@ -43,7 +43,7 @@
     },
     27730: (e) => {
       e.exports = {
-        queryId: "xSDv829zYE08d_xYiiVp9w",
+        queryId: "hwrvh-Qt24lcprL-BDfqRA",
         operationName: "TwitterArticleByRestId",
         operationType: "query",
         metadata: {
@@ -74,7 +74,7 @@
     },
     62170: (e) => {
       e.exports = {
-        queryId: "Q0QXXw9qN3bGEqT-MIznIQ",
+        queryId: "fpcVRSAsjvkwmCiN1HheqQ",
         operationName: "TwitterArticleUpdateCoverImage",
         operationType: "mutation",
         metadata: {
@@ -105,7 +105,7 @@
     },
     32952: (e) => {
       e.exports = {
-        queryId: "nEjFDSLygrXvNUrezeEpeg",
+        queryId: "XpBTYp_QXwyZ0XT0JXCBJw",
         operationName: "TwitterArticleUpdateData",
         operationType: "mutation",
         metadata: {
@@ -136,7 +136,7 @@
     },
     34957: (e) => {
       e.exports = {
-        queryId: "G3ilKOlbGaadd7h46YmtzQ",
+        queryId: "3ojmmegfBC_oHyrmPhxj-g",
         operationName: "TwitterArticleUpdateMedia",
         operationType: "mutation",
         metadata: {
@@ -167,7 +167,7 @@
     },
     4224: (e) => {
       e.exports = {
-        queryId: "gMYkzmlMJq4UwrT2DxF81w",
+        queryId: "dvH6Ql989I4e5jWEV7HfaQ",
         operationName: "TwitterArticleUpdateTitle",
         operationType: "mutation",
         metadata: {
@@ -198,7 +198,7 @@
     },
     87139: (e) => {
       e.exports = {
-        queryId: "fqLvt9wqxNQyZyEOklERNQ",
+        queryId: "8M35gHyfpcy3S4UXejUGfA",
         operationName: "TwitterArticleUpdateVisibility",
         operationType: "mutation",
         metadata: {
@@ -229,7 +229,7 @@
     },
     63711: (e) => {
       e.exports = {
-        queryId: "YDBQ2H2BTp_DUGnGNOuqCQ",
+        queryId: "UUPSi_aS8_kHDFTWqSBPUA",
         operationName: "TwitterArticlesSlice",
         operationType: "query",
         metadata: {
@@ -260,7 +260,7 @@
     },
     11896: (e, t, _) => {
       "use strict";
-      _.r(t), _.d(t, { default: () => Q });
+      _.r(t), _.d(t, { default: () => k });
       var i = _(6899),
         a = _(17360),
         n = _(83175);
@@ -286,16 +286,16 @@
           },
         }
       );
-      var d = _(44967),
-        o = _.n(d),
-        b = _(97989),
-        p = _.n(b),
+      var o = _(44967),
+        d = _.n(o),
+        p = _(97989),
+        b = _.n(p),
         w = _(27730),
         c = _.n(w),
         v = _(63711),
-        u = _.n(v),
-        h = _(62170),
-        m = _.n(h),
+        h = _.n(v),
+        u = _(62170),
+        m = _.n(u),
         g = _(32952),
         f = _.n(g),
         y = _(34957),
@@ -304,8 +304,8 @@
         A = _.n(x),
         T = _(87139),
         I = _.n(T),
-        z = _(82249);
-      const Q = ({ apiClient: e, featureSwitches: t }) => ({
+        S = _(82249);
+      const k = ({ apiClient: e, featureSwitches: t }) => ({
         fetchTwitterArticle(_) {
           const { twitterArticleId: l } = _;
           return e
@@ -322,13 +322,13 @@
         createTwitterArticle(_) {
           const { contentStateJson: a } = _;
           return e
-            .graphQL(o(), { data: { content_state_json: a }, ...(0, n.d)(t) })
+            .graphQL(d(), { data: { content_state_json: a }, ...(0, n.d)(t) })
             .then((e) => (0, i.Fv)(e.create_twitter_article, r));
         },
         deleteTwitterArticle(t) {
           const { twitterArticleId: _ } = t;
           return e
-            .graphQL(p(), { twitterArticleId: _ })
+            .graphQL(b(), { twitterArticleId: _ })
             .then((e) => e.delete_twitter_article);
         },
         updateTwitterArticleCoverImage(_) {
@@ -342,12 +342,12 @@
             contentStateJson: a,
             plaintext: l,
             twitterArticleId: s,
-            wordCount: d,
+            wordCount: o,
           } = _;
           return e
             .graphQL(f(), {
               twitterArticleId: s,
-              data: { content_state_json: a, plaintext: l, word_count: d },
+              data: { content_state_json: a, plaintext: l, word_count: o },
               ...(0, n.d)(t),
             })
             .then((e) => (0, i.Fv)(e.update_twitter_article, r));
@@ -378,7 +378,7 @@
           _ && t.isTrue("responsive_web_twitter_article_view_enabled")
             ? e
                 .graphQL(
-                  u(),
+                  h(),
                   { ..._, ...(0, n.d)(t) },
                   (0, a.kj)(
                     (e) => !1,
@@ -396,11 +396,11 @@
                       { entities: a, result: n } = (0, i.Fv)(e, [s]);
                     return { entities: a, result: n, slice_info: _ };
                   }
-                  return z.d;
+                  return S.d;
                 })
-            : Promise.resolve(z.d),
+            : Promise.resolve(S.d),
       });
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.TwitterArticles.fee6eaba.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.TwitterArticles.993c8cea.js.map

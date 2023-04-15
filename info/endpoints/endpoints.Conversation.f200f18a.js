@@ -4,7 +4,7 @@
   {
     77561: (e) => {
       e.exports = {
-        queryId: "7d8fexGPbM0BRc5DkacJqA",
+        queryId: "wNNG8DBB8EaXw1lq4vFWGA",
         operationName: "TweetDetail",
         operationType: "query",
         metadata: {
@@ -98,4 +98,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Conversation.1d835a0a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Conversation.f200f18a.js.map

@@ -4,7 +4,7 @@
   {
     78111: (e) => {
       e.exports = {
-        queryId: "lsHWKlEzjUbPKFZyf2hZqA",
+        queryId: "QB5okPsUwVP3TefHBFItnw",
         operationName: "AudioSpaceById",
         operationType: "query",
         metadata: {
@@ -60,7 +60,7 @@
     },
     27260: (e, t, r) => {
       "use strict";
-      r.r(t), r.d(t, { default: () => A });
+      r.r(t), r.d(t, { default: () => I });
       r(71372), r(6886);
       var s = r(72599),
         i = r(83175),
@@ -141,7 +141,7 @@
             null == g || null == (r = g.profile_image_extensions_media_color)
               ? void 0
               : r.palette,
-          { cohosts: T, host: A } = (function (e, t) {
+          { cohosts: T, host: I } = (function (e, t) {
             let r;
             const s = [];
             t
@@ -152,13 +152,13 @@
             return { host: r, cohosts: s };
           })(v, S);
         return (
-          a()(A, "host is required"),
+          a()(I, "host is required"),
           {
             ...p,
             ...n,
             rest_id: f,
             state: b,
-            host: A,
+            host: I,
             hostPalette: q,
             cohosts: T,
             participants: v,
@@ -225,7 +225,7 @@
         S = r(88997),
         q = r.n(S),
         T = r(67560);
-      const A = ({ apiClient: e, featureSwitches: t }) => ({
+      const I = ({ apiClient: e, featureSwitches: t }) => ({
           spacebar: () =>
             e.getUnversioned("/fleets/v1/fleetline", { only_spaces: !0 }, {}),
           byId(r, s = {}) {
@@ -240,7 +240,7 @@
                   ...(0, i.d)(t),
                   withReplays: t.isTrue("voice_rooms_replay_consumption"),
                 },
-                B(n, r, () => !0)
+                Q(n, r, () => !0)
               )
               .catch((e) => {
                 if (
@@ -265,16 +265,16 @@
           },
           subscribeToScheduledSpaceById(t) {
             const r = "subscribeToScheduledSpaceById";
-            return e.graphQL(g(), { id: t }, B(r, t)).catch(x(r)).then(I(r));
+            return e.graphQL(g(), { id: t }, Q(r, t)).catch(x(r)).then(A(r));
           },
           unsubscribeFromScheduledSpaceById(t) {
             const r = "unsubscribeFromScheduledSpaceById";
-            return e.graphQL(q(), { id: t }, B(r, t)).catch(x(r)).then(I(r));
+            return e.graphQL(q(), { id: t }, Q(r, t)).catch(x(r)).then(A(r));
           },
           search(t, r) {
             const s = "spacesSearch";
             return e
-              .graphQL(v(), { query: t, filter: r }, B(s, t))
+              .graphQL(v(), { query: t, filter: r }, Q(s, t))
               .catch(x(s))
               .then((e) => {
                 var t, r;
@@ -322,24 +322,24 @@
           if (t) throw new Error(L(e, t.message));
         };
       }
-      function I(e) {
+      function A(e) {
         return (t) => {
           if (t) return t;
           throw new Error(L(e, "404"));
         };
       }
-      const Q = (e, t) => !1;
-      function B(e, t, r = Q) {
+      const B = (e, t) => !1;
+      function Q(e, t, r = B) {
         return function (i, n) {
           let a = !1;
           if (i.length) {
             const [r] = i,
               { code: n, message: o, path: l } = r;
             let u;
-            const _ = E.find(({ matches: e }) => e(o));
+            const _ = C.find(({ matches: e }) => e(o));
             if (null != _ && _.message) u = L(e, _.message);
             else if (Array.isArray(l)) {
-              const t = l.map(C).join(".");
+              const t = l.map(k).join(".");
               u = L(e, t);
             } else u = L(e, o || "isFatalError");
             (0, s.ZP)(u, { extra: { code: n, id: t, message: o, path: l } }),
@@ -348,10 +348,10 @@
           return !r(i, n) && a;
         };
       }
-      function C(e) {
+      function k(e) {
         return "number" == typeof e ? "#" : e;
       }
-      const E = ["Overcapacity: Unspecified", "Timeout: Unspecified"].map(
+      const C = ["Overcapacity: Unspecified", "Timeout: Unspecified"].map(
         (e) => ({
           matches: (t) => t && e.toLowerCase() === t.toLowerCase(),
           message: e,
@@ -382,4 +382,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.AudioSpaces.fb113caa.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.AudioSpaces.4551fcfa.js.map

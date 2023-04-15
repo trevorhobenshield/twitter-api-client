@@ -4,7 +4,7 @@
   {
     64728: (e) => {
       e.exports = {
-        queryId: "NH8IIw0qm-D07aWQ0H14nA",
+        queryId: "4UCAqbA6K7LRYlwSiuImIw",
         operationName: "Favoriters",
         operationType: "query",
         metadata: {
@@ -34,7 +34,7 @@
     },
     12505: (e) => {
       e.exports = {
-        queryId: "yX_ebV3PaQ1W9kuGUliEng",
+        queryId: "yTkZT3ynT87umyc8KzYYxQ",
         operationName: "Retweeters",
         operationType: "query",
         metadata: {
@@ -64,7 +64,7 @@
     },
     79115: (e) => {
       e.exports = {
-        queryId: "TTdxoMdRkWbOWmoCyc1qtQ",
+        queryId: "8eaWKjHszkS-G_hprUd9AA",
         operationName: "TweetEditHistory",
         operationType: "query",
         metadata: {
@@ -97,19 +97,19 @@
       t.r(_), t.d(_, { default: () => b });
       var i = t(83175),
         n = t(64728),
-        a = t.n(n),
-        r = t(12505),
-        l = t.n(r),
+        r = t.n(n),
+        a = t(12505),
+        l = t.n(a),
         s = t(79115),
         o = t.n(s),
         d = t(82249);
       const b = ({ apiClient: e, featureSwitches: _ }) => ({
-        fetchLikedBy: ({ count: t, cursor: n, tweetId: r }) =>
+        fetchLikedBy: ({ count: t, cursor: n, tweetId: a }) =>
           e
             .graphQL(
-              a(),
+              r(),
               {
-                tweetId: r,
+                tweetId: a,
                 count: t,
                 cursor: n,
                 includePromotedContent: !0,
@@ -132,12 +132,12 @@
                   : _.timeline) || d.cY
               );
             }),
-        fetchRetweetedBy: ({ count: t, cursor: n, tweetId: a }) =>
+        fetchRetweetedBy: ({ count: t, cursor: n, tweetId: r }) =>
           e
             .graphQL(
               l(),
               {
-                tweetId: a,
+                tweetId: r,
                 count: t,
                 cursor: n,
                 includePromotedContent: !0,
@@ -196,4 +196,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.TweetActivity.448a6b6a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.TweetActivity.7e0afbaa.js.map

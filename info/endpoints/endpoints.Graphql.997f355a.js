@@ -1,10 +1,10 @@
 (self.webpackChunk_twitter_responsive_web =
   self.webpackChunk_twitter_responsive_web || []).push([
-  ["endpoints.AccountTaxonomy", "endpoints.Graphql"],
+  ["endpoints.Graphql"],
   {
     29848: (e) => {
       e.exports = {
-        queryId: "VeIlDt0K1vcCzf-jW4qd6A",
+        queryId: "h52d1F7dumWGE1tJAhQBpg",
         operationName: "BlockedAccountsAll",
         operationType: "query",
         metadata: {
@@ -34,7 +34,7 @@
     },
     57274: (e) => {
       e.exports = {
-        queryId: "h9d1UQkdRub8jR5XVY_uuQ",
+        queryId: "8w-D2OhT0jmGzXaNY--UQA",
         operationName: "BlockedAccountsAutoBlock",
         operationType: "query",
         metadata: {
@@ -64,7 +64,7 @@
     },
     2216: (e) => {
       e.exports = {
-        queryId: "gZpIitopgjdaqdwK6reCtg",
+        queryId: "8LDNeOEm0kA98uoDsqXvMg",
         operationName: "BlockedAccountsImported",
         operationType: "query",
         metadata: {
@@ -92,17 +92,9 @@
         },
       };
     },
-    29297: (e) => {
-      e.exports = {
-        queryId: "_ckHEj05gan2VfNHG6thBA",
-        operationName: "DisableUserAccountLabel",
-        operationType: "mutation",
-        metadata: { featureSwitches: [] },
-      };
-    },
     41839: (e) => {
       e.exports = {
-        queryId: "oW2F-EMg_7rtTJgDShBe5w",
+        queryId: "JpFFCTBPxYVlDqMUr9twzQ",
         operationName: "Followers",
         operationType: "query",
         metadata: {
@@ -132,7 +124,7 @@
     },
     97621: (e) => {
       e.exports = {
-        queryId: "1go5V_4KX2r8NMJgmPkhww",
+        queryId: "RvojYJJB90VwJ0rdVhbjMQ",
         operationName: "FollowersYouKnow",
         operationType: "query",
         metadata: {
@@ -162,7 +154,7 @@
     },
     87669: (e) => {
       e.exports = {
-        queryId: "RsIOCb3LhS_AzOkBxJiJIg",
+        queryId: "b22I8WSfQ8H4Ev8486xAlQ",
         operationName: "Following",
         operationType: "query",
         metadata: {
@@ -192,7 +184,7 @@
     },
     75840: (e) => {
       e.exports = {
-        queryId: "bnQ1HNHhBA4S_iB1SaT9HA",
+        queryId: "LZfAdxTdNolKXw6ZkoY_kA",
         operationName: "GenericTimelineById",
         operationType: "query",
         metadata: {
@@ -222,7 +214,7 @@
     },
     50931: (e) => {
       e.exports = {
-        queryId: "p3kCiX2fbX2lRjYgo6h6Ew",
+        queryId: "hnaqw2Vok5OETdBVa_uexw",
         operationName: "ModeratedTimeline",
         operationType: "query",
         metadata: {
@@ -252,7 +244,7 @@
     },
     59113: (e) => {
       e.exports = {
-        queryId: "003287_lTwFeSs_lOSw-HA",
+        queryId: "-G9eXTmseyiSenbqjrEG6w",
         operationName: "MutedAccounts",
         operationType: "query",
         metadata: {
@@ -282,7 +274,7 @@
     },
     26491: (e) => {
       e.exports = {
-        queryId: "-UBJTrL7wLKQXV-x9-bVZg",
+        queryId: "o0YtPFnd4Lk_pOQb9alCvA",
         operationName: "SuperFollowers",
         operationType: "query",
         metadata: {
@@ -310,14 +302,6 @@
         },
       };
     },
-    51659: (e) => {
-      e.exports = {
-        queryId: "rD5gLxVmMvtdtYU1UHWlFQ",
-        operationName: "UserAccountLabel",
-        operationType: "query",
-        metadata: { featureSwitches: [] },
-      };
-    },
     16221: (e) => {
       e.exports = {
         queryId: "D8mVcJSVv66_3NcR7fOf6g",
@@ -334,59 +318,19 @@
         },
       };
     },
-    95901: (e, _, t) => {
-      "use strict";
-      t.r(_),
-        t.d(_, {
-          default: () => b,
-          isDisableUserAccountLabelFail: () => p,
-          isFetchFail: () => d,
-        });
-      var n = t(72599),
-        i = t(17360),
-        r = t(29297),
-        a = t.n(r),
-        l = t(51659),
-        o = t.n(l),
-        s = t(97534);
-      const d = (e, _) => {
-          var t;
-          return (
-            (null == _ || null == (t = _.user) ? void 0 : t.result) ||
-              (0, n.ZP)(
-                "GQL AccountTaxonomy: Failed to load User Account Label",
-                { extra: (0, s.errorBreadcrumb)(e) }
-              ),
-            (0, i.jB)(e)
-          );
-        },
-        p = (e, _) => (
-          (null == _ ? void 0 : _.disable_user_account_label) ||
-            (0, n.ZP)(
-              "GQL AccountTaxonomy: Failed to load Disable User Account Status",
-              { extra: (0, s.errorBreadcrumb)(e) }
-            ),
-          (0, i.jB)(e)
-        ),
-        b = ({ apiClient: e, featureSwitches: _ }) => ({
-          fetchUserAccountLabel: ({ userId: _ }) =>
-            e.graphQL(o(), { rest_id: _ }, d),
-          disableUserAccountLabel: () => e.graphQL(a(), {}, p),
-        });
-    },
     97534: (e, _, t) => {
       "use strict";
       t.r(_),
         t.d(_, {
           default: () => V,
-          errorBreadcrumb: () => Z,
-          isFatalGenericTimelineError: () => R,
+          errorBreadcrumb: () => P,
+          isFatalGenericTimelineError: () => M,
           isFatalModeratedTimelineError: () => j,
           isFatalTeamsResponseError: () => C,
           isFatalUserScopedFollowTimelineError: () => N,
-          isFatalViewerScopedFollowTimelineError: () => E,
-          parseUserScopedTimeline: () => z,
-          parseViewerScopedTimeline: () => P,
+          isFatalViewerScopedFollowTimelineError: () => U,
+          parseUserScopedTimeline: () => Z,
+          parseViewerScopedTimeline: () => E,
         });
       var n = t(58955),
         i = t(79363),
@@ -416,27 +360,27 @@
         u = t(57274),
         w = t.n(u),
         m = t(2216),
-        h = t.n(m),
-        v = t(41839),
-        g = t.n(v),
-        f = t(97621),
-        y = t.n(f),
+        v = t.n(m),
+        h = t(41839),
+        f = t.n(h),
+        g = t(97621),
+        y = t.n(g),
         q = t(87669),
         x = t.n(q),
-        A = t(75840),
-        k = t.n(A),
-        T = t(50931),
-        I = t.n(T),
+        k = t(75840),
+        T = t.n(k),
+        A = t(50931),
+        I = t.n(A),
         B = t(59113),
         F = t.n(B),
-        S = t(26491),
-        L = t.n(S),
+        G = t(26491),
+        S = t.n(G),
         Q = t(16221),
-        G = t.n(Q),
-        U = t(82249);
-      const z = (e) => {
+        z = t.n(Q),
+        L = t(82249);
+      const Z = (e) => {
           var _;
-          let t = U.cY;
+          let t = L.cY;
           var n;
           null != e &&
             null != (_ = e.user) &&
@@ -444,20 +388,20 @@
             "User" === e.user.result.__typename &&
             (t =
               (null == (n = e.user.result.timeline) ? void 0 : n.timeline) ||
-              U.cY);
+              L.cY);
           return t;
         },
-        Z = (e) => {
+        P = (e) => {
           var _;
           return { code: null == (_ = e[0]) ? void 0 : _.code };
         },
-        P = (e) => {
-          let _ = U.cY;
+        E = (e) => {
+          let _ = L.cY;
           var t;
           null != e &&
             e.viewer &&
             (_ =
-              (null == (t = e.viewer.timeline) ? void 0 : t.timeline) || U.cY);
+              (null == (t = e.viewer.timeline) ? void 0 : t.timeline) || L.cY);
           return _;
         },
         C = (e) =>
@@ -478,23 +422,23 @@
           return (
             i ||
               (0, r.ZP)("GQL URT: Failed to render Follow timeline", {
-                extra: Z(e),
+                extra: P(e),
               }),
             !i && (0, l.jB)(e)
           );
         },
-        E = (e, _) => {
+        U = (e, _) => {
           var t;
           const n = null == _ || null == (t = _.viewer) ? void 0 : t.timeline;
           return (
             n ||
               (0, r.ZP)("GQL URT: Failed to render Subscriptions timeline", {
-                extra: Z(e),
+                extra: P(e),
               }),
             !n && (0, l.jB)(e)
           );
         },
-        H = (e, _) => {
+        Y = (e, _) => {
           var t, n;
           const i =
             null == _ ||
@@ -505,7 +449,7 @@
           return (
             i ||
               (0, r.ZP)("GQL URT: Failed to render Muting timeline", {
-                extra: Z(e),
+                extra: P(e),
               }),
             !i && (0, l.jB)(e)
           );
@@ -524,23 +468,23 @@
             i ||
               (0, r.ZP)(
                 "GQL URT: Failed to render ModeratedTimeline timeline",
-                { extra: Z(e) }
+                { extra: P(e) }
               ),
             !i && (0, l.jB)(e)
           );
         },
-        R = (e, _) => {
+        M = (e, _) => {
           var t;
           const n = null == _ || null == (t = _.timeline) ? void 0 : t.timeline;
           return (
             n ||
               (0, r.ZP)("GQL URT: Failed to render GenericTimelineById", {
-                extra: Z(e),
+                extra: P(e),
               }),
             !n && (0, l.jB)(e)
           );
         };
-      function Y(e, _, t) {
+      function R(e, _, t) {
         let n;
         function i(e) {
           return (
@@ -552,7 +496,7 @@
           );
         }
         return (
-          (n = e === a.kH.Imported ? h() : e === a.kH.AutoBlock ? w() : c()),
+          (n = e === a.kH.Imported ? v() : e === a.kH.AutoBlock ? w() : c()),
           ({ count: a, cursor: s }) =>
             _.graphQL(
               n,
@@ -571,22 +515,22 @@
                   n ||
                     (0, r.ZP)(
                       `GQL URT: Failed to query for Blocked Accounts [${e}]`,
-                      { extra: Z(_) }
+                      { extra: P(_) }
                     ),
                   !n && (0, l.jB)(_)
                 );
               }
-            ).then((e) => i(e) || U.cY)
+            ).then((e) => i(e) || L.cY)
         );
       }
       const V = ({ apiClient: e, featureSwitches: _ }) => ({
-        fetchBlockedAccountsImportedGraphql: Y(a.kH.Imported, e, _),
-        fetchBlockedAccountsAllGraphql: Y(a.kH.All, e, _),
-        fetchBlockedAccountsAutoBlockGraphql: Y(a.kH.AutoBlock, e, _),
+        fetchBlockedAccountsImportedGraphql: R(a.kH.Imported, e, _),
+        fetchBlockedAccountsAllGraphql: R(a.kH.All, e, _),
+        fetchBlockedAccountsAutoBlockGraphql: R(a.kH.AutoBlock, e, _),
         fetchFollowers: ({ count: t, cursor: n, userId: i }) =>
           e
             .graphQL(
-              g(),
+              f(),
               {
                 userId: i,
                 count: t,
@@ -596,7 +540,7 @@
               },
               N
             )
-            .then(z),
+            .then(Z),
         fetchFollowersYouKnow: ({ count: t, cursor: n, userId: i }) =>
           e
             .graphQL(
@@ -610,7 +554,7 @@
               },
               N
             )
-            .then(z),
+            .then(Z),
         fetchFollowing: ({ count: t, cursor: n, userId: i }) =>
           e
             .graphQL(
@@ -624,23 +568,23 @@
               },
               N
             )
-            .then(z),
+            .then(Z),
         fetchSuperFollowers: ({ count: t, cursor: n }) =>
           e
             .graphQL(
-              L(),
+              S(),
               {
                 count: t,
                 cursor: n,
                 includePromotedContent: !1,
                 ...(0, o.d)(_),
               },
-              E
+              U
             )
-            .then(P),
+            .then(E),
         fetchViewerTeams: () =>
           e
-            .graphQLFullResponse(G(), { ...(0, o.S)(_) }, C)
+            .graphQLFullResponse(z(), { ...(0, o.S)(_) }, C)
             .then(({ data: e, errors: _ }) => {
               const { viewer: t } = e,
                 i = (t && t.teams && t.teams.act_as) || [];
@@ -673,10 +617,10 @@
                   (null == (t = e.tweet.result) ||
                   null == (n = t.timeline_response)
                     ? void 0
-                    : n.timeline) || U.cY
+                    : n.timeline) || L.cY
                 );
               }
-              return U.cY;
+              return L.cY;
             }),
         fetchMutedAccounts: ({ count: t, cursor: n }) =>
           e
@@ -688,20 +632,20 @@
                 includePromotedContent: !1,
                 ...(0, o.d)(_),
               },
-              H
+              Y
             )
             .then((e) => {
               var _, t;
               return (
                 (null == (_ = e.viewer) || null == (t = _.muting_timeline)
                   ? void 0
-                  : t.timeline) || U.cY
+                  : t.timeline) || L.cY
               );
             }),
         fetchGenericTimelineById: ({ count: t, cursor: n, timelineId: i }) =>
           e
             .graphQL(
-              k(),
+              T(),
               {
                 timelineId: i,
                 count: t,
@@ -709,11 +653,11 @@
                 withQuickPromoteEligibilityTweetFields: !0,
                 ...(0, o.d)(_),
               },
-              R
+              M
             )
             .then((e) => {
               var _;
-              return (null == (_ = e.timeline) ? void 0 : _.timeline) || U.cY;
+              return (null == (_ = e.timeline) ? void 0 : _.timeline) || L.cY;
             }),
       });
     },
@@ -777,4 +721,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.AccountTaxonomy.47c9170a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Graphql.997f355a.js.map

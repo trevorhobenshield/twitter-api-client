@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.6.1",
+    version="0.6.2",
     python_requires=">=3.11.0",
     description="Twitter API",
     long_description=dedent('''
@@ -100,6 +100,10 @@ setup(
     
     # unpin all lists
     account.update_pinned_lists([])
+    
+    # get timelines
+    timeline = account.home_timeline()
+    latest_timeline = account.home_latest_timeline(limit=100)
     
     # example configuration
     account.update_settings({

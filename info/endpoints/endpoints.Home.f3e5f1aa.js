@@ -4,7 +4,7 @@
   {
     85302: (e) => {
       e.exports = {
-        queryId: "37RUvMgTiEVYYfrRTVDxpw",
+        queryId: "zhX91JE87mWvfprhYE97xA",
         operationName: "HomeLatestTimeline",
         operationType: "query",
         metadata: {
@@ -34,7 +34,7 @@
     },
     74612: (e) => {
       e.exports = {
-        queryId: "ILPEegjZTQ_3mOUc7pWCpA",
+        queryId: "HCosKfLNW1AcOo3la3mMgg",
         operationName: "HomeTimeline",
         operationType: "query",
         metadata: {
@@ -64,7 +64,7 @@
     },
     27602: (e, t, n) => {
       "use strict";
-      n.r(t), n.d(t, { default: () => m, isFatalHomeTimelineError: () => u });
+      n.r(t), n.d(t, { default: () => p, isFatalHomeTimelineError: () => u });
       var _ = n(72599),
         i = n(51573),
         o = n(27479),
@@ -74,7 +74,7 @@
         l = n.n(a),
         d = n(74612),
         c = n.n(d),
-        p = n(82249);
+        m = n(82249);
       const u = (e, t) => {
           var n;
           const i =
@@ -84,7 +84,7 @@
             !i && (0, r.jB)(e)
           );
         },
-        m = ({ apiClient: e, featureSwitches: t }) => ({
+        p = ({ apiClient: e, featureSwitches: t }) => ({
           fetchHome: ({ count: n, cursor: _, requestContext: r, timeout: a }) =>
             (0, i.o)("homeTimeline", () => {
               const i = o.m.get(),
@@ -111,7 +111,7 @@
                   return (
                     (null == e || null == (t = e.home)
                       ? void 0
-                      : t.home_timeline_urt) || p.cY
+                      : t.home_timeline_urt) || m.cY
                   );
                 });
             }),
@@ -145,7 +145,7 @@
                   return (
                     (null == e || null == (t = e.home)
                       ? void 0
-                      : t.home_timeline_urt) || p.cY
+                      : t.home_timeline_urt) || m.cY
                   );
                 });
             }),
@@ -221,4 +221,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Home.290e989a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Home.f3e5f1aa.js.map

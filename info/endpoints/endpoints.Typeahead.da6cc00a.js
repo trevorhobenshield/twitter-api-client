@@ -100,6 +100,7 @@
               })
               .then((e) => ({
                 events: [],
+                lists: [],
                 ordered_sections: [],
                 topics: [],
                 users:
@@ -153,6 +154,7 @@
                 if (!r)
                   return {
                     events: [],
+                    lists: [],
                     ordered_sections: [],
                     topics: [],
                     users: [],
@@ -163,6 +165,7 @@
                   a = s.map(_.W).filter(Boolean);
                 return {
                   events: [],
+                  lists: [],
                   ordered_sections: [],
                   topics: [],
                   users: n,
@@ -182,6 +185,7 @@
                 if (!r)
                   return {
                     events: [],
+                    lists: [],
                     ordered_sections: [],
                     topics: [],
                     users: [],
@@ -194,6 +198,7 @@
                   a = s.map(u).filter(Boolean);
                 return {
                   events: [],
+                  lists: [],
                   ordered_sections: [],
                   topics: [],
                   users: _,
@@ -303,4 +308,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Typeahead.a6b2221a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Typeahead.da6cc00a.js.map

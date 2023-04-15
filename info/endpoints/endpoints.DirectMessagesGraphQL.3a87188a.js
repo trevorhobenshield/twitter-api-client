@@ -28,7 +28,7 @@
     },
     74907: (e) => {
       e.exports = {
-        queryId: "AT0nosYS8bM5s7WfQXnBTw",
+        queryId: "lrcWa13oyrQc7L33wRdLAQ",
         operationName: "DmMutedTimeline",
         operationType: "query",
         metadata: {
@@ -413,16 +413,16 @@
                 { affects_sort: h, request_id: p } = m || {};
               let f,
                 b,
-                S = "Unknown";
-              g in d && (S = d[g]);
-              const y =
+                y = "Unknown";
+              g in d && (y = d[g]);
+              const S =
                   null == m || null == (n = m.conversation)
                     ? void 0
                     : n.rest_id,
                 E = null == m || null == (r = m.event_detail) ? void 0 : r.dm,
-                T = null == m ? void 0 : m.created_at_millis,
+                A = null == m ? void 0 : m.created_at_millis,
                 {
-                  card: A,
+                  card: T,
                   media: N,
                   tweet_results: O,
                   urls_entity: w,
@@ -430,7 +430,7 @@
                   ? void 0
                   : _[0]) || {};
               if (
-                (null != A && A.legacy && (f = { card: A }),
+                (null != T && T.legacy && (f = { card: T }),
                 null != w &&
                   w.length &&
                   E.text &&
@@ -444,17 +444,17 @@
                 "Tweet" ===
                   (null == O || null == (s = O.result) ? void 0 : s.__typename))
               ) {
-                var I, M, x, D, R, C, P, k, q;
+                var I, x, D, M, R, C, P, k, q;
                 const e =
-                  null == O || null == (I = O.result) || null == (M = I.legacy)
+                  null == O || null == (I = O.result) || null == (x = I.legacy)
                     ? void 0
-                    : M.entities;
+                    : x.entities;
                 let i;
-                null != e && null != (x = e.media) && x.length
+                null != e && null != (D = e.media) && D.length
                   ? (i = null == e ? void 0 : e.media[0])
                   : null != e &&
-                    null != (D = e.urls) &&
-                    D.length &&
+                    null != (M = e.urls) &&
+                    M.length &&
                     (i = null == e ? void 0 : e.urls[0]);
                 const {
                     display_url: t,
@@ -524,9 +524,9 @@
               const L = {
                 affects_sort: h,
                 request_id: p,
-                time: T,
-                type: S,
-                conversation_id: y,
+                time: A,
+                type: y,
+                conversation_id: S,
                 message_data: {
                   id: v,
                   text: b || (null == E ? void 0 : E.text),
@@ -597,13 +597,13 @@
                   image: { original_info: { height: e, width: t, url: i } },
                 };
               }
-              const S =
+              const y =
                   (null == u || null == (_ = u.metadata)
                     ? void 0
                     : _.conversation_type) === o.GROUP
                     ? r.eD.GROUP
                     : r.eD.ONE_TO_ONE,
-                y = {
+                S = {
                   ...(null == u
                     ? void 0
                     : u.perspectival_conversation_metadata),
@@ -614,11 +614,11 @@
                   avatar: p,
                   labels: d,
                   last_readable_event_id: b,
-                  type: S,
+                  type: y,
                   participants: g,
                   users: v,
                 };
-              return (0, a.Z)(y, i, t);
+              return (0, a.Z)(S, i, t);
             },
             idAttribute: (e) => {
               var i;
@@ -761,4 +761,4 @@
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.DirectMessagesGraphQL.687be7aa.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.DirectMessagesGraphQL.3a87188a.js.map

@@ -4,7 +4,7 @@
   {
     52055: (e) => {
       e.exports = {
-        queryId: "W6czS6YCnRRo4Ackca01YQ",
+        queryId: "UGQD_VslAJBJ4XzigsBYAA",
         operationName: "ImmersiveMedia",
         operationType: "query",
         metadata: {
@@ -40,8 +40,8 @@
         t = i(17360),
         a = i(83175),
         r = i(52055),
-        l = i.n(r),
-        s = i(82249);
+        s = i.n(r),
+        l = i(82249);
       const d = (e, _) => {
           var i;
           const a =
@@ -55,7 +55,7 @@
           fetchImmersiveMedia: (i) =>
             e
               .graphQL(
-                l(),
+                s(),
                 {
                   pinned_tweet_id: null == i ? void 0 : i.pinned_tweet_id,
                   page_name: null == i ? void 0 : i.page_name,
@@ -68,11 +68,11 @@
                 return (
                   (null == e || null == (_ = e.immersiveMedia)
                     ? void 0
-                    : _.timeline) || s.cY
+                    : _.timeline) || l.cY
                 );
               }),
         });
     },
   },
 ]);
-//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Explore.319cac1a.js.map
+//# sourceMappingURL=https://ton.local.twitter.com/responsive-web-internal/sourcemaps/client-web/endpoints.Explore.9b2e28ea.js.map
