@@ -349,7 +349,7 @@ class Account:
     def home_latest_timeline(self, limit: int = 100):
         r = self.gql(Operation.Account.HomeLatestTimeline, {})
         data = r.json() | {ID: self.session.cookies.get('username')}
-        return self.paginate(self.session, data, Operation.Account.HomeTimeline, limit)
+        return self.paginate(self.session, data, Operation.Account.HomeLatestTimeline, limit)
 
     # todo: a lot of duplicated code here, will need to refactor
     def paginate(self, session: Session, data: dict, operation: tuple, limit: int):
