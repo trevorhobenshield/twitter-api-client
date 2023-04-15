@@ -107,8 +107,11 @@ class Account:
     V2_URL = 'https://api.twitter.com/2'  # /search
     GRAPHQL_URL = 'https://api.twitter.com/graphql'
 
-    def __init__(self, email: str, username: str, password: str):
-        self.session = login(email, username, password)
+    def __init__(self, email: str=None, username: str=None, password: str=None, session: Session=None):
+        if session is not None:
+            self.session = session
+        else:
+            self.session = login(email, username, password)
 
     def gql(self, operation: tuple, variables: dict) -> Response:
         name, _ = operation
