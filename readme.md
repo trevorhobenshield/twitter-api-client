@@ -2,11 +2,6 @@ Complete implementation of the undocumented Twitter API
 
 Includes tools to **scrape**, **automate**, and **search** twitter
 
-### Installation
-
-```bash
-pip install twitter-api-client
-```
 - [Installation](#installation)
 - [Automation](#automation)
 - [Scraping](#scraping)
@@ -14,6 +9,12 @@ pip install twitter-api-client
   * [Get user/tweet data (no auth)](#get-user-tweet-data--no-auth-)
   * [Search](#search)
 - [Notes](#notes)
+
+### Installation
+
+```bash
+pip install twitter-api-client
+```
 
 ### Automation
 
