@@ -127,10 +127,12 @@ def update_endpoints(res: list):
 
 def find_strings():
     # find strings < 120 chars long
+    # queryId's are usually 22 chars long
     s = set()
     for p in ENDPOINTS.iterdir():
         s |= set(x.strip() for x in re.split('["\'`]', p.read_text()) if
-                 ((len(x) < 120) and (not re.search('[\[\]\{\}\(\)]', x))))
+                 # ((len(x) == 22) and (not re.search('[\[\]\{\}\(\)]', x))))
+                ((len(x) < 120) and (not re.search('[\[\]\{\}\(\)]', x))))
     STRINGS.write_text('\n'.join(sorted(s, reverse=True)))
     PATHS.write_text('\n'.join(sorted(s for s in s if '/' in s)))
 

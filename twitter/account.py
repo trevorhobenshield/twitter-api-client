@@ -74,7 +74,7 @@ def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
                         return r
 
                 typenames = find_key(data, '__typename')
-                logger.log(level, f'{typenames = }')
+                # logger.log(level, f'{typenames = }')
                 errors = ','.join([t for t in typenames if re.search('fail|error', t, flags=re.I)])
 
                 if errors:

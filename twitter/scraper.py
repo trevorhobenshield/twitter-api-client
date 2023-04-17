@@ -156,7 +156,8 @@ class Scraper:
             entries = find_key(data, 'entries')
             if entries:
                 for entry in entries.pop():
-                    if entry.get('entryId', '').startswith('cursor-bottom'):
+                    entry_id = entry.get('entryId', '')
+                    if ('cursor-bottom' in entry_id) or ('cursor-showmorethreads' in entry_id):
                         content = entry['content']
                         if itemContent := content.get('itemContent'):
                             return itemContent['value']  # v2 cursor

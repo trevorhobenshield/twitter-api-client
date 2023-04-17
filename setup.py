@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.6.4",
+    version="0.6.5",
     python_requires=">=3.11.0",
     description="Twitter API",
     long_description=dedent('''
@@ -174,7 +174,7 @@ setup(
     scraper = Scraper(email, username, password)  # session
     
     ####### User Data ########
-    users = scraper.user_by_screen_name(['bob123', 'jim456', 'stanley789'])
+    users = scraper.user_by_screen_name(['foo', 'bar', 'baz'])
     tweets = scraper.tweets([123, 234, 345])
     likes = scraper.likes([123, 234, 345])
     tweets_and_replies = scraper.tweets_and_replies([123, 234, 345])
@@ -189,6 +189,25 @@ setup(
     favoriters = scraper.favoriters([456, 567, 678])
     
     scraper.download_media([456, 567, 678])
+    ```
+    
+    #### Get user/tweet data (no auth)
+    
+    ```python
+    from twitter.noauth.scraper import Scraper
+    
+    scraper = Scraper()
+    
+    users = scraper.user(['foo', 'bar', 'baz'])
+    users = scraper.user_by_id([123, 234, 345])
+    users = scraper.users_by_ids([123, 234, 345])  # special batch query
+    
+    tweets = scraper.tweet_by_id([987, 876, 765])  # condensed
+    tweets = scraper.tweet_details([987, 876, 765])
+    
+    user_tweets = scraper.tweets([123, 234, 345])
+    user_tweets_replies = scraper.tweets_and_replies([123, 234, 345])
+    user_media = scraper.media([123, 234, 345])
     ```
     
     #### Search

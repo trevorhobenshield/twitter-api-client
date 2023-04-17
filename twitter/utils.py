@@ -55,7 +55,7 @@ def get_headers(session) -> dict:
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         'cookie': '; '.join(f'{k}={v}' for k, v in session.cookies.items()),
         'referer': 'https://twitter.com/',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        'user-agent': 'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
         'x-csrf-token': session.cookies.get('ct0'),
         "x-guest-token": session.cookies.get('guest_token'),
         "x-twitter-auth-type": "OAuth2Session" if session.cookies.get("auth_token") else '',
