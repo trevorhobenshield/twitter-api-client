@@ -7,6 +7,13 @@ Includes tools to **scrape**, **automate**, and **search** twitter
 ```bash
 pip install twitter-api-client
 ```
+- [Installation](#installation)
+- [Automation](#automation)
+- [Scraping](#scraping)
+  * [Get all user/tweet data](#get-all-user-tweet-data)
+  * [Get user/tweet data (no auth)](#get-user-tweet-data--no-auth-)
+  * [Search](#search)
+- [Notes](#notes)
 
 ### Automation
 
