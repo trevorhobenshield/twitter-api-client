@@ -183,8 +183,6 @@ scraper.download_media([456, 567, 678])
 
 #### Get user/tweet data (no auth)
 
-![](assets/scrape.gif)
-
 ```python
 from twitter.noauth.scraper import Scraper
 
