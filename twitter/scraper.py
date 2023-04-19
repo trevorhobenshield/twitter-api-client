@@ -116,7 +116,7 @@ class Scraper:
         res = [initial_data]
         ids = set(find_key(initial_data, 'rest_id'))
         dups = 0
-        DUP_LIMIT = 5
+        DUP_LIMIT = 3
 
         cursor = get_cursor(initial_data)
         while (dups < DUP_LIMIT) and cursor:
