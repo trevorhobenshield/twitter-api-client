@@ -10,8 +10,7 @@ import requests
 import uvloop
 from requests import Session
 
-from twitter.config.log import log_config
-from twitter.config.operations import operations as OLD
+from twitter.constants import log_config
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
@@ -27,10 +26,10 @@ _base = 'https://abs.twimg.com/responsive-web/client-web'
 
 STRINGS = Path('strings.txt')
 PATHS = Path('paths.txt')
-JS = Path('js.json')
-ENDPOINTS = Path('endpoints')
-OPERATIONS = Path('operations_new')
-ENDPOINTS.mkdir(exist_ok=True, parents=True)
+JS_FILES_MAP = Path('js.json')
+JS_FILES = Path('js')
+OPERATIONS = Path('operations')
+JS_FILES.mkdir(exist_ok=True, parents=True)
 
 
 def find_api_script(res: requests.Response) -> str:
@@ -41,7 +40,7 @@ def find_api_script(res: requests.Response) -> str:
     """
     temp = re.findall('\+"\."\+(\{.*\})\[e\]\+?' + '"' + _a + '"', res.text)[0]
     endpoints = orjson.loads(temp.replace('vendor:', '"vendor":').replace('api:', '"api":'))
-    JS.write_bytes(orjson.dumps(dict(sorted(endpoints.items()))))
+    JS_FILES_MAP.write_bytes(orjson.dumps(dict(sorted(endpoints.items()))))
     js = 'api.' + endpoints['api'] + _a  # search for `+"a.js"` in homepage source
     return f'{_base}/{js}'
 
@@ -66,25 +65,6 @@ def get_operations(session: Session) -> tuple:
     js_out.expanduser().write_text(f"O={temp};" + js)
     subprocess.run(f'node {js_out}', shell=True)
     return js_out, orjson.loads(Path(OPERATIONS.with_suffix('.json')).read_bytes())
-
-
-def update_operations(session: Session):
-    """
-    Update operations.json with queryId and feature definitions
-
-    @param path: path to operations file
-    @return: updated operations
-    """
-    fname, NEW = get_operations(session)
-    out = fname.with_suffix('.py')
-    for k in NEW:
-        if k in OLD:
-            OLD[k]['features'] |= NEW[k]['features']
-            OLD[k]['queryId'] = NEW[k]['queryId']
-        else:
-            print(f'NEW operation: {k}')
-            OLD[k] = NEW[k]
-    out.write_text(f'operations = {OLD}')
 
 
 def get_headers(filename: str = 'headers.txt') -> dict:
@@ -114,40 +94,40 @@ async def get(session: aiohttp.ClientSession, url: str, **kwargs) -> tuple[str, 
         logger.debug(f"[{WARN}FAILED{RESET}]: {url}\n{e}")
 
 
-def update_endpoints(res: list):
-    # update endpoints, remove old files
-    current_files = {p.name.split('.')[1]: p.name for p in ENDPOINTS.iterdir()}
-    for url, r in res:
-        u = url.split('/')[-1]
-        if x := current_files.get(u.split('.')[1]):
-            (ENDPOINTS / x).unlink()
-        (ENDPOINTS / u).write_text(r)
-    subprocess.run(f'prettier --write "{ENDPOINTS.name}/*.js" {JS}', shell=True)
+# def update_endpoints(res: list):
+#     # update endpoints, remove old files
+#     current_files = {p.name.split('.')[1]: p.name for p in JS_FILES.iterdir()}
+#     for url, r in res:
+#         u = url.split('/')[-1]
+#         if x := current_files.get(u.split('.')[1]):
+#             (JS_FILES / x).unlink()
+#         (JS_FILES / u).write_text(r)
+#     subprocess.run(f'prettier --write "{JS_FILES.name}/*.js" {JS_FILES_MAP}', shell=True)
 
 
 def find_strings():
     # find strings < 120 chars long
     # queryId's are usually 22 chars long
     s = set()
-    for p in ENDPOINTS.iterdir():
+    for p in JS_FILES.iterdir():
         s |= set(x.strip() for x in re.split('["\'`]', p.read_text()) if
                  # ((len(x) == 22) and (not re.search('[\[\]\{\}\(\)]', x))))
-                ((len(x) < 120) and (not re.search('[\[\]\{\}\(\)]', x))))
+                 ((len(x) < 120) and (not re.search('[\[\]\{\}\(\)]', x))))
     STRINGS.write_text('\n'.join(sorted(s, reverse=True)))
     PATHS.write_text('\n'.join(sorted(s for s in s if '/' in s)))
 
 
 def main():
-    update_operations(Session())
+    get_operations(Session())
     urls = (
         f'{_base}/{k}.{v}{_a}'
-        for k, v in orjson.loads(JS.read_text()).items()
-        if not re.search('i18n|icons\/',k)
+        for k, v in orjson.loads(JS_FILES_MAP.read_text()).items()
+        if not re.search('i18n|icons\/', k)
         # if 'endpoint' in k
     )
     headers = get_headers()
     res = asyncio.run(process(get, headers, urls))
-    update_endpoints(res)
+    # update_endpoints(res)
     find_strings()
 
 
