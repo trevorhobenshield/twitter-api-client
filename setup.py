@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.6.6",
+    version="0.6.7",
     python_requires=">=3.11.0",
     description="Twitter API",
     long_description=dedent('''
