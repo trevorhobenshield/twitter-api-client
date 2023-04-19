@@ -1,29 +1,24 @@
 import asyncio
 import hashlib
-import inspect
 import logging.config
+import math
 import mimetypes
 import platform
 import random
-import re
 import time
 from copy import deepcopy
 from datetime import datetime
-from functools import wraps, partial
 from pathlib import Path
 from urllib.parse import urlencode
 from uuid import uuid1, getnode
 
 import orjson
-from requests import Response, Session
+from requests import Response
 from tqdm import tqdm
 
-from .config.log import log_config
-from .config.operations import operations
-from .config.settings import *
 from .constants import *
 from .login import login
-from .utils import get_headers, build_query, find_key
+from .util import find_key, get_headers, fmt_status, get_cursor, save_data
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -43,173 +38,63 @@ else:
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
-ID = 'ID'
-DUP_LIMIT = 5
 
+class GraphQL:
+    def __init__(self, operation: tuple, variables: dict, features: dict = Operation.default_features):
+        self.operation = operation
+        self.variables = variables
+        self.features = features
 
-def log(fn=None, *, level: int = logging.DEBUG, info: list = None) -> callable:
-    if fn is None:
-        return partial(log, level=level, info=info)
+    def get(self):
+        ...
 
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        args_info = " ".join(
-            f'{k}={v}' for k, v in dict(zip(inspect.getfullargspec(fn)[0], args)).items()
-            if '_id' in k or '_name' in k or 'Id' in k or 'Name' in k
-        )
-        r = fn(*args, **kwargs)
-
-        limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
-        current_time = int(time.time())
-        wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
-        logger.log(level, f'{wait // 60} minutes until rate-limit reset. {limits = }')
-
-        try:
-            data = {}
-            if 200 <= r.status_code < 300:
-                if 'json' in r.headers.get('content-type', ''):
-                    data = r.json()
-                    if data.get('errors'):
-                        logger.log(level, f'[{ERROR}error{RESET}] ({fn.__name__}) {args_info} {r.status_code} {r.text}')
-                        return r
-
-                typenames = find_key(data, '__typename')
-                # logger.log(level, f'{typenames = }')
-                errors = ','.join([t for t in typenames if re.search('fail|error', t, flags=re.I)])
-
-                if errors:
-                    message = f'[{ERROR}error{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info} {WARN}{errors}{RESET}'
-                else:
-                    message = f'[{SUCCESS}success{RESET}] {r.status_code} ({BOLD}{fn.__name__}{RESET}) {args_info}'
-
-                if info:
-                    for k in info:
-                        if callable(k):
-                            logger.log(level, f'{message} {k(r)}')
-                        else:
-                            attr = getattr(r, k)
-                            v = attr() if callable(attr) else attr
-                            d = {f"{k}": v}
-                            logger.log(level, f'{message} {d}')
-                else:
-                    logger.log(level, f'{message}')
-            else:
-                logger.log(level, f'[{ERROR}error{RESET}] ({fn.__name__}) {args_info} {r.status_code} {r.text}')
-        except Exception as e:
-            logger.log(level, f'[{ERROR}error{RESET}] ({fn.__name__}) {args_info} {r.status_code} {e}')
-        return r
-
-    return wrapper
+    def post(self):
+        ...
 
 
 class Account:
-    V1_URL = 'https://api.twitter.com/1.1'
-    V2_URL = 'https://api.twitter.com/2'  # /search
-    GRAPHQL_URL = 'https://api.twitter.com/graphql'
 
-    def __init__(self, email: str, username: str, password: str):
+    def __init__(self, email: str, username: str, password: str, *, save=True, debug: int = 0):
         self.session = login(email, username, password)
+        self.gql_url = 'https://twitter.com/i/api/graphql'
+        self.v1_url = 'https://api.twitter.com/1.1'
+        self.save = save
+        self.debug = debug
 
-    def gql(self, operation: tuple, variables: dict) -> Response:
-        name, _ = operation
-        payload = deepcopy(operations[name])
-        qid = payload['queryId']
-        payload['variables'] |= variables
-        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
-        r = self.session.post(url, headers=get_headers(self.session), json=payload)
-        self.check_response(r)
-        return r
+    def gql(self, method: str, operation: tuple, variables: dict, features: dict = Operation.default_features) -> dict:
+        qid, op = operation
+        params = {
+            'queryId': qid,
+            'features': features,
+            'variables': variables | Operation.default_variables
+        }
+        if method == 'POST':
+            data = {'json': params}
+        else:
+            data = {'params': {k: orjson.dumps(v).decode() for k, v in params.items()}}
+        r = self.session.request(
+            method=method,
+            url=f'{self.gql_url}/{qid}/{op}',
+            headers=get_headers(self.session),
+            **data
+        )
+        if self.debug:
+            self.log(r)
+        if self.save:
+            save_data(r.json(), op, self.session.cookies.get('username', '_'))
+        return r.json()
 
-    def api(self, path: str, settings: dict) -> Response:
+    def v1(self, path: str, params: dict) -> dict:
         headers = get_headers(self.session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = f'{self.V1_URL}/{path}'
-        r = self.session.post(url, headers=headers, data=urlencode(settings))
-        self.check_response(r)
-        return r
+        r = self.session.post(f'{self.v1_url}/{path}', headers=headers, data=urlencode(params))
+        if self.debug:
+            self.log(r)
+        if self.save:
+            save_data(r.json(), '_', self.session.cookies.get('username', '_'))
+        return r.json()
 
-    @log(info=['json'])
-    def dm(self, receivers: list[int], text: str, filename: str = '') -> Response:
-        name, _ = Operation.Account.useSendMessageMutation
-        params = deepcopy(operations[name])
-        qid = params['queryId']
-        params['variables']['target'] = {"participant_ids": receivers}
-        params['variables']['requestId'] = str(uuid1(getnode()))  # can be anything
-        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
-        if filename:
-            media_id = self.upload_media(filename, is_dm=True)
-            params['variables']['message']['media'] = {'id': media_id, 'text': text}
-        else:
-            params['variables']['message']['text'] = {'text': text}
-        r = self.session.post(url, headers=get_headers(self.session), json=params)
-        return r
-
-    @log(info=['json'])
-    def tweet(self, text: str, media: list = None, **kwargs) -> Response:
-        name, _ = Operation.Account.CreateTweet
-        params = deepcopy(operations[name])
-        qid = params['queryId']
-        params['variables']['tweet_text'] = text
-        if media:
-            for m in media:
-                if isinstance(m, dict):
-                    media_id = self.upload_media(m['file'])
-                    params['variables']['media']['media_entities'].append({
-                        'media_id': media_id,
-                        'tagged_users': m.get('tagged_users', [])
-                    })
-                    if alt := m.get('alt'):
-                        self.add_alt_text(media_id, alt)
-                # for convenience, so we can just pass list of strings
-                elif isinstance(m, str):
-                    media_id = self.upload_media(m)
-                    params['variables']['media']['media_entities'].append({
-                        'media_id': media_id,
-                        'tagged_users': []
-                    })
-
-        if reply_params := kwargs.get('reply_params', {}):
-            params['variables'] |= reply_params
-        if quote_params := kwargs.get('quote_params', {}):
-            params['variables'] |= quote_params
-        if poll_params := kwargs.get('poll_params', {}):
-            params['variables'] |= poll_params
-
-        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
-        r = self.session.post(url, headers=get_headers(self.session), json=params)
-        return r
-
-    @log(info=['json'])
-    def schedule_tweet(self, text: str, execute_at: any, *, reply_to: int = None,
-                       media: list = None) -> Response:
-        name, _ = Operation.Account.CreateScheduledTweet
-        params = deepcopy(operations[name])
-        qid = params['queryId']
-        params['variables']['post_tweet_request']['status'] = text
-        params['variables']['execute_at'] = (
-            datetime.strptime(execute_at, "%Y-%m-%d %H:%M").timestamp()
-            if isinstance(execute_at, str)
-            else execute_at
-        )
-        if reply_to:
-            params['variables']['post_tweet_request']['in_reply_to_status_id'] = reply_to
-        if media:
-            for m in media:
-                if isinstance(m, dict):
-                    media_id = self.upload_media(m['file'])
-                    params['variables']['post_tweet_request']['media_ids'].append(media_id)
-                    if alt := m.get('alt'):
-                        self.add_alt_text(self.session, media_id, alt)
-                # for convenience, so we can just pass list of strings
-                elif isinstance(m, str):
-                    media_id = self.upload_media(m)
-                    params['variables']['post_tweet_request']['media_ids'].append(media_id)
-        url = f"{self.GRAPHQL_URL}/{qid}/{name}"
-        r = self.session.post(url, headers=get_headers(self.session), json=params)
-        return r
-
-    @log(info=['json'])
-    def create_poll(self, text: str, choices: list[str], poll_duration: int) -> Response:
+    def create_poll(self, text: str, choices: list[str], poll_duration: int) -> dict:
         options = {
             "twitter:card": "poll4choice_text_only",
             "twitter:api:api:endpoint": "1",
@@ -226,16 +111,392 @@ class Account:
         r = self.tweet(text, poll_params={'card_uri': card_uri})
         return r
 
-    def check_media(self, category: str, total_bytes: int) -> None:
-        def check(media):
-            name, size = media
+    def dm(self, text: str, receivers: list[int], media: str = '') -> dict:
+        variables = {
+            "message": {},
+            "requestId": str(uuid1(getnode())),
+            "target": {"participant_ids": receivers},
+        }
+        if media:
+            media_id = self._upload_media(media, is_dm=True)
+            variables['message']['media'] = {'id': media_id, 'text': text}
+        else:
+            variables['message']['text'] = {'text': text}
+        return self.gql('POST', Operation.useSendMessageMutation, variables)
+
+    def tweet(self, text: str, *, media: any = None, **kwargs) -> dict:
+        variables = {
+            'tweet_text': text,
+            'dark_request': False,
+            'media': {
+                'media_entities': [],
+                'possibly_sensitive': False,
+            },
+            'semantic_annotation_ids': [],
+        }
+        if media:
+            for m in media:
+                media_id = self._upload_media(m['media'])
+                variables['media']['media_entities'].append({
+                    'media_id': media_id,
+                    'tagged_users': m.get('tagged_users', [])
+                })
+                if alt := m.get('alt'):
+                    self._add_alt_text(media_id, alt)
+        if reply_params := kwargs.get('reply_params', {}):
+            variables |= reply_params
+        if quote_params := kwargs.get('quote_params', {}):
+            variables |= quote_params
+        if poll_params := kwargs.get('poll_params', {}):
+            variables |= poll_params
+        return self.gql('POST', Operation.CreateTweet, variables)
+
+    def schedule_tweet(self, text: str, date: int | str, *, media: list = None) -> dict:
+        variables = {
+            'post_tweet_request': {
+                'auto_populate_reply_metadata': False,
+                'status': text,
+                'exclude_reply_user_ids': [],
+                'media_ids': [],
+            },
+            'execute_at': (
+                datetime.strptime(date, "%Y-%m-%d %H:%M").timestamp()
+                if isinstance(date, str)
+                else date
+            ),
+        }
+        if media:
+            for m in media:
+                media_id = self._upload_media(m['media'])
+                variables['post_tweet_request']['media_ids'].append(media_id)
+                if alt := m.get('alt'):
+                    self._add_alt_text(media_id, alt)
+        return self.gql('POST', Operation.CreateScheduledTweet, variables)
+
+    def schedule_reply(self, text: str, date: int | str, tweet_id: int, *, media: list = None) -> dict:
+        variables = {
+            'post_tweet_request': {
+                'auto_populate_reply_metadata': True,
+                'in_reply_to_status_id': tweet_id,
+                'status': text,
+                'exclude_reply_user_ids': [],
+                'media_ids': [],
+            },
+            'execute_at': (
+                datetime.strptime(date, "%Y-%m-%d %H:%M").timestamp()
+                if isinstance(date, str)
+                else date
+            ),
+        }
+        if media:
+            for m in media:
+                media_id = self._upload_media(m['media'])
+                variables['post_tweet_request']['media_ids'].append(media_id)
+                if alt := m.get('alt'):
+                    self._add_alt_text(media_id, alt)
+        return self.gql('POST', Operation.CreateScheduledTweet, variables)
+
+    def unschedule_tweet(self, tweet_id: int) -> dict:
+        variables = {
+            'scheduled_tweet_id': tweet_id,
+        }
+        return self.gql('POST', Operation.DeleteScheduledTweet, variables)
+
+    def untweet(self, tweet_id: int) -> dict:
+        variables = {
+            'tweet_id': tweet_id,
+            'dark_request': False,
+        }
+        return self.gql('POST', Operation.DeleteTweet, variables)
+
+    def reply(self, text: str, tweet_id: int) -> dict:
+        variables = {
+            'tweet_text': text,
+            'reply': {
+                'in_reply_to_tweet_id': tweet_id,
+                'exclude_reply_user_ids': [],
+            },
+            'batch_compose': 'BatchSubsequent',
+            'dark_request': False,
+            'media': {
+                'media_entities': [],
+                'possibly_sensitive': False,
+            },
+            'semantic_annotation_ids': [],
+        }
+        return self.gql('POST', Operation.CreateTweet, variables)
+
+    def quote(self, text: str, tweet_id: int) -> dict:
+        variables = {
+            'tweet_text': text,
+            # can use `i` as it resolves to screen_name
+            'attachment_url': f'https://twitter.com/i/status/{tweet_id}',
+            'dark_request': False,
+            'media': {
+                'media_entities': [],
+                'possibly_sensitive': False,
+            },
+            'semantic_annotation_ids': [],
+        }
+        return self.gql('POST', Operation.CreateTweet, variables)
+
+    def retweet(self, tweet_id: int) -> dict:
+        variables = {
+            "tweet_id": tweet_id,
+            "dark_request": False
+        }
+        return self.gql('POST', Operation.CreateRetweet, variables)
+
+    def unretweet(self, tweet_id: int) -> dict:
+        variables = {
+            "source_tweet_id": tweet_id,
+            "dark_request": False
+        }
+        return self.gql('POST', Operation.DeleteRetweet, variables)
+
+    def like(self, tweet_id: int) -> dict:
+        variables = {'tweet_id': tweet_id}
+        return self.gql('POST', Operation.FavoriteTweet, variables)
+
+    def unlike(self, tweet_id: int) -> dict:
+        variables = {'tweet_id': tweet_id}
+        return self.gql('POST', Operation.UnfavoriteTweet, variables)
+
+    def bookmark(self, tweet_id: int) -> dict:
+        variables = {'tweet_id': tweet_id}
+        return self.gql('POST', Operation.CreateBookmark, variables)
+
+    def unbookmark(self, tweet_id: int) -> dict:
+        variables = {'tweet_id': tweet_id}
+        return self.gql('POST', Operation.DeleteBookmark, variables)
+
+    def create_list(self, name: str, description: str, private: bool) -> dict:
+        variables = {
+            "isPrivate": private,
+            "name": name,
+            "description": description,
+        }
+        return self.gql('POST', Operation.CreateList, variables)
+
+    def update_list(self, list_id: int, name: str, description: str, private: bool) -> dict:
+        variables = {
+            "listId": list_id,
+            "isPrivate": private,
+            "name": name,
+            "description": description,
+        }
+        return self.gql('POST', Operation.UpdateList, variables)
+
+    def update_pinned_lists(self, list_ids: list[int]) -> dict:
+        """
+        Update pinned lists.
+        Reset all pinned lists and pin all specified lists in the order they are provided.
+
+        @param list_ids: list of list ids to pin
+        @return: response
+        """
+        return self.gql('POST', Operation.ListsPinMany, {'listIds': list_ids})
+
+    def pin_list(self, list_id: int) -> dict:
+        return self.gql('POST', Operation.ListPinOne, {'listId': list_id})
+
+    def unpin_list(self, list_id: int) -> dict:
+        return self.gql('POST', Operation.ListUnpinOne, {'listId': list_id})
+
+    def add_list_member(self, list_id: int, user_id: int) -> dict:
+        return self.gql('POST', Operation.ListAddMember, {'listId': list_id, "userId": user_id})
+
+    def remove_list_member(self, list_id: int, user_id: int) -> dict:
+        return self.gql('POST', Operation.ListRemoveMember, {'listId': list_id, "userId": user_id})
+
+    def delete_list(self, list_id: int) -> dict:
+        return self.gql('POST', Operation.DeleteList, {'listId': list_id})
+
+    def update_list_banner(self, list_id: int, media: str) -> dict:
+        media_id = self._upload_media(media)
+        variables = {'listId': list_id, 'mediaId': media_id}
+        return self.gql('POST', Operation.EditListBanner, variables)
+
+    def delete_list_banner(self, list_id: int) -> dict:
+        return self.gql('POST', Operation.DeleteListBanner, {'listId': list_id})
+
+    def follow_topic(self, topic_id: int) -> dict:
+        variables = {'topicId': str(topic_id)}
+        return self.gql('POST', Operation.TopicFollow, variables)
+
+    def unfollow_topic(self, topic_id: int) -> dict:
+        variables = {'topicId': str(topic_id)}
+        return self.gql('POST', Operation.TopicUnfollow, variables)
+
+    def pin(self, tweet_id: int) -> dict:
+        params = {'tweet_mode': 'extended', 'id': tweet_id}
+        return self.v1('account/pin_tweet.json', params)
+
+    def unpin(self, tweet_id: int) -> dict:
+        params = {'tweet_mode': 'extended', 'id': tweet_id}
+        return self.v1('account/unpin_tweet.json', params)
+
+    def follow(self, user_id: int) -> dict:
+        settings = deepcopy(follow_settings)
+        settings |= {"user_id": user_id}
+        return self.v1('friendships/create.json', settings)
+
+    def unfollow(self, user_id: int) -> dict:
+        settings = deepcopy(follow_settings)
+        settings |= {"user_id": user_id}
+        return self.v1('friendships/destroy.json', settings)
+
+    def mute(self, user_id: int) -> dict:
+        params = {'user_id': user_id}
+        return self.v1('mutes/users/create.json', params)
+
+    def unmute(self, user_id: int) -> dict:
+        params = {'user_id': user_id}
+        return self.v1('mutes/users/destroy.json', params)
+
+    def enable_notifications(self, user_id: int) -> dict:
+        settings = deepcopy(notification_settings)
+        settings |= {'id': user_id, 'device': 'true'}
+        return self.v1('friendships/update.json', settings)
+
+    def disable_notifications(self, user_id: int) -> dict:
+        settings = deepcopy(notification_settings)
+        settings |= {'id': user_id, 'device': 'false'}
+        return self.v1('friendships/update.json', settings)
+
+    def block(self, user_id: int) -> dict:
+        params = {'user_id': user_id}
+        return self.v1('blocks/create.json', params)
+
+    def unblock(self, user_id: int) -> dict:
+        params = {'user_id': user_id}
+        return self.v1('blocks/destroy.json', params)
+
+    def update_profile_image(self, media: str) -> Response:
+        media_id = self._upload_media(media, is_profile=True)
+        url = f'{self.v1_url}/account/update_profile_image.json'
+        headers = get_headers(self.session)
+        params = {'media_id': media_id}
+        r = self.session.post(url, headers=headers, params=params)
+        return r
+
+    def update_profile_banner(self, media: str) -> Response:
+        media_id = self._upload_media(media, is_profile=True)
+        url = f'{self.v1_url}/account/update_profile_banner.json'
+        headers = get_headers(self.session)
+        params = {'media_id': media_id}
+        r = self.session.post(url, headers=headers, params=params)
+        return r
+
+    def update_profile_info(self, **kwargs) -> Response:
+        url = f'{self.v1_url}/account/update_profile.json'
+        headers = get_headers(self.session)
+        r = self.session.post(url, headers=headers, params=kwargs)
+        return r
+
+    def update_search_settings(self, settings: dict) -> Response:
+        twid = int(self.session.cookies.get('twid').split('=')[-1].strip('"'))
+        headers = get_headers(self.session)
+        r = self.session.post(
+            url=f'{self.v1_url}/strato/column/User/{twid}/search/searchSafety',
+            headers=headers,
+            json=settings,
+        )
+        logger.debug(r)
+        return r
+
+    def update_settings(self, settings: dict) -> dict:
+        return self.v1('account/settings.json', settings)
+
+    def change_password(self, old: str, new: str) -> dict:
+        params = {
+            'current_password': old,
+            'password': new,
+            'password_confirmation': new
+        }
+        headers = get_headers(self.session)
+        headers['content-type'] = 'application/x-www-form-urlencoded'
+        url = 'https://twitter.com/i/api/i/account/change_password.json'
+        r = self.session.post(url, headers=headers, data=urlencode(params))
+        return r.json()
+
+    def remove_interests(self, *args):
+        """
+        Pass 'all' to remove all interests
+        """
+        r = self.session.get(
+            f'{self.v1_url}/account/personalization/twitter_interests.json',
+            headers=get_headers(self.session)
+        )
+        current_interests = r.json()['interested_in']
+        if args == 'all':
+            disabled_interests = [x['id'] for x in current_interests]
+        else:
+            disabled_interests = [x['id'] for x in current_interests if x['display_name'] in args]
+        payload = {
+            "preferences": {
+                "interest_preferences": {
+                    "disabled_interests": disabled_interests,
+                    "disabled_partner_interests": []
+                }
+            }
+        }
+        r = self.session.post(
+            f'{self.v1_url}/account/personalization/p13n_preferences.json',
+            headers=get_headers(self.session),
+            json=payload
+        )
+        return r
+
+    def home_timeline(self, limit=math.inf) -> list[dict]:
+        return self._paginate('POST', Operation.HomeTimeline, Operation.default_variables, limit)
+
+    def home_latest_timeline(self, limit=math.inf) -> list[dict]:
+        return self._paginate('POST', Operation.HomeLatestTimeline, Operation.default_variables, limit)
+
+    def bookmarks(self, limit=math.inf) -> list[dict]:
+        return self._paginate('GET', Operation.Bookmarks, {}, limit)
+
+    def _paginate(self, method: str, operation: tuple, variables: dict, limit: int) -> list[dict]:
+        initial_data = self.gql(method, operation, variables)
+        res = [initial_data]
+        ids = set(find_key(initial_data, 'rest_id'))
+        dups = 0
+        DUP_LIMIT = 3
+
+        cursor = get_cursor(initial_data)
+        while (dups < DUP_LIMIT) and cursor:
+            prev_len = len(ids)
+            if prev_len >= limit:
+                return res
+
+            variables['cursor'] = cursor
+            data = self.gql(method, operation, variables)
+
+            cursor = get_cursor(data)
+            ids |= set(find_key(data, 'rest_id'))
+
+            if self.debug:
+                logger.debug(f'cursor: {cursor}\tunique results: {len(ids)}')
+
+            if prev_len == len(ids):
+                dups += 1
+
+            res.append(data)
+        return res
+
+    def _upload_media(self, filename: str, is_dm: bool = False, is_profile=False) -> int | None:
+
+        def check_media(category: str, size: int) -> None:
             fmt = lambda x: f'{(x / 1e6):.2f} MB'
-            if name in category and total_bytes > size:
-                raise Exception(f'cannot upload {fmt(total_bytes)} {name}: max {name} size is {fmt(size)}')
+            msg = lambda x: f'cannot upload {fmt(size)} {category}, max size is {fmt(x)}'
+            if category == 'image' and size > MAX_IMAGE_SIZE:
+                raise Exception(msg(MAX_IMAGE_SIZE))
+            if category == 'gif' and size > MAX_GIF_SIZE:
+                raise Exception(msg(MAX_GIF_SIZE))
+            if category == 'video' and size > MAX_VIDEO_SIZE:
+                raise Exception(msg(MAX_VIDEO_SIZE))
 
-        tuple(map(check, (Media.Type.image, Media.Type.gif, Media.Type.video)))
-
-    def upload_media(self, filename: str, is_dm: bool = False, is_profile=False) -> int:
         if is_profile:
             url = 'https://upload.twitter.com/i/media/upload.json'
         else:
@@ -247,9 +508,9 @@ class Account:
 
         upload_type = 'dm' if is_dm else 'tweet'
         media_type = mimetypes.guess_type(file)[0]
-        media_category = f'{upload_type}_{media_type.split("/")[0]}'
+        media_category = f'{upload_type}_gif' if 'gif' in media_type else f'{upload_type}_{media_type.split("/")[0]}'
 
-        self.check_media(media_category, total_bytes)
+        check_media(media_category, total_bytes)
 
         data = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes,
                 'media_category': media_category}
@@ -266,7 +527,7 @@ class Account:
                     r = self.session.post(url=url, headers=headers, data=data, files=files)
                     if r.status_code < 200 or r.status_code > 299:
                         logger.debug(f'{r.status_code} {r.text}')
-                        raise Exception(f'[{ERROR}error{RESET}] upload failed')
+                        raise Exception(f'[{RED}error{RESET}] upload failed')
                     i += 1
                     pbar.update(f.tell() - pbar.n)
 
@@ -275,376 +536,44 @@ class Account:
             data |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
         r = self.session.post(url=url, headers=headers, data=data)
 
-        logger.debug(f'processing, please wait...')
+        # logger.debug(f'processing, please wait...')
         processing_info = r.json().get('processing_info')
         while processing_info:
             state = processing_info['state']
-            logger.debug(f'{processing_info = }')
+            if error := processing_info.get("error"):
+                raise Exception(f'media upload failed: {error}')
             if state == MEDIA_UPLOAD_SUCCEED:
                 break
             if state == MEDIA_UPLOAD_FAIL:
-                raise Exception(f'[{ERROR}error{RESET}] media processing failed')
+                raise Exception(f'[{RED}error{RESET}] media processing failed')
             check_after_secs = processing_info.get('check_after_secs', random.randint(1, 5))
             time.sleep(check_after_secs)
             params = {'command': 'STATUS', 'media_id': media_id}
             r = self.session.get(url=url, headers=headers, params=params)
             processing_info = r.json().get('processing_info')
-        logger.debug('processing complete')
-
+        # logger.debug('processing complete')
         return media_id
 
-    @log(info=['text'])
-    def add_alt_text(self, media_id: int, text: str) -> Response:
+    def _add_alt_text(self, media_id: int, text: str) -> Response:
         params = {"media_id": media_id, "alt_text": {"text": text}}
-        url = f'{self.V1_URL}/media/metadata/create.json'
+        url = f'{self.v1_url}/media/metadata/create.json'
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
 
-    def reply(self, tweet_id: int, text: str, media: list = None) -> Response:
-        """ an un-reply operation is just DeleteTweet"""
-        params = {"reply": {"in_reply_to_tweet_id": tweet_id, "exclude_reply_user_ids": []}}
-        return self.tweet(text, media, reply_params=params)
-
-    def quote(self, tweet_id: int, screen_name: str, text: str, media: list = None) -> Response:
-        """ an un-quote operation is just DeleteTweet"""
-        params = {"attachment_url": f"https://twitter.com/{screen_name}/status/{tweet_id}"}
-        return self.tweet(text, media, quote_params=params)
-
-    @log(info=['json'])
-    def unschedule_tweet(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.DeleteScheduledTweet, {'scheduled_tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def untweet(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.DeleteTweet, {'tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def retweet(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.CreateRetweet, {'tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def unretweet(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.DeleteRetweet, {'source_tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def like(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.FavoriteTweet, {'tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def unlike(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.UnfavoriteTweet, {'tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def bookmark(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.CreateBookmark, {'tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def unbookmark(self, tweet_id: int) -> Response:
-        return self.gql(Operation.Account.DeleteBookmark, {'tweet_id': tweet_id})
-
-    @log(info=['json'])
-    def home_timeline(self):
-        return self.gql(Operation.Account.HomeTimeline, {})
-
-    def home_latest_timeline(self, limit: int = 100):
-        r = self.gql(Operation.Account.HomeLatestTimeline, {})
-        data = r.json() | {ID: self.session.cookies.get('username')}
-        return self.paginate(self.session, data, Operation.Account.HomeLatestTimeline, limit)
-
-    # todo: a lot of duplicated code here, will need to refactor
-    def paginate(self, session: Session, data: dict, operation: tuple, limit: int):
-
-        def get_cursor(data):
-            # inefficient, but need to deal with arbitrary schema
-            entries = find_key(data, 'entries')
-            if entries:
-                for entry in entries.pop():
-                    if entry.get('entryId', '').startswith('cursor-bottom'):
-                        content = entry['content']
-                        if itemContent := content.get('itemContent'):
-                            return itemContent['value']  # v2 cursor
-                        return content['value']  # v1 cursor
-
-        all_data = []
-        try:
-            name, key = operation
-            params = deepcopy(operations[name])
-            ids = set()
-            counts = []
-            # params['variables'][key] = data[ID]
-            cursor = get_cursor(data)
-            while 1:
-                params['variables']['cursor'] = cursor
-
-                r = self.gql(operation, params['variables'])
-                _data = r.json()
-
-                if csrf := r.cookies.get("ct0"):
-                    session.headers.update({"x-csrf-token": csrf.value})
-                session.cookies.update(r.cookies)
-
-                path = Path(f'data/raw/{data[ID]}')
-                path.mkdir(parents=True, exist_ok=True)
-                (path / f'{time.time_ns()}_{name}.json').write_text(
-                    orjson.dumps(_data, option=orjson.OPT_INDENT_2).decode(),
-                    encoding='utf-8'
-                )
-
-                all_data.append(_data)
-                cursor = get_cursor(_data)
-                logger.debug(f'{cursor = }')
-                ids |= set(find_key(_data, 'rest_id'))
-                logger.debug(f'({data[ID]})\t{len(ids)} unique results')
-                counts.append(len(ids))
-
-                success_message = f'[{SUCCESS}success{RESET}] done pagination'
-                # followers/following have "0|"
-                if not cursor or cursor.startswith('0|'):
-                    logger.debug(f'{success_message}\tlast cursor: {cursor}')
-                    break
-                if len(ids) >= limit:
-                    logger.debug(f'{success_message}\tsurpassed limit of {limit} results')
-                    break
-                # did last 5 requests return duplicate data?
-                if len(counts) > DUP_LIMIT and len(set(counts[-1:-DUP_LIMIT:-1])) == 1:
-                    logger.debug(f'{success_message}\tpast {DUP_LIMIT} requests returned duplicate data')
-                    break
-
-        except Exception as e:
-            logger.debug(f'[{ERROR}error{RESET}] paginate falied: {e}')
-        # save_data(all_data, name)
-        return all_data
-
-    @log(info=['json'])
-    def create_list(self, name: str, description: str, private: bool) -> Response:
-        variables = {
-            "isPrivate": private,
-            "name": name,
-            "description": description,
-        }
-        return self.gql(Operation.Account.CreateList, variables)
-
-    @log(info=['json'])
-    def update_list(self, list_id: int, name: str, description: str, private: bool) -> Response:
-        variables = {
-            "listId": list_id,
-            "isPrivate": private,
-            "name": name,
-            "description": description,
-        }
-        return self.gql(Operation.Account.UpdateList, variables)
-
-    @log(info=['json'])
-    def update_pinned_lists(self, list_ids: list[int]) -> Response:
-        """
-        Update pinned lists
-
-        Reset all pinned lists and pin all specified lists in the order they are provided.
-
-        @param list_ids: list of list ids to pin
-        @return: response
-        """
-        return self.gql(Operation.Account.ListsPinMany, {'listIds': list_ids})
-
-    @log(info=['json'])
-    def pin_list(self, list_id: int) -> Response:
-        return self.gql(Operation.Account.ListPinOne, {'listId': list_id})
-
-    @log(info=['json'])
-    def unpin_list(self, list_id: int) -> Response:
-        return self.gql(Operation.Account.ListUnpinOne, {'listId': list_id})
-
-    @log(info=['json'])
-    def add_list_member(self, list_id: int, user_id: int) -> Response:
-        return self.gql(Operation.Account.ListAddMember, {'listId': list_id, "userId": user_id})
-
-    @log(info=['json'])
-    def remove_list_member(self, list_id: int, user_id: int) -> Response:
-        return self.gql(Operation.Account.ListRemoveMember, {'listId': list_id, "userId": user_id})
-
-    @log(info=['json'])
-    def delete_list(self, list_id: int) -> Response:
-        return self.gql(Operation.Account.DeleteList, {'listId': list_id})
-
-    @log(info=['json'])
-    def update_list_banner(self, list_id: int, filename: str) -> Response:
-        media_id = self.upload_media(filename)
-        return self.gql(Operation.Account.EditListBanner, {'listId': list_id, 'mediaId': media_id})
-
-    @log(info=['json'])
-    def delete_list_banner(self, list_id: int) -> Response:
-        return self.gql(Operation.Account.DeleteListBanner, {'listId': list_id})
-
-    @log(info=['json'])
-    def unfollow_topic(self, topic_id: int) -> Response:
-        return self.gql(Operation.Account.TopicUnfollow, {'topicId': str(topic_id)})
-
-    @log(info=['json'])
-    def follow_topic(self, topic_id: int) -> Response:
-        return self.gql(Operation.Account.TopicFollow, {'topicId': str(topic_id)})
-
-    @log(info=['json'])
-    def follow(self, user_id: int) -> Response:
-        settings = follow_settings.copy()
-        settings |= {"user_id": user_id}
-        return self.api('friendships/create.json', settings)
-
-    @log(info=['json'])
-    def unfollow(self, user_id: int) -> Response:
-        settings = follow_settings.copy()
-        settings |= {"user_id": user_id}
-        return self.api('friendships/destroy.json', settings)
-
-    @log(info=['json'])
-    def mute(self, user_id: int) -> Response:
-        settings = {'user_id': user_id}
-        return self.api('mutes/users/create.json', settings)
-
-    @log(info=['json'])
-    def unmute(self, user_id: int) -> Response:
-        settings = {'user_id': user_id}
-        return self.api('mutes/users/destroy.json', settings)
-
-    @log(info=['json'])
-    def enable_notifications(self, user_id: int) -> Response:
-        settings = notification_settings.copy()
-        settings |= {'id': user_id, 'device': 'true'}
-        return self.api('friendships/update.json', settings)
-
-    @log(info=['json'])
-    def disable_notifications(self, user_id: int) -> Response:
-        settings = notification_settings.copy()
-        settings |= {'id': user_id, 'device': 'false'}
-        return self.api('friendships/update.json', settings)
-
-    @log(info=['json'])
-    def block(self, user_id: int) -> Response:
-        settings = {'user_id': user_id}
-        return self.api('blocks/create.json', settings)
-
-    @log(info=['json'])
-    def unblock(self, user_id: int) -> Response:
-        settings = {'user_id': user_id}
-        return self.api('blocks/destroy.json', settings)
-
-    @log(info=['json'])
-    def pin(self, tweet_id: int) -> Response:
-        settings = {'tweet_mode': 'extended', 'id': tweet_id}
-        return self.api('account/pin_tweet.json', settings)
-
-    @log(info=['json'])
-    def unpin(self, tweet_id: int) -> Response:
-        settings = {'tweet_mode': 'extended', 'id': tweet_id}
-        return self.api('account/unpin_tweet.json', settings)
-
-    @log(info=['json'])
-    def stats(self, rest_id: int) -> Response:
-        """private endpoint?"""
-        name, _ = Operation.Account.TweetStats
-        params = deepcopy(operations[name])
-        qid = params['queryId']
-        params['variables']['rest_id'] = rest_id
-        query = build_query(params)
-        url = f"{self.GRAPHQL_URL}/{qid}/{name}?{query}"
-        r = self.session.get(url, headers=get_headers(self.session))
-        return r
-
-    @log(info=['json'])
-    def remove_interests(self, *args):
-        url = f'{self.V1_URL}/account/personalization/twitter_interests.json'
-        r = self.session.get(url, headers=get_headers(self.session))
-        current_interests = r.json()['interested_in']
-        if args == 'all':
-            disabled_interests = [x['id'] for x in current_interests]
-        else:
-            disabled_interests = [x['id'] for x in current_interests if x['display_name'] in args]
-        payload = {
-            "preferences": {
-                "interest_preferences": {
-                    "disabled_interests": disabled_interests,
-                    "disabled_partner_interests": []
-                }
-            }
-        }
-        url = f'{self.V1_URL}/account/personalization/p13n_preferences.json'
-        r = self.session.post(url, headers=get_headers(self.session), json=payload)
-        return r
-
-    @log(info=['json'])
-    def update_profile_image(self, filename: str) -> Response:
-        media_id = self.upload_media(filename, is_profile=True)
-        url = f'{self.V1_URL}/account/update_profile_image.json'
-        headers = get_headers(self.session)
-        params = {'media_id': media_id}
-        r = self.session.post(url, headers=headers, params=params)
-        return r
-
-    @log
-    def update_profile_banner(self, filename: str) -> Response:
-        media_id = self.upload_media(filename, is_profile=True)
-        url = f'{self.V1_URL}/account/update_profile_banner.json'
-        headers = get_headers(self.session)
-        params = {'media_id': media_id}
-        r = self.session.post(url, headers=headers, params=params)
-        return r
-
-    @log
-    def update_profile_info(self, **kwargs) -> Response:
-        url = f'{self.V1_URL}/account/update_profile.json'
-        headers = get_headers(self.session)
-        r = self.session.post(url, headers=headers, params=kwargs)
-        return r
-
-    @log(info=['text'])
-    def update_search_settings(self, settings: dict) -> Response:
-        """
-        Update account search settings
-
-        @param settings: search filtering settings to enable/disable
-        @return: authenticated session
-        """
-        twid = int(self.session.cookies.get_dict()['twid'].split('=')[-1].strip('"'))
-        headers = get_headers(self.session)
-        r = self.session.post(
-            url=f'{self.V1_URL}/strato/column/User/{twid}/search/searchSafety',
-            headers=headers,
-            json=settings,
-        )
-        return r
-
-    @log(info=['json'])
-    def update_settings(self, settings: dict) -> Response:
-        """
-        Update account settings
-    
-        @param settings: settings to enable/disable
-        @return: authenticated session
-        """
-        return self.api('account/settings.json', settings)
-
-    @log(info=['json'])
-    def change_password(self, old: str, new: str) -> Response:
-        settings = {
-            'current_password': old,
-            'password': new,
-            'password_confirmation': new
-        }
-        headers = get_headers(self.session)
-        headers['content-type'] = 'application/x-www-form-urlencoded'
-        url = 'https://twitter.com/i/api/i/account/change_password.json'
-        r = self.session.post(url, headers=headers, data=urlencode(settings))
-        return r
-
-    @log(info=['json'])
-    def logout_all_sessions(self) -> Response:
-        headers = get_headers(self.session)
-        url = 'https://twitter.com/i/api/account/self.sessions/revoke_all'
-        r = self.session.post(url, headers=headers)
-        return r
-
-    @staticmethod
-    def check_response(r):
-        if r.status_code == 429:
-            raise Exception(f'rate limit exceeded: {r.url}')
-        if find_key(data := r.json(), 'errors'):
-            logger.debug(f'[{ERROR}error{RESET}] {data}')
+    def log(self, response: Response):
+        status = fmt_status(response.status_code)
+        if 'json' in response.headers.get('content-type', ''):
+            if response.json().get('errors'):
+                logger.debug(f'[{RED}twitter error{RESET}]')
+                logger.debug(f'{response.url}')
+                logger.debug(f'{response.text}')
+                return
+        logger.debug(status)
+        if self.debug >= 1:
+            logger.debug(f'{response.url}')
+        if self.debug >= 2:
+            logger.debug(f'{response.text}')
+        if self.debug >= 3:
+            logger.debug(f'{response.headers}')
+        if self.debug >= 4:
+            logger.debug(f'{response.cookies}')

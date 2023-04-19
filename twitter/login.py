@@ -2,11 +2,11 @@ import sys
 
 from requests import Session
 
-from .constants import SUCCESS, WARN, ERROR, BOLD, RESET
-from .utils import find_key
+from .constants import GREEN, YELLOW, RED, BOLD, RESET
+from .util import find_key
 
 
-def update_token(session: Session, key: str, url: str, payload: dict) -> Session:
+def update_token(session: Session, key: str, url: str, **kwargs) -> Session:
     caller_name = sys._getframe(1).f_code.co_name
     try:
         headers = {
@@ -19,35 +19,40 @@ def update_token(session: Session, key: str, url: str, payload: dict) -> Session
             "x-twitter-active-user": "yes",
             "x-twitter-client-language": 'en',
         }
-        r = session.post(url, headers=headers, json=payload)
+        r = session.post(url, headers=headers, **kwargs)
         info = r.json()
 
         for s in info.get('subtasks', []):
             if s.get('enter_text', {}).get('keyboard_type') == 'email':
-                print(f"[{WARN}warning{RESET}] {' '.join(find_key(s, 'text'))}")
+                print(f"[{YELLOW}warning{RESET}] {' '.join(find_key(s, 'text'))}")
                 session.cookies.set('confirm_email', 'true')  # signal that email challenge must be solved
 
         session.cookies.set(key, info[key])
     except KeyError as e:
         session.cookies.set('flow_errors', 'true')  # signal that an error occurred somewhere in the flow
-        print(f'[{ERROR}error{RESET}] failed to update token at {BOLD}{caller_name}{RESET}\n{e}')
+        print(f'[{RED}error{RESET}] failed to update token at {BOLD}{caller_name}{RESET}\n{e}')
     return session
 
 
 def init_guest_token(session: Session) -> Session:
-    return update_token(session, 'guest_token', 'https://api.twitter.com/1.1/guest/activate.json', {})
+    return update_token(session, 'guest_token', 'https://api.twitter.com/1.1/guest/activate.json', json={})
 
 
 def flow_start(session: Session) -> Session:
-    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json?flow_name=login', {
-        "input_flow_data": {
-            "flow_context": {"debug_overrides": {}, "start_location": {"location": "splash_screen"}}
-        }, "subtask_versions": {}
-    })
+    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json',
+                        params={'flow_name': 'login'},
+                        json={
+                            "input_flow_data": {
+                                "flow_context": {
+                                    "debug_overrides": {},
+                                    "start_location": {"location": "splash_screen"}
+                                }
+                            }, "subtask_versions": {}
+                        })
 
 
 def flow_instrumentation(session: Session) -> Session:
-    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', {
+    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
             "subtask_id": "LoginJsInstrumentationSubtask",
@@ -57,7 +62,7 @@ def flow_instrumentation(session: Session) -> Session:
 
 
 def flow_username(session: Session) -> Session:
-    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', {
+    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
             "subtask_id": "LoginEnterUserIdentifierSSO",
@@ -70,7 +75,7 @@ def flow_username(session: Session) -> Session:
 
 
 def flow_password(session: Session) -> Session:
-    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', {
+    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
             "subtask_id": "LoginEnterPassword",
@@ -79,7 +84,7 @@ def flow_password(session: Session) -> Session:
 
 
 def flow_duplication_check(session: Session) -> Session:
-    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', {
+    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
             "subtask_id": "AccountDuplicationCheck",
@@ -89,7 +94,7 @@ def flow_duplication_check(session: Session) -> Session:
 
 
 def confirm_email(session: Session) -> Session:
-    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', {
+    return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [
             {
@@ -125,7 +130,7 @@ def login(email: str, username: str, password: str) -> Session:
     })
     session = execute_login_flow(session)
     if session.cookies.get('flow_errors') == 'true':
-        print(f'[{ERROR}error{RESET}] {BOLD}{username}{RESET} login failed')
+        print(f'[{RED}error{RESET}] {BOLD}{username}{RESET} login failed')
     else:
-        print(f'[{SUCCESS}success{RESET}] {BOLD}{username}{RESET} login success')
+        print(f'[{GREEN}success{RESET}] {BOLD}{username}{RESET} login success')
     return session

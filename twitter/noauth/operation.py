@@ -12,7 +12,6 @@ class Operation:
     UserTweetsAndReplies = 'RIWc55YCNyUJ-U3HHGYkdg', 'UserTweetsAndReplies', 'userId'
     TweetResultByRestId = 'D_jNhjWZeRZT5NURzfJZSQ', 'TweetResultByRestId', 'tweetId'
     TweetDetail = 'zXaXQgfyR4GxE21uwYQSyA', 'TweetDetail', 'focalTweetId'
-    # auth required for: Followers,Following,Likes,Retweeters,Favoriters, etc.
 
     default_variables = {
         "count": 1000,

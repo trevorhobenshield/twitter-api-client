@@ -1,9 +1,6 @@
 import asyncio
-import atexit
-import math
-
-import orjson
 import logging.config
+import math
 import platform
 import random
 import re
@@ -11,12 +8,11 @@ import time
 from pathlib import Path
 
 import aiohttp
+import orjson
 import requests
 
-from .config.log import log_config
-from .config.settings import search_config
 from .constants import *
-from .utils import set_qs
+from .util import set_qs
 
 IN_PATH = Path('~/data/raw').expanduser()
 OUT_PATH = Path(f'~/data/processed/search_results_{time.time_ns()}.json').expanduser()
@@ -66,7 +62,7 @@ async def paginate(query: str, session: aiohttp.ClientSession, config: dict, out
     while next_cursor:
         ids |= set(data['globalObjects']['tweets'])
         if len(ids) >= kwargs.get('limit', math.inf):
-            logger.debug(f'[{SUCCESS}success{RESET}] returned {len(ids)} search results for {c}{query}{reset}')
+            logger.debug(f'[{GREEN}success{RESET}] returned {len(ids)} search results for {c}{query}{reset}')
             return all_data
         logger.debug(f'{c}{query}{reset}')
         config['cursor'] = next_cursor

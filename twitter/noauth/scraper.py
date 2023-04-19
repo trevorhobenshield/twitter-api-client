@@ -93,16 +93,16 @@ class Scraper:
     def profile_spotlight(self, screen_names: list[str], **kwargs) -> list:
         return self._threaded_query(Operation.ProfileSpotlightsQuery, screen_names, **kwargs)
 
-    def user(self, screen_names: list[str], **kwargs) -> list:
+    def users(self, screen_names: list[str], **kwargs) -> list:
         return self._threaded_query(Operation.UserByScreenName, screen_names, **kwargs)
 
-    def user_by_id(self, user_ids: list[int], **kwargs) -> list[dict]:
+    def users_by_id(self, user_ids: list[int], **kwargs) -> list[dict]:
         return self._threaded_query(Operation.UserByRestId, user_ids, **kwargs)
 
-    def tweet_by_id(self, tweet_ids: list[int], **kwargs) -> list[dict]:
+    def tweets_by_id(self, tweet_ids: list[int], **kwargs) -> list[dict]:
         return self._threaded_query(Operation.TweetResultByRestId, tweet_ids, **kwargs)
 
-    def tweet_details(self, tweet_ids: list[int], limit=math.inf, **kwargs) -> list[dict]:
+    def tweets_details(self, tweet_ids: list[int], limit=math.inf, **kwargs) -> list[dict]:
         return self._threaded_pagination(Operation.TweetDetail, tweet_ids, limit, **kwargs)
 
     def tweets(self, user_ids: list[int], limit=math.inf, **kwargs) -> list[dict]:

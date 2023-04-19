@@ -1,310 +1,249 @@
 import asyncio
 import logging.config
 import math
-import platform
-import random
 import time
-from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import orjson
-from aiohttp import ClientSession, TCPConnector
+from aiohttp import ClientSession, TCPConnector, ClientResponse
+from requests import Response
 from tqdm import tqdm
 
-from .config.log import log_config
-from .config.operations import operations
-from .config.settings import trending_params
 from .constants import *
 from .login import login
-from .utils import find_key, build_query, get_headers, set_qs
+from .util import find_key, save_data, get_cursor, get_headers, set_qs, fmt_status
 
-try:
-    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-        import nest_asyncio
-
-        nest_asyncio.apply()
-except:
-    ...
-
-if platform.system() != 'Windows':
-    import uvloop
-
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-else:
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-ID = 'ID'
-DUP_LIMIT = 5
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 
 class Scraper:
-    GRAPHQL_URL = 'https://api.twitter.com/graphql'
-
-    def __init__(self, email: str, username: str, password: str):
+    def __init__(self, email: str, username: str, password: str, *, save=True, debug=False):
         self.session = login(email, username, password)
+        self.api = 'https://twitter.com/i/api/graphql'
+        self.save = save
+        self.debug = debug
 
-    def tweets(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.UserTweets, limit)
+    def users(self, screen_names: list[str]) -> list:
+        return self._run(screen_names, Operation.UserByScreenName)
 
-    def tweets_and_replies(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.UserTweetsAndReplies, limit)
+    def tweets_by_id(self, tweet_ids: list[int]) -> list[dict]:
+        return self._run(tweet_ids, Operation.TweetResultByRestId)
 
-    def likes(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.Likes, limit)
+    def tweets_details(self, tweet_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(tweet_ids, Operation.TweetDetail, limit)
 
-    def media(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.UserMedia, limit)
+    def tweets(self, user_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(user_ids, Operation.UserTweets, limit)
 
-    def followers(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.Followers, limit)
+    def tweets_and_replies(self, user_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(user_ids, Operation.UserTweetsAndReplies, limit)
 
-    def following(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.Following, limit)
+    def media(self, user_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(user_ids, Operation.UserMedia, limit)
 
-    def favoriters(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.Favoriters, limit)
+    def likes(self, user_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(user_ids, Operation.Likes, limit)
 
-    def retweeters(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.Retweeters, limit)
+    def followers(self, user_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(user_ids, Operation.Followers, limit)
 
-    def tweets_details(self, ids: list[int], limit=math.inf):
-        return self.run(ids, Operation.Data.TweetDetail, limit)
+    # auth required
+    def following(self, user_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(user_ids, Operation.Following, limit)
 
-    # no pagination needed
-    def tweet_by_rest_id(self, ids: list[int]):
-        return self.run(ids, Operation.Data.TweetResultByRestId)
+    # auth required
+    def favoriters(self, tweet_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(tweet_ids, Operation.Favoriters, limit)
 
-    # no pagination needed
-    def user_by_screen_name(self, ids: list[str]):
-        return self.run(ids, Operation.Data.UserByScreenName)
+    # auth required
+    def retweeters(self, tweet_ids: list[int], limit=math.inf) -> list[dict]:
+        return self._run(tweet_ids, Operation.Retweeters, limit)
 
-    # no pagination needed
-    def user_by_rest_id(self, ids: list[int]):
-        return self.run(ids, Operation.Data.UserByRestId)
+    def profile_spotlights(self, screen_names: list[str]) -> list:
+        """
+        This endpoint is included for completeness only. It returns very few data points.
+        Use the batched query `users_by_ids` instead if you wish to pull user profile data.
+        """
+        return self._run(screen_names, Operation.ProfileSpotlightsQuery)
 
-    # no pagination needed (special batch query)
-    def users_by_rest_ids(self, ids: list[int]):
-        name, key = Operation.Data.UsersByRestIds
-        params = deepcopy(operations[name])
-        qid = params['queryId']
-        params['variables']['userIds'] = ids
-        q = build_query(params)
-        url = f"{self.GRAPHQL_URL}/{qid}/{name}?{q}"
-        headers = get_headers(self.session)
-        headers['content-type'] = "application/json"
-        users = self.session.get(url, headers=headers).json()
-        return users
+    def users_by_id(self, user_ids: list[int]) -> list[dict]:
+        """
+        This endpoint is included for completeness only.
+        Use the batched query `users_by_ids` instead if you wish to pull user profile data.
+        """
+        return self._run(user_ids, Operation.UserByRestId)
 
-    def run(self, ids: list, operation: tuple, limit=None):
-        res = self.query(ids, operation)
-        if limit is None:
-            return res
-        return asyncio.run(self.pagination(res, operation, limit)) + res
+    def tweet_stats(self, user_ids: list[int]) -> list[dict]:
+        return self._run(user_ids, Operation.TweetStats)
 
-    def query(self, ids: list[any], operation: tuple) -> list:
-        name, key = operation
-        params = deepcopy(operations[name])
-        qid = params['queryId']
-        urls = []
-        for _id in ids:
-            params['variables'][key] = _id
-            q = build_query(params)
-            urls.append((_id, f"{self.GRAPHQL_URL}/{qid}/{name}?{q}"))
-        headers = get_headers(self.session)
-        headers['content-type'] = "application/json"
-        res = asyncio.run(self.process(urls, headers))
-        self.save_data(res, name)
+    # special case, batch query
+    def users_by_ids(self, user_ids: list[int]) -> dict:
+        """
+        Get user data in batches
+
+        Batch-size limited to around 200-300 users
+        """
+        qid, op, k = Operation.UsersByRestIds
+        params = {k: orjson.dumps(v).decode() for k, v in {
+            'variables': {k: user_ids} | Operation.default_variables,
+            'features': Operation.default_features,
+        }.items()}
+        r = self.session.get(f'{self.api}/{qid}/{op}', headers=get_headers(self.session), params=params)
+        txt = r.text
+        data = r.json()
+        if self.debug:
+            self.log(r, txt, data)
+        if self.save:
+            save_data(data, op, user_ids[0])
+        return data
+
+    def _run(self, ids: list[int | str], operation: tuple, limit=None):
+        return asyncio.run(self._process(ids, operation, limit))
+
+    async def _process(self, ids: list[int | str], op: tuple, limit: int | None) -> list:
+        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
+        async with ClientSession(headers=get_headers(self.session), connector=conn) as s:
+            s.cookie_jar.update_cookies(self.session.cookies)
+            return await asyncio.gather(*(self._paginate(s, _id, op, limit) for _id in ids))
+
+    async def _paginate(self, session: ClientSession, _id: int | str | list[int], operation: tuple,
+                        limit: int | None) -> list[dict]:
+        r = await self._query(session, _id, operation)
+        initial_data = await r.json()
+        res = [initial_data]
+        ids = set(find_key(initial_data, 'rest_id'))
+        dups = 0
+        DUP_LIMIT = 5
+
+        cursor = get_cursor(initial_data)
+        while (dups < DUP_LIMIT) and cursor:
+            prev_len = len(ids)
+            if prev_len >= limit:
+                return res
+
+            # csrf must match in headers and cookies
+            if csrf := r.cookies.get("ct0"):
+                session.headers.update({"x-csrf-token": csrf.value})
+            session.cookie_jar.update_cookies(r.cookies)
+
+            r = await self._query(session, _id, operation, cursor=cursor)
+            data = await r.json()
+
+            cursor = get_cursor(data)
+            ids |= set(find_key(data, 'rest_id'))
+
+            if self.debug:
+                logger.debug(f'cursor: {cursor}\tunique results: {len(ids)}')
+
+            if prev_len == len(ids):
+                dups += 1
+
+            res.append(data)
         return res
 
-    async def process(self, urls: list, headers: dict) -> list:
-        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
-        async with ClientSession(headers=headers, connector=conn) as s:
-            # add cookies from logged-in session
-            s.cookie_jar.update_cookies(self.session.cookies)
-            return await asyncio.gather(*(self.get(s, u) for u in urls))
+    async def _query(self, session: ClientSession, _id: int | str | list, operation: tuple, **kwargs) -> ClientResponse:
+        qid, op, k = operation
+        params = {k: orjson.dumps(v).decode() for k, v in {
+            'variables': {k: _id} | kwargs | Operation.default_variables,
+            'features': Operation.default_features,
+        }.items()}
+        r = await session.get(f'{self.api}/{qid}/{op}', params=params)
+        txt = await r.text()
+        data = await r.json()
+        if self.debug:
+            self.log(r, txt, data)
+        if self.save:
+            save_data(data, op, _id[0] if isinstance(_id, list) else _id)
+        return r
 
-    async def get(self, session: ClientSession, url: tuple) -> dict:
-        identifier, api_url = url
-        logger.debug(f'processing: {url}')
-        try:
-            r = await session.get(api_url)
-            limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
-            logger.debug(f'{limits = }')
-            if r.status == 429:
-                logger.debug(f'rate limit exceeded: {url}')
-                return {}
-            data = await r.json()
-            return {ID: identifier, **data}
-        except Exception as e:
-            logger.debug(f'[{ERROR}error{RESET}] failed to download {url}: {e}')
+    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True) -> None:
+        tweets = self.tweets_by_id(ids)
+        urls = []
+        for tweet in tweets:
+            tweet_id = find_key(tweet, 'id_str')[0]
+            url = f'https://twitter.com/i/status/{tweet_id}'  # `i` evaluates to screen_name
+            media = [y for x in find_key(tweet, 'media') for y in x]
+            if photos:
+                photo_urls = list({u for m in media if 'ext_tw_video_thumb' not in (u := m['media_url_https'])})
+                [urls.append([url, photo]) for photo in photo_urls]
+            if videos:
+                video_urls = [x['variants'] for m in media if (x := m.get('video_info'))]
+                hq_videos = {sorted(v, key=lambda d: d.get('bitrate', 0))[-1]['url'] for v in video_urls}
+                [urls.append([url, video]) for video in hq_videos]
 
-    async def pagination(self, res: list, operation: tuple, limit: int) -> list:
-        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
-        headers = get_headers(self.session)
-        headers['content-type'] = "application/json"
-        async with ClientSession(headers=headers, connector=conn) as s:
-            # add cookies from logged-in session
-            s.cookie_jar.update_cookies(self.session.cookies)
-            return await asyncio.gather(*(self.paginate(s, data, operation, limit) for data in res))
+        with tqdm(total=len(urls), desc='downloading media') as pbar:
+            with ThreadPoolExecutor(max_workers=32) as e:
+                for future in as_completed(e.submit(self._download, x, y) for x, y in urls):
+                    future.result()
+                    pbar.update()
 
-    async def paginate(self, session: ClientSession, data: dict, operation: tuple, limit: int):
-        def get_cursor(data):
-            # inefficient, but need to deal with arbitrary schema
-            entries = find_key(data, 'entries')
-            if entries:
-                for entry in entries.pop():
-                    entry_id = entry.get('entryId', '')
-                    if ('cursor-bottom' in entry_id) or ('cursor-showmorethreads' in entry_id):
-                        content = entry['content']
-                        if itemContent := content.get('itemContent'):
-                            return itemContent['value']  # v2 cursor
-                        return content['value']  # v1 cursor
-
-        all_data = []
-        try:
-            name, key = operation
-            params = deepcopy(operations[name])
-            qid = params['queryId']
-
-            ids = set()
-            counts = []
-
-            params['variables'][key] = data[ID]
-            cursor = get_cursor(data)
-
-            while 1:
-                params['variables']['cursor'] = cursor
-                query = build_query(params)
-                url = f"{self.GRAPHQL_URL}/{qid}/{name}?{query}"
-
-                # code [353]: "This request requires a matching csrf cookie and header."
-                r, _data = await self.backoff(lambda: session.get(url))
-                if csrf := r.cookies.get("ct0"):
-                    session.headers.update({"x-csrf-token": csrf.value})
-                session.cookie_jar.update_cookies(r.cookies)
-
-                tagged_data = _data | {ID: data[ID]}
-                self.save_data([tagged_data], name)
-                all_data.append(tagged_data)
-                cursor = get_cursor(_data)
-                logger.debug(f'{cursor = }')
-                ids |= set(find_key(tagged_data, 'rest_id'))
-                logger.debug(f'({data[ID]})\t{len(ids)} unique results')
-                counts.append(len(ids))
-
-                success_message = f'[{SUCCESS}success{RESET}] done pagination'
-                # followers/following have "0|"
-                if not cursor or cursor.startswith('0|'):
-                    logger.debug(f'{success_message}\tlast cursor: {cursor}')
-                    break
-                if len(ids) >= limit:
-                    logger.debug(f'{success_message}\tsurpassed limit of {limit} results')
-                    break
-                # did last 5 requests return duplicate data?
-                if len(counts) > DUP_LIMIT and len(set(counts[-1:-DUP_LIMIT:-1])) == 1:
-                    logger.debug(f'{success_message}\tpast {DUP_LIMIT} requests returned duplicate data')
-                    break
-        except Exception as e:
-            logger.debug(f'[{ERROR}error{RESET}] paginate falied: {e}')
-        # save_data(all_data, name)
-        return all_data
-
-    async def backoff(self, fn, retries=12):
-        for i in range(retries + 1):
-            try:
-                r = await fn()
-                data = await r.json()
-                if r.status == 429:
-                    logger.debug(f'[{ERROR}error{RESET}] rate limit exceeded: {r.url}')
-                    return r, {}
-                if find_key(data, 'errors'):
-                    logger.debug(f'[{ERROR}error{RESET}] twitter errors: {data}')
-                return r, data
-            except Exception as e:
-                if i == retries:
-                    logger.debug(f'[{ERROR}error{RESET}] max retries exceeded{RESET}\n{e}')
-                    return
-                t = 2 ** i + random.random()
-                logger.debug(f'{WARN}retrying in {f"{t:.2f}"} seconds{RESET}\t\t{e}')
-                time.sleep(t)
-
-    def save_data(self, data: list, name: str = ''):
-        try:
-            for d in data:
-                path = Path(f'data/raw/{d[ID]}')
-                path.mkdir(parents=True, exist_ok=True)
-                (path / f'{time.time_ns()}_{name}.json').write_text(
-                    orjson.dumps(d, option=orjson.OPT_INDENT_2).decode(),
-                    encoding='utf-8'
-                )
-
-        except KeyError as e:
-            logger.debug(f'[{ERROR}error{RESET}] failed to save data: {e}')
-
-    def download(self, post_url: str, cdn_url: str, path: str = 'media', chunk_size: int = 4096) -> None:
-        """
-        Download file
-    
-        @param post_url: the actual post url
-        @param cdn_url: the cdn url
-        @param path: path to save media
-        @param chunk_size: chunk size in bytes
-        @return: None
-        """
+    def _download(self, post_url: str, cdn_url: str, path: str = 'media', chunk_size: int = 4096) -> None:
         Path(path).mkdir(parents=True, exist_ok=True)
         name = urlsplit(post_url).path.replace('/', '_')[1:]
         ext = urlsplit(cdn_url).path.split('/')[-1]
         try:
             r = self.session.get(cdn_url, stream=True)
-            total_bytes = int(r.headers.get('Content-Length', 0))
-            desc = f'downloading: {name}'
-            with tqdm(total=total_bytes, desc=desc, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
-                with open(f'{path}/{name}_{ext}', 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=chunk_size):
-                        f.write(chunk)
-                        pbar.update(f.tell() - pbar.n)
+            with open(f'{path}/{name}_{ext}', 'wb') as f:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    f.write(chunk)
         except Exception as e:
-            logger.debug(f'[{ERROR}error{RESET}] failed to download media: {post_url} {e}')
-
-    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True) -> None:
-        res = self.tweet_by_rest_id(ids)
-        for r in res:
-            user_id = find_key(r, 'user_results')[0]['result']['rest_id']
-            url = f'https://twitter.com/{user_id}/status/{r[ID]}'  # evaluates to username in browser
-            media = [y for x in find_key(r, 'media') for y in x]  # in case of arbitrary schema
-            if photos:
-                photos = list({u for m in media if 'ext_tw_video_thumb' not in (u := m['media_url_https'])})
-                if photos:
-                    [self.download(url, photo) for photo in photos]
-            if videos:
-                videos = [x['variants'] for m in media if (x := m.get('video_info'))]
-                hq_videos = {sorted(v, key=lambda d: d.get('bitrate', 0))[-1]['url'] for v in videos}
-                if hq_videos:
-                    [self.download(url, video) for video in hq_videos]
+            logger.debug(f'[{RED}error{RESET}] failed to download media: {post_url} {e}')
 
     def trends(self) -> dict:
         """Get trends for all UTC offsets"""
-        url = set_qs('https://twitter.com/i/api/2/guide.json', trending_params)
-        headers = get_headers(self.session)
-        offsets = [f"{str(i).zfill(3)}00" if i < 0 else f"+{str(i).zfill(2)}00" for i in range(-12, 15)]
-        res = []
-        for offset in offsets:
+
+        def get_trends(offset: str, url: str, headers: dict):
             headers['x-twitter-utcoffset'] = offset
             r = self.session.get(url, headers=headers)
-            res.append(r.json())
-            logger.debug(f'getting trends for: {offset = }')
-        all_trends = {}
-        for data in res:
-            trends = find_key(data, 'item')
-            for t in trends:
-                all_trends |= {t['content']['trend']['name']: t}
+            trends = find_key(r.json(), 'item')
+            return {t['content']['trend']['name']: t for t in trends}
+
+        headers = get_headers(self.session)
+        url = set_qs('https://twitter.com/i/api/2/guide.json', trending_params)
+        offsets = [f"{str(i).zfill(3)}00" if i < 0 else f"+{str(i).zfill(2)}00" for i in range(-12, 15)]
+        trends = {}
+        with tqdm(total=len(offsets), desc='downloading trends') as pbar:
+            with ThreadPoolExecutor(max_workers=32) as e:
+                for future in as_completed(e.submit(get_trends, o, url, headers) for o in offsets):
+                    trends |= future.result()
+                    pbar.update()
+
         path = Path(f'data/raw/trends')
         path.mkdir(parents=True, exist_ok=True)
         (path / f'{time.time_ns()}.json').write_text(
-            orjson.dumps(all_trends, option=orjson.OPT_INDENT_2).decode(),
+            orjson.dumps(trends, option=orjson.OPT_INDENT_2).decode(),
             encoding='utf-8'
         )
-        return all_trends
+        return trends
+
+    def log(self, r: ClientResponse | Response, txt: str, data: dict):
+        status = r.status if isinstance(r, ClientResponse) else r.status_code
+
+        def stat(r):
+            if self.debug >= 1:
+                logger.debug(f'{r.url}')
+            if self.debug >= 2:
+                logger.debug(f'{txt}')
+
+            limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
+            current_time = int(time.time())
+            wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
+            logger.debug(
+                f"remaining: {MAGENTA}{limits['x-rate-limit-remaining']}/{limits['x-rate-limit-limit']}{RESET} requests")
+            logger.debug(f'reset:     {MAGENTA}{(wait / 60):.2f}{RESET} minutes')
+
+        try:
+            if 'json' in r.headers.get('content-type', ''):
+                if data.get('errors'):
+                    logger.debug(f'[{RED}error{RESET}] {status} {data}')
+                else:
+                    logger.debug(fmt_status(status))
+                    stat(r)
+            else:
+                logger.debug(fmt_status(status))
+                stat(r)
+        except Exception as e:
+            logger.debug(f'failed to log: {e}')
