@@ -253,7 +253,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 ### Example API Responses
 
 <details>
-<summary> UserTweetsAndReplies (single entry) </summary>
+<summary> UserTweetsAndReplies  </summary>
 
 ```json
 {
@@ -1386,7 +1386,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> UserTweets (single entry) </summary>
+<summary> UserTweets  </summary>
 
 ```json
 {
@@ -2188,7 +2188,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> Likes (single entry) </summary>
+<summary> Likes  </summary>
 
 ```json
 {
@@ -2610,7 +2610,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> UserMedia (single entry) </summary>
+<summary> UserMedia  </summary>
 
 ```json
 {
@@ -2911,7 +2911,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> TweetDetail (single entry) </summary>
+<summary> TweetDetail  </summary>
 
 ```json
 {
@@ -3660,7 +3660,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> Retweeters (single entry) </summary>
+<summary> Retweeters  </summary>
 
 ```json
 {
@@ -3742,7 +3742,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> Favoriters (single entry) </summary>
+<summary> Favoriters  </summary>
 
 ```json
 {
@@ -3838,7 +3838,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> Followers (single entry) </summary>
+<summary> Followers  </summary>
 
 ```json
 {
@@ -3936,7 +3936,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary>Following (single entry) </summary>
+<summary>Following  </summary>
 
 ```json
 {
@@ -4034,7 +4034,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary>UsersByRestIds</summary>
+<summary> UsersByRestIds </summary>
 
 ```json
 {
@@ -4106,7 +4106,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> TweetStats </summary>
+<summary> TweetStats (full response) </summary>
 
 ```json
 {
@@ -4125,7 +4125,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> TweetResultByRestId </summary>
+<summary> TweetResultByRestId (full response) </summary>
 
 ```json
 {
@@ -4864,7 +4864,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary> UserByScreenName </summary>
+<summary> UserByScreenName (full response) </summary>
 
 ```json
 {
