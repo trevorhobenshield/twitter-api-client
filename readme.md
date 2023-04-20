@@ -4038,67 +4038,57 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 
 ```json
 {
-  "result": {
-    "__typename": "User",
-    "id": "VXNlcjozMzgzNjYyOQ==",
-    "rest_id": "33836629",
-    "affiliates_highlighted_label": {},
-    "has_graduated_access": true,
-    "is_blue_verified": true,
-    "profile_image_shape": "Circle",
-    "legacy": {
-      "can_dm": false,
-      "can_media_tag": true,
-      "created_at": "Tue Apr 21 06:49:15 +0000 2009",
-      "default_profile": false,
-      "default_profile_image": false,
-      "description": "Building a kind of JARVIS @ OреոΑӏ. Previously Director of AI @ Tesla, CS231n, PhD @ Stanford. I like to train large deep neural nets 🧠🤖💥",
-      "entities": {
-        "description": {
-          "urls": []
-        },
-        "url": {
-          "urls": [
-            {
-              "display_url": "karpathy.ai",
-              "expanded_url": "https://karpathy.ai",
-              "url": "https://t.co/0EcFthjJXM",
-              "indices": [
-                0,
-                23
-              ]
-            }
-          ]
+  "data": {
+    "users": [
+      {
+        "result": {
+          "__typename": "User",
+          "id": "VXNlcjoxNzIwMDQ2ODg3",
+          "rest_id": "1720046887",
+          "affiliates_highlighted_label": {},
+          "has_graduated_access": true,
+          "is_blue_verified": false,
+          "profile_image_shape": "Circle",
+          "legacy": {
+            "can_dm": false,
+            "can_media_tag": true,
+            "created_at": "Sun Sep 01 19:32:15 +0000 2013",
+            "default_profile": false,
+            "default_profile_image": false,
+            "description": "towards a plurality of humanity loving AGIs @openai",
+            "entities": {
+              "description": {
+                "urls": []
+              }
+            },
+            "fast_followers_count": 0,
+            "favourites_count": 4320,
+            "followers_count": 168879,
+            "friends_count": 2,
+            "has_custom_timelines": true,
+            "is_translator": false,
+            "listed_count": 2777,
+            "location": "",
+            "media_count": 25,
+            "name": "Ilya Sutskever",
+            "normal_followers_count": 168879,
+            "pinned_tweet_ids_str": [],
+            "possibly_sensitive": false,
+            "profile_banner_url": "https://pbs.twimg.com/profile_banners/1720046887/1648404188",
+            "profile_image_url_https": "https://pbs.twimg.com/profile_images/1548311632597553154/WYGE5NGW_normal.jpg",
+            "profile_interstitial_type": "",
+            "screen_name": "ilyasut",
+            "statuses_count": 1082,
+            "translator_type": "none",
+            "verified": false,
+            "want_retweets": false,
+            "withheld_in_countries": []
+          },
+          "smart_blocked_by": false,
+          "smart_blocking": false
         }
-      },
-      "fast_followers_count": 0,
-      "favourites_count": 7312,
-      "followers_count": 701931,
-      "friends_count": 809,
-      "has_custom_timelines": true,
-      "is_translator": false,
-      "listed_count": 9207,
-      "location": "Stanford",
-      "media_count": 633,
-      "name": "Andrej Karpathy",
-      "normal_followers_count": 701931,
-      "pinned_tweet_ids_str": [
-        "1599152286672248832"
-      ],
-      "possibly_sensitive": false,
-      "profile_banner_url": "https://pbs.twimg.com/profile_banners/33836629/1407117611",
-      "profile_image_url_https": "https://pbs.twimg.com/profile_images/1296667294148382721/9Pr6XrPB_normal.jpg",
-      "profile_interstitial_type": "",
-      "screen_name": "karpathy",
-      "statuses_count": 8067,
-      "translator_type": "none",
-      "url": "https://t.co/0EcFthjJXM",
-      "verified": true,
-      "want_retweets": false,
-      "withheld_in_countries": []
-    },
-    "smart_blocked_by": false,
-    "smart_blocking": false
+      }
+    ]
   }
 }
 ```
