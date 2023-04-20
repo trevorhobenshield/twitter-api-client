@@ -252,8 +252,6 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 
 ### Example API Responses
 
-#### Example responses for common endpoints
-
 <details>
 <summary> UserTweetsAndReplies (single entry) </summary>
 
@@ -2911,8 +2909,6 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 ```
 
 </details>
-
-
 
 <details>
 <summary> TweetDetail (single entry) </summary>
