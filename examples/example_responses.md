@@ -1,8 +1,7 @@
-Example responses for common endpoints
+#### Example responses for common endpoints
 
-#### UserTweetsAndReplies
-
-(sample entry)
+<details>
+<summary> UserTweetsAndReplies (single entry) </summary>
 
 ```json
 {
@@ -1132,9 +1131,10 @@ Example responses for common endpoints
 }
 ```
 
-#### UserTweets
+</details>
 
-(sample entry)
+<details>
+<summary> UserTweets (single entry) </summary>
 
 ```json
 {
@@ -1933,9 +1933,10 @@ Example responses for common endpoints
 }
 ```
 
-#### Likes
+</details>
 
-(sample entry)
+<details>
+<summary> Likes (single entry) </summary>
 
 ```json
 {
@@ -2354,9 +2355,10 @@ Example responses for common endpoints
 }
 ```
 
-#### UserMedia
+</details>
 
-(sample entry)
+<details>
+<summary> UserMedia (single entry) </summary>
 
 ```json
 {
@@ -2654,761 +2656,12 @@ Example responses for common endpoints
 }
 ```
 
-#### TweetStats
+</details>
 
-```json
-{
-  "data": {
-    "result": {
-      "user": {
-        "tweet_stats": {
-          "tweet_frequency": "58"
-        }
-      }
-    }
-  }
-}
-```
 
-#### TweetResultByRestId
 
-```json
-{
-  "data": {
-    "tweetResult": {
-      "result": {
-        "__typename": "Tweet",
-        "rest_id": "1631001385985773570",
-        "has_birdwatch_notes": false,
-        "core": {
-          "user_results": {
-            "result": {
-              "__typename": "User",
-              "id": "VXNlcjoxNzIwMDQ2ODg3",
-              "rest_id": "1720046887",
-              "affiliates_highlighted_label": {},
-              "has_graduated_access": true,
-              "is_blue_verified": false,
-              "legacy": {
-                "can_dm": false,
-                "can_media_tag": true,
-                "created_at": "Sun Sep 01 19:32:15 +0000 2013",
-                "default_profile": false,
-                "default_profile_image": false,
-                "description": "towards a plurality of humanity loving AGIs @openai",
-                "entities": {
-                  "description": {
-                    "urls": []
-                  }
-                },
-                "fast_followers_count": 0,
-                "favourites_count": 4320,
-                "followers_count": 168867,
-                "friends_count": 2,
-                "has_custom_timelines": true,
-                "is_translator": false,
-                "listed_count": 2776,
-                "location": "",
-                "media_count": 25,
-                "name": "Ilya Sutskever",
-                "normal_followers_count": 168867,
-                "pinned_tweet_ids_str": [],
-                "possibly_sensitive": false,
-                "profile_banner_url": "https://pbs.twimg.com/profile_banners/1720046887/1648404188",
-                "profile_image_url_https": "https://pbs.twimg.com/profile_images/1548311632597553154/WYGE5NGW_normal.jpg",
-                "profile_interstitial_type": "",
-                "screen_name": "ilyasut",
-                "statuses_count": 1082,
-                "translator_type": "none",
-                "verified": false,
-                "want_retweets": false,
-                "withheld_in_countries": []
-              },
-              "smart_blocked_by": false,
-              "smart_blocking": false,
-              "business_account": {}
-            }
-          }
-        },
-        "unmention_data": {},
-        "edit_control": {
-          "edit_tweet_ids": [
-            "1631001385985773570"
-          ],
-          "editable_until_msecs": "1677697807000",
-          "is_edit_eligible": true,
-          "edits_remaining": "5"
-        },
-        "edit_perspective": {
-          "favorited": false,
-          "retweeted": false
-        },
-        "is_translatable": false,
-        "views": {
-          "count": "28899",
-          "state": "EnabledWithCount"
-        },
-        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
-        "quoted_status_result": {
-          "result": {
-            "__typename": "Tweet",
-            "rest_id": "1630992406542970880",
-            "has_birdwatch_notes": false,
-            "core": {
-              "user_results": {
-                "result": {
-                  "__typename": "User",
-                  "id": "VXNlcjo0Mzk4NjI2MTIy",
-                  "rest_id": "4398626122",
-                  "affiliates_highlighted_label": {},
-                  "has_graduated_access": true,
-                  "is_blue_verified": false,
-                  "legacy": {
-                    "can_dm": true,
-                    "can_media_tag": true,
-                    "created_at": "Sun Dec 06 22:51:08 +0000 2015",
-                    "default_profile": true,
-                    "default_profile_image": false,
-                    "description": "OpenAI’s mission is to ensure that artificial general intelligence benefits all of humanity. We’re hiring: https://t.co/dJGr6LgzPA",
-                    "entities": {
-                      "description": {
-                        "urls": [
-                          {
-                            "display_url": "openai.com/jobs",
-                            "expanded_url": "http://openai.com/jobs",
-                            "url": "https://t.co/dJGr6LgzPA",
-                            "indices": [
-                              107,
-                              130
-                            ]
-                          }
-                        ]
-                      },
-                      "url": {
-                        "urls": [
-                          {
-                            "display_url": "openai.com",
-                            "expanded_url": "https://openai.com",
-                            "url": "https://t.co/3bPlZZkvdL",
-                            "indices": [
-                              0,
-                              23
-                            ]
-                          }
-                        ]
-                      }
-                    },
-                    "fast_followers_count": 0,
-                    "favourites_count": 348,
-                    "followers_count": 2082073,
-                    "friends_count": 0,
-                    "has_custom_timelines": false,
-                    "is_translator": false,
-                    "listed_count": 13003,
-                    "location": "",
-                    "media_count": 120,
-                    "name": "OpenAI",
-                    "normal_followers_count": 2082073,
-                    "pinned_tweet_ids_str": [],
-                    "possibly_sensitive": false,
-                    "profile_banner_url": "https://pbs.twimg.com/profile_banners/4398626122/1649351819",
-                    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1634058036934500352/b4F1eVpJ_normal.jpg",
-                    "profile_interstitial_type": "",
-                    "screen_name": "OpenAI",
-                    "statuses_count": 590,
-                    "translator_type": "none",
-                    "url": "https://t.co/3bPlZZkvdL",
-                    "verified": true,
-                    "verified_type": "Business",
-                    "want_retweets": false,
-                    "withheld_in_countries": []
-                  },
-                  "smart_blocked_by": false,
-                  "smart_blocking": false,
-                  "business_account": {
-                    "affiliates_count": 0
-                  }
-                }
-              }
-            },
-            "card": {
-              "rest_id": "https://t.co/vpoyxZ7XnD",
-              "legacy": {
-                "binding_values": [
-                  {
-                    "key": "photo_image_full_size_large",
-                    "value": {
-                      "image_value": {
-                        "height": 419,
-                        "width": 800,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=800x419"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "thumbnail_image",
-                    "value": {
-                      "image_value": {
-                        "height": 144,
-                        "width": 144,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=144x144"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "description",
-                    "value": {
-                      "string_value": "Developers can now integrate ChatGPT and Whisper models into their apps and products through our API.",
-                      "type": "STRING"
-                    }
-                  },
-                  {
-                    "key": "domain",
-                    "value": {
-                      "string_value": "openai.com",
-                      "type": "STRING"
-                    }
-                  },
-                  {
-                    "key": "thumbnail_image_large",
-                    "value": {
-                      "image_value": {
-                        "height": 320,
-                        "width": 320,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=800x320_1"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "summary_photo_image_small",
-                    "value": {
-                      "image_value": {
-                        "height": 202,
-                        "width": 386,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=386x202"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "thumbnail_image_original",
-                    "value": {
-                      "image_value": {
-                        "height": 2048,
-                        "width": 2048,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=orig"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "site",
-                    "value": {
-                      "scribe_key": "publisher_id",
-                      "type": "USER",
-                      "user_value": {
-                        "id_str": "4398626122",
-                        "path": []
-                      }
-                    }
-                  },
-                  {
-                    "key": "photo_image_full_size_small",
-                    "value": {
-                      "image_value": {
-                        "height": 202,
-                        "width": 386,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=386x202"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "summary_photo_image_large",
-                    "value": {
-                      "image_value": {
-                        "height": 419,
-                        "width": 800,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=800x419"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "thumbnail_image_small",
-                    "value": {
-                      "image_value": {
-                        "height": 100,
-                        "width": 100,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=100x100"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "thumbnail_image_x_large",
-                    "value": {
-                      "image_value": {
-                        "height": 2048,
-                        "width": 2048,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=png&name=2048x2048_2_exp"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "photo_image_full_size_original",
-                    "value": {
-                      "image_value": {
-                        "height": 2048,
-                        "width": 2048,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=orig"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "photo_image_full_size_alt_text",
-                    "value": {
-                      "string_value": "Introducing ChatGPT And Whisper APIs",
-                      "type": "STRING"
-                    }
-                  },
-                  {
-                    "key": "vanity_url",
-                    "value": {
-                      "scribe_key": "vanity_url",
-                      "string_value": "openai.com",
-                      "type": "STRING"
-                    }
-                  },
-                  {
-                    "key": "photo_image_full_size",
-                    "value": {
-                      "image_value": {
-                        "height": 314,
-                        "width": 600,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=600x314"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "summary_photo_image_alt_text",
-                    "value": {
-                      "string_value": "Introducing ChatGPT And Whisper APIs",
-                      "type": "STRING"
-                    }
-                  },
-                  {
-                    "key": "thumbnail_image_color",
-                    "value": {
-                      "image_color_value": {
-                        "palette": [
-                          {
-                            "rgb": {
-                              "blue": 106,
-                              "green": 216,
-                              "red": 110
-                            },
-                            "percentage": 31.78
-                          },
-                          {
-                            "rgb": {
-                              "blue": 71,
-                              "green": 34,
-                              "red": 71
-                            },
-                            "percentage": 22.08
-                          },
-                          {
-                            "rgb": {
-                              "blue": 79,
-                              "green": 77,
-                              "red": 80
-                            },
-                            "percentage": 19.6
-                          },
-                          {
-                            "rgb": {
-                              "blue": 92,
-                              "green": 145,
-                              "red": 95
-                            },
-                            "percentage": 17.08
-                          },
-                          {
-                            "rgb": {
-                              "blue": 84,
-                              "green": 107,
-                              "red": 86
-                            },
-                            "percentage": 6.4
-                          }
-                        ]
-                      },
-                      "type": "IMAGE_COLOR"
-                    }
-                  },
-                  {
-                    "key": "title",
-                    "value": {
-                      "string_value": "Introducing ChatGPT and Whisper APIs",
-                      "type": "STRING"
-                    }
-                  },
-                  {
-                    "key": "summary_photo_image_color",
-                    "value": {
-                      "image_color_value": {
-                        "palette": [
-                          {
-                            "rgb": {
-                              "blue": 106,
-                              "green": 216,
-                              "red": 110
-                            },
-                            "percentage": 31.78
-                          },
-                          {
-                            "rgb": {
-                              "blue": 71,
-                              "green": 34,
-                              "red": 71
-                            },
-                            "percentage": 22.08
-                          },
-                          {
-                            "rgb": {
-                              "blue": 79,
-                              "green": 77,
-                              "red": 80
-                            },
-                            "percentage": 19.6
-                          },
-                          {
-                            "rgb": {
-                              "blue": 92,
-                              "green": 145,
-                              "red": 95
-                            },
-                            "percentage": 17.08
-                          },
-                          {
-                            "rgb": {
-                              "blue": 84,
-                              "green": 107,
-                              "red": 86
-                            },
-                            "percentage": 6.4
-                          }
-                        ]
-                      },
-                      "type": "IMAGE_COLOR"
-                    }
-                  },
-                  {
-                    "key": "summary_photo_image_x_large",
-                    "value": {
-                      "image_value": {
-                        "height": 2048,
-                        "width": 2048,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=png&name=2048x2048_2_exp"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "summary_photo_image",
-                    "value": {
-                      "image_value": {
-                        "height": 314,
-                        "width": 600,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=600x314"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "photo_image_full_size_color",
-                    "value": {
-                      "image_color_value": {
-                        "palette": [
-                          {
-                            "rgb": {
-                              "blue": 106,
-                              "green": 216,
-                              "red": 110
-                            },
-                            "percentage": 31.78
-                          },
-                          {
-                            "rgb": {
-                              "blue": 71,
-                              "green": 34,
-                              "red": 71
-                            },
-                            "percentage": 22.08
-                          },
-                          {
-                            "rgb": {
-                              "blue": 79,
-                              "green": 77,
-                              "red": 80
-                            },
-                            "percentage": 19.6
-                          },
-                          {
-                            "rgb": {
-                              "blue": 92,
-                              "green": 145,
-                              "red": 95
-                            },
-                            "percentage": 17.08
-                          },
-                          {
-                            "rgb": {
-                              "blue": 84,
-                              "green": 107,
-                              "red": 86
-                            },
-                            "percentage": 6.4
-                          }
-                        ]
-                      },
-                      "type": "IMAGE_COLOR"
-                    }
-                  },
-                  {
-                    "key": "photo_image_full_size_x_large",
-                    "value": {
-                      "image_value": {
-                        "height": 2048,
-                        "width": 2048,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=png&name=2048x2048_2_exp"
-                      },
-                      "type": "IMAGE"
-                    }
-                  },
-                  {
-                    "key": "card_url",
-                    "value": {
-                      "scribe_key": "card_url",
-                      "string_value": "https://t.co/vpoyxZ7XnD",
-                      "type": "STRING"
-                    }
-                  },
-                  {
-                    "key": "summary_photo_image_original",
-                    "value": {
-                      "image_value": {
-                        "height": 2048,
-                        "width": 2048,
-                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=orig"
-                      },
-                      "type": "IMAGE"
-                    }
-                  }
-                ],
-                "card_platform": {
-                  "platform": {
-                    "audience": {
-                      "name": "production"
-                    },
-                    "device": {
-                      "name": "Swift",
-                      "version": "12"
-                    }
-                  }
-                },
-                "name": "summary_large_image",
-                "url": "https://t.co/vpoyxZ7XnD",
-                "user_refs_results": [
-                  {
-                    "result": {
-                      "__typename": "User",
-                      "id": "VXNlcjo0Mzk4NjI2MTIy",
-                      "rest_id": "4398626122",
-                      "affiliates_highlighted_label": {},
-                      "has_graduated_access": true,
-                      "is_blue_verified": false,
-                      "legacy": {
-                        "can_dm": true,
-                        "can_media_tag": true,
-                        "created_at": "Sun Dec 06 22:51:08 +0000 2015",
-                        "default_profile": true,
-                        "default_profile_image": false,
-                        "description": "OpenAI’s mission is to ensure that artificial general intelligence benefits all of humanity. We’re hiring: https://t.co/dJGr6LgzPA",
-                        "entities": {
-                          "description": {
-                            "urls": [
-                              {
-                                "display_url": "openai.com/jobs",
-                                "expanded_url": "http://openai.com/jobs",
-                                "url": "https://t.co/dJGr6LgzPA",
-                                "indices": [
-                                  107,
-                                  130
-                                ]
-                              }
-                            ]
-                          },
-                          "url": {
-                            "urls": [
-                              {
-                                "display_url": "openai.com",
-                                "expanded_url": "https://openai.com",
-                                "url": "https://t.co/3bPlZZkvdL",
-                                "indices": [
-                                  0,
-                                  23
-                                ]
-                              }
-                            ]
-                          }
-                        },
-                        "fast_followers_count": 0,
-                        "favourites_count": 348,
-                        "followers_count": 2082073,
-                        "friends_count": 0,
-                        "has_custom_timelines": false,
-                        "is_translator": false,
-                        "listed_count": 13003,
-                        "location": "",
-                        "media_count": 120,
-                        "name": "OpenAI",
-                        "normal_followers_count": 2082073,
-                        "pinned_tweet_ids_str": [],
-                        "possibly_sensitive": false,
-                        "profile_banner_url": "https://pbs.twimg.com/profile_banners/4398626122/1649351819",
-                        "profile_image_url_https": "https://pbs.twimg.com/profile_images/1634058036934500352/b4F1eVpJ_normal.jpg",
-                        "profile_interstitial_type": "",
-                        "screen_name": "OpenAI",
-                        "statuses_count": 590,
-                        "translator_type": "none",
-                        "url": "https://t.co/3bPlZZkvdL",
-                        "verified": true,
-                        "verified_type": "Business",
-                        "want_retweets": false,
-                        "withheld_in_countries": []
-                      },
-                      "smart_blocked_by": false,
-                      "smart_blocking": false,
-                      "business_account": {
-                        "affiliates_count": 0
-                      }
-                    }
-                  }
-                ]
-              }
-            },
-            "unmention_data": {},
-            "unified_card": {
-              "card_fetch_state": "NoCard"
-            },
-            "edit_control": {
-              "edit_tweet_ids": [
-                "1630992406542970880"
-              ],
-              "editable_until_msecs": "1677695666000",
-              "is_edit_eligible": true,
-              "edits_remaining": "5"
-            },
-            "edit_perspective": {
-              "favorited": false,
-              "retweeted": false
-            },
-            "is_translatable": false,
-            "views": {
-              "count": "2227432",
-              "state": "EnabledWithCount"
-            },
-            "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
-            "legacy": {
-              "created_at": "Wed Mar 01 18:04:26 +0000 2023",
-              "conversation_id_str": "1630992406542970880",
-              "display_text_range": [
-                0,
-                128
-              ],
-              "entities": {
-                "user_mentions": [],
-                "urls": [
-                  {
-                    "display_url": "openai.com/blog/introduci…",
-                    "expanded_url": "https://openai.com/blog/introducing-chatgpt-and-whisper-apis",
-                    "url": "https://t.co/vpoyxZ7XnD",
-                    "indices": [
-                      105,
-                      128
-                    ]
-                  }
-                ],
-                "hashtags": [],
-                "symbols": []
-              },
-              "favorite_count": 11145,
-              "favorited": false,
-              "full_text": "ChatGPT and Whisper are now available through our API (plus developer policy updates). We ❤️ developers: https://t.co/vpoyxZ7XnD",
-              "is_quote_status": false,
-              "lang": "en",
-              "possibly_sensitive": false,
-              "possibly_sensitive_editable": true,
-              "quote_count": 796,
-              "reply_count": 680,
-              "retweet_count": 2771,
-              "retweeted": false,
-              "user_id_str": "4398626122",
-              "id_str": "1630992406542970880"
-            }
-          }
-        },
-        "legacy": {
-          "created_at": "Wed Mar 01 18:40:07 +0000 2023",
-          "conversation_id_str": "1631001385985773570",
-          "display_text_range": [
-            0,
-            16
-          ],
-          "entities": {
-            "user_mentions": [],
-            "urls": [],
-            "hashtags": [],
-            "symbols": []
-          },
-          "favorite_count": 121,
-          "favorited": false,
-          "full_text": "now 10x cheaper!",
-          "is_quote_status": true,
-          "lang": "en",
-          "quote_count": 0,
-          "quoted_status_id_str": "1630992406542970880",
-          "quoted_status_permalink": {
-            "url": "https://t.co/6sGqTHvcZO",
-            "expanded": "https://twitter.com/OpenAI/status/1630992406542970880",
-            "display": "twitter.com/OpenAI/status/…"
-          },
-          "reply_count": 9,
-          "retweet_count": 4,
-          "retweeted": false,
-          "user_id_str": "1720046887",
-          "id_str": "1631001385985773570"
-        },
-        "quick_promote_eligibility": {
-          "eligibility": "IneligibleNotProfessional"
-        }
-      }
-    }
-  }
-}
-```
-
-#### TweetDetail
-
-(sample entry)
+<details>
+<summary> TweetDetail (single entry) </summary>
 
 ```json
 {
@@ -4154,9 +3407,10 @@ Example responses for common endpoints
 }
 ```
 
-#### Retweeters
+</details>
 
-(sample entry)
+<details>
+<summary> Retweeters (single entry) </summary>
 
 ```json
 {
@@ -4235,9 +3489,10 @@ Example responses for common endpoints
 }
 ```
 
-#### Favoriters
+</details>
 
-(sample entry)
+<details>
+<summary> Favoriters (single entry) </summary>
 
 ```json
 {
@@ -4330,70 +3585,10 @@ Example responses for common endpoints
 }
 ```
 
-#### UserByScreenName
+</details>
 
-```json
-{
-  "data": {
-    "user": {
-      "result": {
-        "__typename": "User",
-        "id": "VXNlcjoxNzIwMDQ2ODg3",
-        "rest_id": "1720046887",
-        "affiliates_highlighted_label": {},
-        "has_graduated_access": true,
-        "is_blue_verified": false,
-        "profile_image_shape": "Circle",
-        "legacy": {
-          "can_dm": false,
-          "can_media_tag": true,
-          "created_at": "Sun Sep 01 19:32:15 +0000 2013",
-          "default_profile": false,
-          "default_profile_image": false,
-          "description": "towards a plurality of humanity loving AGIs @openai",
-          "entities": {
-            "description": {
-              "urls": []
-            }
-          },
-          "fast_followers_count": 0,
-          "favourites_count": 4320,
-          "followers_count": 168867,
-          "friends_count": 2,
-          "has_custom_timelines": true,
-          "is_translator": false,
-          "listed_count": 2776,
-          "location": "",
-          "media_count": 25,
-          "name": "Ilya Sutskever",
-          "normal_followers_count": 168867,
-          "pinned_tweet_ids_str": [],
-          "possibly_sensitive": false,
-          "profile_banner_url": "https://pbs.twimg.com/profile_banners/1720046887/1648404188",
-          "profile_image_url_https": "https://pbs.twimg.com/profile_images/1548311632597553154/WYGE5NGW_normal.jpg",
-          "profile_interstitial_type": "",
-          "screen_name": "ilyasut",
-          "statuses_count": 1082,
-          "translator_type": "none",
-          "verified": false,
-          "want_retweets": false,
-          "withheld_in_countries": []
-        },
-        "smart_blocked_by": false,
-        "smart_blocking": false,
-        "legacy_extended_profile": {},
-        "is_profile_translatable": false,
-        "verification_info": {},
-        "business_account": {}
-      }
-    }
-  }
-}
-```
-
-#### Followers
-
-(sample entry)
+<details>
+<summary> Followers (single entry) </summary>
 
 ```json
 {
@@ -4488,9 +3683,10 @@ Example responses for common endpoints
 }
 ```
 
-#### Following
+</details>
 
-(sample entry)
+<details>
+<summary>Following (single entry) </summary>
 
 ```json
 {
@@ -4585,7 +3781,10 @@ Example responses for common endpoints
 }
 ```
 
-#### UsersByRestIds
+</details>
+
+<details>
+<summary>UsersByRestIds</summary>
 
 ```json
 {
@@ -4653,3 +3852,827 @@ Example responses for common endpoints
   }
 }
 ```
+
+</details>
+
+<details>
+<summary> TweetStats </summary>
+
+```json
+{
+  "data": {
+    "result": {
+      "user": {
+        "tweet_stats": {
+          "tweet_frequency": "58"
+        }
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary> TweetResultByRestId </summary>
+
+```json
+{
+  "data": {
+    "tweetResult": {
+      "result": {
+        "__typename": "Tweet",
+        "rest_id": "1631001385985773570",
+        "has_birdwatch_notes": false,
+        "core": {
+          "user_results": {
+            "result": {
+              "__typename": "User",
+              "id": "VXNlcjoxNzIwMDQ2ODg3",
+              "rest_id": "1720046887",
+              "affiliates_highlighted_label": {},
+              "has_graduated_access": true,
+              "is_blue_verified": false,
+              "legacy": {
+                "can_dm": false,
+                "can_media_tag": true,
+                "created_at": "Sun Sep 01 19:32:15 +0000 2013",
+                "default_profile": false,
+                "default_profile_image": false,
+                "description": "towards a plurality of humanity loving AGIs @openai",
+                "entities": {
+                  "description": {
+                    "urls": []
+                  }
+                },
+                "fast_followers_count": 0,
+                "favourites_count": 4320,
+                "followers_count": 168867,
+                "friends_count": 2,
+                "has_custom_timelines": true,
+                "is_translator": false,
+                "listed_count": 2776,
+                "location": "",
+                "media_count": 25,
+                "name": "Ilya Sutskever",
+                "normal_followers_count": 168867,
+                "pinned_tweet_ids_str": [],
+                "possibly_sensitive": false,
+                "profile_banner_url": "https://pbs.twimg.com/profile_banners/1720046887/1648404188",
+                "profile_image_url_https": "https://pbs.twimg.com/profile_images/1548311632597553154/WYGE5NGW_normal.jpg",
+                "profile_interstitial_type": "",
+                "screen_name": "ilyasut",
+                "statuses_count": 1082,
+                "translator_type": "none",
+                "verified": false,
+                "want_retweets": false,
+                "withheld_in_countries": []
+              },
+              "smart_blocked_by": false,
+              "smart_blocking": false,
+              "business_account": {}
+            }
+          }
+        },
+        "unmention_data": {},
+        "edit_control": {
+          "edit_tweet_ids": [
+            "1631001385985773570"
+          ],
+          "editable_until_msecs": "1677697807000",
+          "is_edit_eligible": true,
+          "edits_remaining": "5"
+        },
+        "edit_perspective": {
+          "favorited": false,
+          "retweeted": false
+        },
+        "is_translatable": false,
+        "views": {
+          "count": "28899",
+          "state": "EnabledWithCount"
+        },
+        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+        "quoted_status_result": {
+          "result": {
+            "__typename": "Tweet",
+            "rest_id": "1630992406542970880",
+            "has_birdwatch_notes": false,
+            "core": {
+              "user_results": {
+                "result": {
+                  "__typename": "User",
+                  "id": "VXNlcjo0Mzk4NjI2MTIy",
+                  "rest_id": "4398626122",
+                  "affiliates_highlighted_label": {},
+                  "has_graduated_access": true,
+                  "is_blue_verified": false,
+                  "legacy": {
+                    "can_dm": true,
+                    "can_media_tag": true,
+                    "created_at": "Sun Dec 06 22:51:08 +0000 2015",
+                    "default_profile": true,
+                    "default_profile_image": false,
+                    "description": "OpenAI’s mission is to ensure that artificial general intelligence benefits all of humanity. We’re hiring: https://t.co/dJGr6LgzPA",
+                    "entities": {
+                      "description": {
+                        "urls": [
+                          {
+                            "display_url": "openai.com/jobs",
+                            "expanded_url": "http://openai.com/jobs",
+                            "url": "https://t.co/dJGr6LgzPA",
+                            "indices": [
+                              107,
+                              130
+                            ]
+                          }
+                        ]
+                      },
+                      "url": {
+                        "urls": [
+                          {
+                            "display_url": "openai.com",
+                            "expanded_url": "https://openai.com",
+                            "url": "https://t.co/3bPlZZkvdL",
+                            "indices": [
+                              0,
+                              23
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "fast_followers_count": 0,
+                    "favourites_count": 348,
+                    "followers_count": 2082073,
+                    "friends_count": 0,
+                    "has_custom_timelines": false,
+                    "is_translator": false,
+                    "listed_count": 13003,
+                    "location": "",
+                    "media_count": 120,
+                    "name": "OpenAI",
+                    "normal_followers_count": 2082073,
+                    "pinned_tweet_ids_str": [],
+                    "possibly_sensitive": false,
+                    "profile_banner_url": "https://pbs.twimg.com/profile_banners/4398626122/1649351819",
+                    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1634058036934500352/b4F1eVpJ_normal.jpg",
+                    "profile_interstitial_type": "",
+                    "screen_name": "OpenAI",
+                    "statuses_count": 590,
+                    "translator_type": "none",
+                    "url": "https://t.co/3bPlZZkvdL",
+                    "verified": true,
+                    "verified_type": "Business",
+                    "want_retweets": false,
+                    "withheld_in_countries": []
+                  },
+                  "smart_blocked_by": false,
+                  "smart_blocking": false,
+                  "business_account": {
+                    "affiliates_count": 0
+                  }
+                }
+              }
+            },
+            "card": {
+              "rest_id": "https://t.co/vpoyxZ7XnD",
+              "legacy": {
+                "binding_values": [
+                  {
+                    "key": "photo_image_full_size_large",
+                    "value": {
+                      "image_value": {
+                        "height": 419,
+                        "width": 800,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=800x419"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "thumbnail_image",
+                    "value": {
+                      "image_value": {
+                        "height": 144,
+                        "width": 144,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=144x144"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "description",
+                    "value": {
+                      "string_value": "Developers can now integrate ChatGPT and Whisper models into their apps and products through our API.",
+                      "type": "STRING"
+                    }
+                  },
+                  {
+                    "key": "domain",
+                    "value": {
+                      "string_value": "openai.com",
+                      "type": "STRING"
+                    }
+                  },
+                  {
+                    "key": "thumbnail_image_large",
+                    "value": {
+                      "image_value": {
+                        "height": 320,
+                        "width": 320,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=800x320_1"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "summary_photo_image_small",
+                    "value": {
+                      "image_value": {
+                        "height": 202,
+                        "width": 386,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=386x202"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "thumbnail_image_original",
+                    "value": {
+                      "image_value": {
+                        "height": 2048,
+                        "width": 2048,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=orig"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "site",
+                    "value": {
+                      "scribe_key": "publisher_id",
+                      "type": "USER",
+                      "user_value": {
+                        "id_str": "4398626122",
+                        "path": []
+                      }
+                    }
+                  },
+                  {
+                    "key": "photo_image_full_size_small",
+                    "value": {
+                      "image_value": {
+                        "height": 202,
+                        "width": 386,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=386x202"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "summary_photo_image_large",
+                    "value": {
+                      "image_value": {
+                        "height": 419,
+                        "width": 800,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=800x419"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "thumbnail_image_small",
+                    "value": {
+                      "image_value": {
+                        "height": 100,
+                        "width": 100,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=100x100"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "thumbnail_image_x_large",
+                    "value": {
+                      "image_value": {
+                        "height": 2048,
+                        "width": 2048,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=png&name=2048x2048_2_exp"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "photo_image_full_size_original",
+                    "value": {
+                      "image_value": {
+                        "height": 2048,
+                        "width": 2048,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=orig"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "photo_image_full_size_alt_text",
+                    "value": {
+                      "string_value": "Introducing ChatGPT And Whisper APIs",
+                      "type": "STRING"
+                    }
+                  },
+                  {
+                    "key": "vanity_url",
+                    "value": {
+                      "scribe_key": "vanity_url",
+                      "string_value": "openai.com",
+                      "type": "STRING"
+                    }
+                  },
+                  {
+                    "key": "photo_image_full_size",
+                    "value": {
+                      "image_value": {
+                        "height": 314,
+                        "width": 600,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=600x314"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "summary_photo_image_alt_text",
+                    "value": {
+                      "string_value": "Introducing ChatGPT And Whisper APIs",
+                      "type": "STRING"
+                    }
+                  },
+                  {
+                    "key": "thumbnail_image_color",
+                    "value": {
+                      "image_color_value": {
+                        "palette": [
+                          {
+                            "rgb": {
+                              "blue": 106,
+                              "green": 216,
+                              "red": 110
+                            },
+                            "percentage": 31.78
+                          },
+                          {
+                            "rgb": {
+                              "blue": 71,
+                              "green": 34,
+                              "red": 71
+                            },
+                            "percentage": 22.08
+                          },
+                          {
+                            "rgb": {
+                              "blue": 79,
+                              "green": 77,
+                              "red": 80
+                            },
+                            "percentage": 19.6
+                          },
+                          {
+                            "rgb": {
+                              "blue": 92,
+                              "green": 145,
+                              "red": 95
+                            },
+                            "percentage": 17.08
+                          },
+                          {
+                            "rgb": {
+                              "blue": 84,
+                              "green": 107,
+                              "red": 86
+                            },
+                            "percentage": 6.4
+                          }
+                        ]
+                      },
+                      "type": "IMAGE_COLOR"
+                    }
+                  },
+                  {
+                    "key": "title",
+                    "value": {
+                      "string_value": "Introducing ChatGPT and Whisper APIs",
+                      "type": "STRING"
+                    }
+                  },
+                  {
+                    "key": "summary_photo_image_color",
+                    "value": {
+                      "image_color_value": {
+                        "palette": [
+                          {
+                            "rgb": {
+                              "blue": 106,
+                              "green": 216,
+                              "red": 110
+                            },
+                            "percentage": 31.78
+                          },
+                          {
+                            "rgb": {
+                              "blue": 71,
+                              "green": 34,
+                              "red": 71
+                            },
+                            "percentage": 22.08
+                          },
+                          {
+                            "rgb": {
+                              "blue": 79,
+                              "green": 77,
+                              "red": 80
+                            },
+                            "percentage": 19.6
+                          },
+                          {
+                            "rgb": {
+                              "blue": 92,
+                              "green": 145,
+                              "red": 95
+                            },
+                            "percentage": 17.08
+                          },
+                          {
+                            "rgb": {
+                              "blue": 84,
+                              "green": 107,
+                              "red": 86
+                            },
+                            "percentage": 6.4
+                          }
+                        ]
+                      },
+                      "type": "IMAGE_COLOR"
+                    }
+                  },
+                  {
+                    "key": "summary_photo_image_x_large",
+                    "value": {
+                      "image_value": {
+                        "height": 2048,
+                        "width": 2048,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=png&name=2048x2048_2_exp"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "summary_photo_image",
+                    "value": {
+                      "image_value": {
+                        "height": 314,
+                        "width": 600,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=600x314"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "photo_image_full_size_color",
+                    "value": {
+                      "image_color_value": {
+                        "palette": [
+                          {
+                            "rgb": {
+                              "blue": 106,
+                              "green": 216,
+                              "red": 110
+                            },
+                            "percentage": 31.78
+                          },
+                          {
+                            "rgb": {
+                              "blue": 71,
+                              "green": 34,
+                              "red": 71
+                            },
+                            "percentage": 22.08
+                          },
+                          {
+                            "rgb": {
+                              "blue": 79,
+                              "green": 77,
+                              "red": 80
+                            },
+                            "percentage": 19.6
+                          },
+                          {
+                            "rgb": {
+                              "blue": 92,
+                              "green": 145,
+                              "red": 95
+                            },
+                            "percentage": 17.08
+                          },
+                          {
+                            "rgb": {
+                              "blue": 84,
+                              "green": 107,
+                              "red": 86
+                            },
+                            "percentage": 6.4
+                          }
+                        ]
+                      },
+                      "type": "IMAGE_COLOR"
+                    }
+                  },
+                  {
+                    "key": "photo_image_full_size_x_large",
+                    "value": {
+                      "image_value": {
+                        "height": 2048,
+                        "width": 2048,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=png&name=2048x2048_2_exp"
+                      },
+                      "type": "IMAGE"
+                    }
+                  },
+                  {
+                    "key": "card_url",
+                    "value": {
+                      "scribe_key": "card_url",
+                      "string_value": "https://t.co/vpoyxZ7XnD",
+                      "type": "STRING"
+                    }
+                  },
+                  {
+                    "key": "summary_photo_image_original",
+                    "value": {
+                      "image_value": {
+                        "height": 2048,
+                        "width": 2048,
+                        "url": "https://pbs.twimg.com/card_img/1647049887941558272/3C5_Vi-G?format=jpg&name=orig"
+                      },
+                      "type": "IMAGE"
+                    }
+                  }
+                ],
+                "card_platform": {
+                  "platform": {
+                    "audience": {
+                      "name": "production"
+                    },
+                    "device": {
+                      "name": "Swift",
+                      "version": "12"
+                    }
+                  }
+                },
+                "name": "summary_large_image",
+                "url": "https://t.co/vpoyxZ7XnD",
+                "user_refs_results": [
+                  {
+                    "result": {
+                      "__typename": "User",
+                      "id": "VXNlcjo0Mzk4NjI2MTIy",
+                      "rest_id": "4398626122",
+                      "affiliates_highlighted_label": {},
+                      "has_graduated_access": true,
+                      "is_blue_verified": false,
+                      "legacy": {
+                        "can_dm": true,
+                        "can_media_tag": true,
+                        "created_at": "Sun Dec 06 22:51:08 +0000 2015",
+                        "default_profile": true,
+                        "default_profile_image": false,
+                        "description": "OpenAI’s mission is to ensure that artificial general intelligence benefits all of humanity. We’re hiring: https://t.co/dJGr6LgzPA",
+                        "entities": {
+                          "description": {
+                            "urls": [
+                              {
+                                "display_url": "openai.com/jobs",
+                                "expanded_url": "http://openai.com/jobs",
+                                "url": "https://t.co/dJGr6LgzPA",
+                                "indices": [
+                                  107,
+                                  130
+                                ]
+                              }
+                            ]
+                          },
+                          "url": {
+                            "urls": [
+                              {
+                                "display_url": "openai.com",
+                                "expanded_url": "https://openai.com",
+                                "url": "https://t.co/3bPlZZkvdL",
+                                "indices": [
+                                  0,
+                                  23
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "fast_followers_count": 0,
+                        "favourites_count": 348,
+                        "followers_count": 2082073,
+                        "friends_count": 0,
+                        "has_custom_timelines": false,
+                        "is_translator": false,
+                        "listed_count": 13003,
+                        "location": "",
+                        "media_count": 120,
+                        "name": "OpenAI",
+                        "normal_followers_count": 2082073,
+                        "pinned_tweet_ids_str": [],
+                        "possibly_sensitive": false,
+                        "profile_banner_url": "https://pbs.twimg.com/profile_banners/4398626122/1649351819",
+                        "profile_image_url_https": "https://pbs.twimg.com/profile_images/1634058036934500352/b4F1eVpJ_normal.jpg",
+                        "profile_interstitial_type": "",
+                        "screen_name": "OpenAI",
+                        "statuses_count": 590,
+                        "translator_type": "none",
+                        "url": "https://t.co/3bPlZZkvdL",
+                        "verified": true,
+                        "verified_type": "Business",
+                        "want_retweets": false,
+                        "withheld_in_countries": []
+                      },
+                      "smart_blocked_by": false,
+                      "smart_blocking": false,
+                      "business_account": {
+                        "affiliates_count": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "unmention_data": {},
+            "unified_card": {
+              "card_fetch_state": "NoCard"
+            },
+            "edit_control": {
+              "edit_tweet_ids": [
+                "1630992406542970880"
+              ],
+              "editable_until_msecs": "1677695666000",
+              "is_edit_eligible": true,
+              "edits_remaining": "5"
+            },
+            "edit_perspective": {
+              "favorited": false,
+              "retweeted": false
+            },
+            "is_translatable": false,
+            "views": {
+              "count": "2227432",
+              "state": "EnabledWithCount"
+            },
+            "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+            "legacy": {
+              "created_at": "Wed Mar 01 18:04:26 +0000 2023",
+              "conversation_id_str": "1630992406542970880",
+              "display_text_range": [
+                0,
+                128
+              ],
+              "entities": {
+                "user_mentions": [],
+                "urls": [
+                  {
+                    "display_url": "openai.com/blog/introduci…",
+                    "expanded_url": "https://openai.com/blog/introducing-chatgpt-and-whisper-apis",
+                    "url": "https://t.co/vpoyxZ7XnD",
+                    "indices": [
+                      105,
+                      128
+                    ]
+                  }
+                ],
+                "hashtags": [],
+                "symbols": []
+              },
+              "favorite_count": 11145,
+              "favorited": false,
+              "full_text": "ChatGPT and Whisper are now available through our API (plus developer policy updates). We ❤️ developers: https://t.co/vpoyxZ7XnD",
+              "is_quote_status": false,
+              "lang": "en",
+              "possibly_sensitive": false,
+              "possibly_sensitive_editable": true,
+              "quote_count": 796,
+              "reply_count": 680,
+              "retweet_count": 2771,
+              "retweeted": false,
+              "user_id_str": "4398626122",
+              "id_str": "1630992406542970880"
+            }
+          }
+        },
+        "legacy": {
+          "created_at": "Wed Mar 01 18:40:07 +0000 2023",
+          "conversation_id_str": "1631001385985773570",
+          "display_text_range": [
+            0,
+            16
+          ],
+          "entities": {
+            "user_mentions": [],
+            "urls": [],
+            "hashtags": [],
+            "symbols": []
+          },
+          "favorite_count": 121,
+          "favorited": false,
+          "full_text": "now 10x cheaper!",
+          "is_quote_status": true,
+          "lang": "en",
+          "quote_count": 0,
+          "quoted_status_id_str": "1630992406542970880",
+          "quoted_status_permalink": {
+            "url": "https://t.co/6sGqTHvcZO",
+            "expanded": "https://twitter.com/OpenAI/status/1630992406542970880",
+            "display": "twitter.com/OpenAI/status/…"
+          },
+          "reply_count": 9,
+          "retweet_count": 4,
+          "retweeted": false,
+          "user_id_str": "1720046887",
+          "id_str": "1631001385985773570"
+        },
+        "quick_promote_eligibility": {
+          "eligibility": "IneligibleNotProfessional"
+        }
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary> UserByScreenName </summary>
+
+```json
+{
+  "data": {
+    "user": {
+      "result": {
+        "__typename": "User",
+        "id": "VXNlcjoxNzIwMDQ2ODg3",
+        "rest_id": "1720046887",
+        "affiliates_highlighted_label": {},
+        "has_graduated_access": true,
+        "is_blue_verified": false,
+        "profile_image_shape": "Circle",
+        "legacy": {
+          "can_dm": false,
+          "can_media_tag": true,
+          "created_at": "Sun Sep 01 19:32:15 +0000 2013",
+          "default_profile": false,
+          "default_profile_image": false,
+          "description": "towards a plurality of humanity loving AGIs @openai",
+          "entities": {
+            "description": {
+              "urls": []
+            }
+          },
+          "fast_followers_count": 0,
+          "favourites_count": 4320,
+          "followers_count": 168867,
+          "friends_count": 2,
+          "has_custom_timelines": true,
+          "is_translator": false,
+          "listed_count": 2776,
+          "location": "",
+          "media_count": 25,
+          "name": "Ilya Sutskever",
+          "normal_followers_count": 168867,
+          "pinned_tweet_ids_str": [],
+          "possibly_sensitive": false,
+          "profile_banner_url": "https://pbs.twimg.com/profile_banners/1720046887/1648404188",
+          "profile_image_url_https": "https://pbs.twimg.com/profile_images/1548311632597553154/WYGE5NGW_normal.jpg",
+          "profile_interstitial_type": "",
+          "screen_name": "ilyasut",
+          "statuses_count": 1082,
+          "translator_type": "none",
+          "verified": false,
+          "want_retweets": false,
+          "withheld_in_countries": []
+        },
+        "smart_blocked_by": false,
+        "smart_blocking": false,
+        "legacy_extended_profile": {},
+        "is_profile_translatable": false,
+        "verification_info": {},
+        "business_account": {}
+      }
+    }
+  }
+}
+```
+
+</details>
