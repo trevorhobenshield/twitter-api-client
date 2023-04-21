@@ -22,19 +22,6 @@ logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
 
-class GraphQL:
-    def __init__(self, operation: tuple, variables: dict, features: dict = Operation.default_features):
-        self.operation = operation
-        self.variables = variables
-        self.features = features
-
-    def get(self):
-        ...
-
-    def post(self):
-        ...
-
-
 class Account:
 
     def __init__(self, email: str, username: str, password: str, *, save=True, debug: int = 0):
