@@ -35,8 +35,8 @@ def get_headers(session, **kwargs) -> dict:
         'cookie': '; '.join(f'{k}={v}' for k, v in session.cookies.items()),
         'referer': 'https://twitter.com/',
         'user-agent': 'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
-        'x-csrf-token': session.cookies.get('ct0'),
-        'x-guest-token': session.cookies.get('guest_token'),
+        'x-csrf-token': session.cookies.get('ct0', ''),
+        'x-guest-token': session.cookies.get('guest_token', ''),
         'x-twitter-auth-type': 'OAuth2Session' if session.cookies.get('auth_token') else '',
         'x-twitter-active-user': 'yes',
         'x-twitter-client-language': 'en',
@@ -94,4 +94,3 @@ def find_key(obj: any, key: str) -> list:
         return L
 
     return helper(obj, key, [])
-
