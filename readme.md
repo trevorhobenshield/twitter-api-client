@@ -227,9 +227,12 @@ user_media = scraper.media([123, 234, 345])
 ![](assets/search.gif)
 
 ```python   
-from twitter.search import search
+from twitter.search import Search
 
-search(
+email, username, password = ..., ..., ...
+search = Search(email, username, password)
+
+res = search.run(
     '(#dogs OR #cats) min_retweets:500',
     'min_faves:10000 @elonmusk until:2023-02-16 since:2023-02-01',
     'brasil portugal -argentina',
@@ -237,7 +240,7 @@ search(
     'skateboarding baseball guitar',
     'cheese bread butter',
     'ios android',
-    # limit=1000, # optional limit
+    limit=100,
 )
 ```
 

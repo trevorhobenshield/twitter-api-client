@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.6.8",
+    version="0.6.9",
     python_requires=">=3.11.0",
     description="Twitter API",
     long_description=dedent('''
@@ -233,9 +233,12 @@ setup(
     #### Search
     
     ```python   
-    from twitter.search import search
+    from twitter.search import Search
     
-    search(
+    email, username, password = ..., ..., ...
+    search = Search(email, username, password)
+    
+    res = search.run(
         '(#dogs OR #cats) min_retweets:500',
         'min_faves:10000 @elonmusk until:2023-02-16 since:2023-02-01',
         'brasil portugal -argentina',
@@ -243,7 +246,7 @@ setup(
         'skateboarding baseball guitar',
         'cheese bread butter',
         'ios android',
-        # limit=1000, # optional limit
+        limit=100,
     )
     ```
     '''),
