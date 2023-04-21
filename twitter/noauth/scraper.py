@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps, partial
 
 import orjson
-from requests import Session, Response
+from httpx import Client, Response
 from tqdm import tqdm
 
 from .util import log_config, logging, find_key, save_data, get_cursor, SUCCESS, WARN, ERROR, RESET
@@ -48,7 +48,7 @@ def log(fn=None, *, level: int = logging.DEBUG, info: int = 0) -> callable:
 
 class Scraper:
     def __init__(self):
-        self.session = Session()
+        self.session = Client()
         self.guest_token = self.get_guest_token()
         self.api = 'https://twitter.com/i/api/graphql'
 
@@ -169,7 +169,7 @@ class Scraper:
         return dict(sorted({k.lower(): v for k, v in headers.items()}.items()))
 
     def get_guest_token(self) -> str:
-        return Session().post('https://api.twitter.com/1.1/guest/activate.json', headers={
+        return Client().post('https://api.twitter.com/1.1/guest/activate.json', headers={
             'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
             'user-agent': 'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36'
         }).json()['guest_token']

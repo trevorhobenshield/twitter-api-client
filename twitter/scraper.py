@@ -8,8 +8,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import orjson
-from aiohttp import ClientSession, TCPConnector, ClientResponse
-from requests import Response
+from httpx import AsyncClient, Response
 from tqdm import tqdm
 
 from .constants import *
@@ -28,11 +27,10 @@ except:
     ...
 
 if platform.system() != 'Windows':
-    import uvloop
-
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-else:
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    try:
+        import uvloop
+    except ImportError as e:
+        ...
 
 
 class Scraper:
@@ -117,18 +115,20 @@ class Scraper:
         return data
 
     def _run(self, ids: list[int | str], operation: tuple, limit=None):
+        if platform.system() != 'Windows':
+            with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
+                return runner.run(self._process(ids, operation, limit))
         return asyncio.run(self._process(ids, operation, limit))
 
     async def _process(self, ids: list[int | str], op: tuple, limit: int | None) -> list:
-        conn = TCPConnector(limit=100, ssl=False, ttl_dns_cache=69)
-        async with ClientSession(headers=get_headers(self.session), connector=conn) as s:
-            s.cookie_jar.update_cookies(self.session.cookies)
+        async with AsyncClient(headers=get_headers(self.session)) as s:
             return await asyncio.gather(*(self._paginate(s, _id, op, limit) for _id in ids))
 
-    async def _paginate(self, session: ClientSession, _id: int | str | list[int], operation: tuple,
+    async def _paginate(self, session: AsyncClient, _id: int | str | list[int], operation: tuple,
                         limit: int | None) -> list[dict]:
+
         r = await self._query(session, _id, operation)
-        initial_data = await r.json()
+        initial_data = r.json()
         res = [initial_data]
         ids = set(find_key(initial_data, 'rest_id'))
         dups = 0
@@ -140,13 +140,12 @@ class Scraper:
             if prev_len >= limit:
                 return res
 
-            # csrf must match in headers and cookies
-            if csrf := r.cookies.get("ct0"):
-                session.headers.update({"x-csrf-token": csrf.value})
-            session.cookie_jar.update_cookies(r.cookies)
-
             r = await self._query(session, _id, operation, cursor=cursor)
-            data = await r.json()
+            data = r.json()
+
+            if len(find_key(data, 'entries')[0]) <= 2:
+                # only top/bottom cursor in result
+                return res
 
             cursor = get_cursor(data)
             ids |= set(find_key(data, 'rest_id'))
@@ -160,15 +159,15 @@ class Scraper:
             res.append(data)
         return res
 
-    async def _query(self, session: ClientSession, _id: int | str | list, operation: tuple, **kwargs) -> ClientResponse:
+    async def _query(self, session: AsyncClient, _id: int | str | list, operation: tuple, **kwargs) -> Response:
         qid, op, k = operation
         params = {k: orjson.dumps(v).decode() for k, v in {
             'variables': {k: _id} | kwargs | Operation.default_variables,
             'features': Operation.default_features,
         }.items()}
         r = await session.get(f'{self.api}/{qid}/{op}', params=params)
-        txt = await r.text()
-        data = await r.json()
+        txt = r.text
+        data = r.json()
         if self.debug:
             self.log(r, txt, data)
         if self.save:
@@ -235,8 +234,8 @@ class Scraper:
         )
         return trends
 
-    def log(self, r: ClientResponse | Response, txt: str, data: dict):
-        status = r.status if isinstance(r, ClientResponse) else r.status_code
+    def log(self, r: Response | Response, txt: str, data: dict):
+        status = r.status_code
 
         def stat(r):
             if self.debug >= 1:

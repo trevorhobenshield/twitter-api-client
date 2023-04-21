@@ -8,6 +8,7 @@ from pathlib import Path
 
 import aiohttp
 import orjson
+from httpx import AsyncClient
 
 from .constants import *
 from .login import login
@@ -29,12 +30,8 @@ except:
 if platform.system() != 'Windows':
     try:
         import uvloop
-
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    except:
+    except ImportError as e:
         ...
-else:
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 class Search:
@@ -44,15 +41,16 @@ class Search:
 
     def run(self, *args, out: str = 'data', **kwargs):
         out_path = self.make_output_dirs(out)
+        if platform.system() != 'Windows':
+            with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
+                return runner.run(self.process(args, search_config, out_path, **kwargs))
         return asyncio.run(self.process(args, search_config, out_path, **kwargs))
 
     async def process(self, queries: tuple, config: dict, out: Path, **kwargs) -> list:
-        conn = aiohttp.TCPConnector(limit=len(queries), ssl=False)
-        async with aiohttp.ClientSession(headers=get_headers(self.session), connector=conn) as s:
-            s.cookie_jar.update_cookies(self.session.cookies)
+        async with AsyncClient(headers=get_headers(self.session)) as s:
             return await asyncio.gather(*(self.paginate(q, s, config, out, **kwargs) for q in queries))
 
-    async def paginate(self, query: str, session: aiohttp.ClientSession, config: dict, out: Path, **kwargs) -> list[
+    async def paginate(self, query: str, session: AsyncClient, config: dict, out: Path, **kwargs) -> list[
         dict]:
         config['q'] = query
         r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
@@ -66,11 +64,6 @@ class Search:
                 return all_data
             logger.debug(f'{c}{query}{reset}')
             config['cursor'] = next_cursor
-
-            # csrf must match in headers and cookies
-            if csrf := r.cookies.get("ct0"):
-                session.headers.update({"x-csrf-token": csrf.value})
-            session.cookie_jar.update_cookies(r.cookies)
 
             r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
             data['query'] = query
@@ -96,10 +89,10 @@ class Search:
                 logger.debug(f'No data for: \u001b[1m{info}\u001b[0m | retrying in {f"{t:.2f}"} seconds\t\t{e}')
                 time.sleep(t)
 
-    async def get(self, session: aiohttp.ClientSession, params: dict) -> tuple:
+    async def get(self, session: AsyncClient, params: dict) -> tuple:
         url = set_qs(self.api, params, update=True, safe='()')
         r = await session.get(url)
-        data = await r.json()
+        data = r.json()
         next_cursor = self.get_cursor(data)
         return r, data, next_cursor
 

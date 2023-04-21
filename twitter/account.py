@@ -11,7 +11,7 @@ from urllib.parse import urlencode
 from uuid import uuid1, getnode
 
 import orjson
-from requests import Response
+from httpx import Response
 from tqdm import tqdm
 
 from .constants import *

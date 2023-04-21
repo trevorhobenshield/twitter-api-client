@@ -1,23 +1,23 @@
 import sys
 
-from requests import Session
+from httpx import Client
 
 from .constants import GREEN, YELLOW, RED, BOLD, RESET
 from .util import find_key
 
 
-def update_token(session: Session, key: str, url: str, **kwargs) -> Session:
+def update_token(session: Client, key: str, url: str, **kwargs) -> Client:
     caller_name = sys._getframe(1).f_code.co_name
     try:
         headers = {
-            "authorization": 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-            "content-type": "application/json",
-            "user-agent": 'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
-            "x-guest-token": session.cookies.get('guest_token'),
-            "x-csrf-token": session.cookies.get("ct0"),
-            "x-twitter-auth-type": "OAuth2Session" if session.cookies.get("auth_token") else '',
-            "x-twitter-active-user": "yes",
-            "x-twitter-client-language": 'en',
+            'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+            'content-type': 'application/json',
+            'user-agent': 'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
+            'x-guest-token': session.cookies.get('guest_token', ''),
+            'x-csrf-token': session.cookies.get('ct0', ''),
+            'x-twitter-auth-type': 'OAuth2Client' if session.cookies.get('auth_token') else '',
+            'x-twitter-active-user': 'yes',
+            'x-twitter-client-language': 'en',
         }
         r = session.post(url, headers=headers, **kwargs)
         info = r.json()
@@ -34,11 +34,11 @@ def update_token(session: Session, key: str, url: str, **kwargs) -> Session:
     return session
 
 
-def init_guest_token(session: Session) -> Session:
-    return update_token(session, 'guest_token', 'https://api.twitter.com/1.1/guest/activate.json', json={})
+def init_guest_token(session: Client) -> Client:
+    return update_token(session, 'guest_token', 'https://api.twitter.com/1.1/guest/activate.json')
 
 
-def flow_start(session: Session) -> Session:
+def flow_start(session: Client) -> Client:
     return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json',
                         params={'flow_name': 'login'},
                         json={
@@ -51,7 +51,7 @@ def flow_start(session: Session) -> Session:
                         })
 
 
-def flow_instrumentation(session: Session) -> Session:
+def flow_instrumentation(session: Client) -> Client:
     return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
@@ -61,7 +61,7 @@ def flow_instrumentation(session: Session) -> Session:
     })
 
 
-def flow_username(session: Session) -> Session:
+def flow_username(session: Client) -> Client:
     return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
@@ -74,7 +74,7 @@ def flow_username(session: Session) -> Session:
     })
 
 
-def flow_password(session: Session) -> Session:
+def flow_password(session: Client) -> Client:
     return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
@@ -83,7 +83,7 @@ def flow_password(session: Session) -> Session:
     })
 
 
-def flow_duplication_check(session: Session) -> Session:
+def flow_duplication_check(session: Client) -> Client:
     return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [{
@@ -93,7 +93,7 @@ def flow_duplication_check(session: Session) -> Session:
     })
 
 
-def confirm_email(session: Session) -> Session:
+def confirm_email(session: Client) -> Client:
     return update_token(session, 'flow_token', 'https://api.twitter.com/1.1/onboarding/task.json', json={
         "flow_token": session.cookies.get('flow_token'),
         "subtask_inputs": [
@@ -107,7 +107,7 @@ def confirm_email(session: Session) -> Session:
     })
 
 
-def execute_login_flow(session: Session) -> Session:
+def execute_login_flow(session: Client) -> Client:
     session = init_guest_token(session)
     for fn in [flow_start, flow_instrumentation, flow_username, flow_password, flow_duplication_check]:
         session = fn(session)
@@ -119,8 +119,8 @@ def execute_login_flow(session: Session) -> Session:
     return session
 
 
-def login(email: str, username: str, password: str) -> Session:
-    session = Session()
+def login(email: str, username: str, password: str) -> Client:
+    session = Client()
     session.cookies.update({
         "email": email,
         "username": username,
