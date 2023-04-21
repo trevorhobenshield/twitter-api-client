@@ -1,9 +1,7 @@
-import asyncio
 import hashlib
 import logging.config
 import math
 import mimetypes
-import platform
 import random
 import time
 from copy import deepcopy
@@ -19,21 +17,6 @@ from tqdm import tqdm
 from .constants import *
 from .login import login
 from .util import find_key, get_headers, fmt_status, get_cursor, save_data
-
-try:
-    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-        import nest_asyncio
-
-        nest_asyncio.apply()
-except:
-    ...
-
-if platform.system() != 'Windows':
-    import uvloop
-
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-else:
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)

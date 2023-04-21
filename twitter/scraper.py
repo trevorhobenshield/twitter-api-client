@@ -1,6 +1,7 @@
 import asyncio
 import logging.config
 import math
+import platform
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -17,6 +18,21 @@ from .util import find_key, save_data, get_cursor, get_headers, set_qs, fmt_stat
 
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(__name__)
+
+try:
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+
+        nest_asyncio.apply()
+except:
+    ...
+
+if platform.system() != 'Windows':
+    import uvloop
+
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+else:
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 class Scraper:

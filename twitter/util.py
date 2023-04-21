@@ -55,6 +55,18 @@ def fmt_status(status: int) -> str:
     return f'[{color}{status}{RESET}]'
 
 
+def save_data(data: list, op: str, key: str | int):
+    try:
+        path = Path(f'data/raw/{key}')
+        path.mkdir(parents=True, exist_ok=True)
+        (path / f'{time.time_ns()}_{op}.json').write_text(
+            orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
+            encoding='utf-8'
+        )
+    except Exception as e:
+        print(f'failed to save data: {e}')
+
+
 def find_key(obj: any, key: str) -> list:
     """
     Find all values of a given key within a nested dict or list of dicts
@@ -84,13 +96,20 @@ def find_key(obj: any, key: str) -> list:
     return helper(obj, key, [])
 
 
-def save_data(data: list, op: str, key: str | int):
-    try:
-        path = Path(f'data/raw/{key}')
-        path.mkdir(parents=True, exist_ok=True)
-        (path / f'{time.time_ns()}_{op}.json').write_text(
-            orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
-            encoding='utf-8'
-        )
-    except Exception as e:
-        print(f'failed to save data: {e}')
+def keys(d: dict, paths=False) -> list:
+    """
+    Get all unique keys from nested dicts
+    """
+    def get(d, curr_key=[]):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                yield from get(v, curr_key + [k])
+            elif isinstance(v, list):
+                for i in v:
+                    yield from get(i, curr_key + [k])
+            else:
+                yield curr_key + [k]
+
+    if paths:
+        return list(get(d))
+    return list({y for x in get(d) for y in x})
