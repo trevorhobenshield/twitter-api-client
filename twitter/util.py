@@ -95,21 +95,3 @@ def find_key(obj: any, key: str) -> list:
 
     return helper(obj, key, [])
 
-
-def keys(d: dict, paths=False) -> list:
-    """
-    Get all unique keys from nested dicts
-    """
-    def get(d, curr_key=[]):
-        for k, v in d.items():
-            if isinstance(v, dict):
-                yield from get(v, curr_key + [k])
-            elif isinstance(v, list):
-                for i in v:
-                    yield from get(i, curr_key + [k])
-            else:
-                yield curr_key + [k]
-
-    if paths:
-        return list(get(d))
-    return list({y for x in get(d) for y in x})
