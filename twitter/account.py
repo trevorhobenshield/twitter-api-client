@@ -36,7 +36,7 @@ class Account:
         params = {
             'queryId': qid,
             'features': features,
-            'variables': variables | Operation.default_variables
+            'variables': Operation.default_variables | variables
         }
         if method == 'POST':
             data = {'json': params}

@@ -5,11 +5,10 @@ Includes tools to **scrape**, **automate**, and **search** twitter
 * [Installation](#installation)
 * [Automation](#automation)
 * [Scraping](#scraping)
-  * [Get all user/tweet data](#get-all-usertweet-data)
-  * [Get user/tweet data (no auth)](#get-usertweet-data-no-auth)
-  * [Search](#search)
+    * [Get all user/tweet data](#get-all-usertweet-data)
+    * [Get user/tweet data (no auth)](#get-usertweet-data-no-auth)
+    * [Search](#search)
 * [Example API Responses](#example-api-responses)
-
 
 ### Installation
 
@@ -185,7 +184,6 @@ following = scraper.following([123, 234, 345])
 followers = scraper.followers([123, 234, 345])
 scraper.tweet_stats([111111, 222222, 333333])
 
-
 # tweet data
 tweets_by_ids = scraper.tweets_by_id([987, 876, 754])
 tweets_details = scraper.tweets_details([987, 876, 754])
@@ -201,25 +199,6 @@ scraper.download_media([
 
 # trends
 scraper.trends()
-```
-
-#### Get user/tweet data (no auth)
-
-```python
-from twitter.noauth.scraper import Scraper
-
-scraper = Scraper()
-
-users = scraper.users(['foo', 'bar', 'baz'])
-users = scraper.users_by_id([123, 234, 345])
-users = scraper.users_by_ids([123, 234, 345])  # special batch query
-
-tweets = scraper.tweets_by_id([987, 876, 765])  # condensed
-tweets = scraper.tweets_details([987, 876, 765])
-
-user_tweets = scraper.tweets([123, 234, 345])
-user_tweets_replies = scraper.tweets_and_replies([123, 234, 345])
-user_media = scraper.media([123, 234, 345])
 ```
 
 #### Search
@@ -3939,7 +3918,7 @@ https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-
 </details>
 
 <details>
-<summary>Following  </summary>
+<summary> Following  </summary>
 
 ```json
 {

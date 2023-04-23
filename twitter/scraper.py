@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import httpx
 import orjson
 from httpx import AsyncClient, Response
 from tqdm import tqdm
@@ -102,7 +103,7 @@ class Scraper:
         """
         qid, op, k = Operation.UsersByRestIds
         params = {k: orjson.dumps(v).decode() for k, v in {
-            'variables': {k: user_ids} | Operation.default_variables,
+            'variables': Operation.default_variables | {k: user_ids},
             'features': Operation.default_features,
         }.items()}
         r = self.session.get(f'{self.api}/{qid}/{op}', headers=get_headers(self.session), params=params)
@@ -162,7 +163,7 @@ class Scraper:
     async def _query(self, session: AsyncClient, _id: int | str | list, operation: tuple, **kwargs) -> Response:
         qid, op, k = operation
         params = {k: orjson.dumps(v).decode() for k, v in {
-            'variables': {k: _id} | kwargs | Operation.default_variables,
+            'variables': {k: _id} | Operation.default_variables | kwargs,
             'features': Operation.default_features,
         }.items()}
         r = await session.get(f'{self.api}/{qid}/{op}', params=params)
@@ -200,10 +201,10 @@ class Scraper:
         name = urlsplit(post_url).path.replace('/', '_')[1:]
         ext = urlsplit(cdn_url).path.split('/')[-1]
         try:
-            r = self.session.get(cdn_url, stream=True)
-            with open(f'{path}/{name}_{ext}', 'wb') as f:
-                for chunk in r.iter_content(chunk_size=chunk_size):
-                    f.write(chunk)
+            with httpx.stream('GET', cdn_url) as r:
+                with open(f'{path}/{name}_{ext}', 'wb') as f:
+                    for chunk in r.iter_bytes(chunk_size=chunk_size):
+                        f.write(chunk)
         except Exception as e:
             logger.debug(f'[{RED}error{RESET}] failed to download media: {post_url} {e}')
 
