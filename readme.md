@@ -6,7 +6,6 @@ Includes tools to **scrape**, **automate**, and **search**.
 * [Automation](#automation)
 * [Scraping](#scraping)
     * [Get all user/tweet data](#get-all-usertweet-data)
-    * [Get user/tweet data (no auth)](#get-usertweet-data-no-auth)
     * [Search](#search)
 * [Example API Responses](#example-api-responses)
 
