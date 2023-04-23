@@ -30,6 +30,8 @@ except:
 if platform.system() != 'Windows':
     try:
         import uvloop
+
+        uvloop.install()
     except ImportError as e:
         ...
 
@@ -132,9 +134,6 @@ class Scraper:
         return data
 
     def _run(self, ids: list[int | str], operation: tuple, limit=None):
-        if platform.system() != 'Windows':
-            with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
-                return runner.run(self._process(ids, operation, limit))
         return asyncio.run(self._process(ids, operation, limit))
 
     async def _process(self, ids: list[int | str], op: tuple, limit: int | None) -> list:
