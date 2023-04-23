@@ -13,22 +13,14 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.7.5",
+    version="0.7.6",
     python_requires=">=3.11.0",
     description="Twitter API",
     long_description=dedent('''
-    Complete implementation of the undocumented Twitter API
+    Implementation of Twitter's v1, v2, and GraphQL APIs
     
-    Includes tools to **scrape**, **automate**, and **search** twitter
-    
-    * [Installation](#installation)
-    * [Automation](#automation)
-    * [Scraping](#scraping)
-      * [Get all user/tweet data](#get-all-usertweet-data)
-      * [Get user/tweet data (no auth)](#get-usertweet-data-no-auth)
-      * [Search](#search)
-    * [Notes](#notes)
-    
+    Includes tools to **scrape**, **automate**, and **search**.
+
     ### Automation
     
     ```python
@@ -239,7 +231,7 @@ setup(
     long_description_content_type='text/markdown',
     author="Trevor Hobenshield",
     author_email="trevorhobenshield@gmail.com",
-    url="https://github.com/trevorhobenshield/twitter-api",
+    url="https://github.com/trevorhobenshield/twitter-api-client",
     install_requires=install_requires,
     keywords="twitter api client async search automation bot scrape",
     packages=find_packages(),

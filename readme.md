@@ -1,6 +1,6 @@
-Complete implementation of the undocumented Twitter API
+Implementation of Twitter's v1, v2, and GraphQL APIs
 
-Includes tools to **scrape**, **automate**, and **search** twitter
+Includes tools to **scrape**, **automate**, and **search**.
 
 * [Installation](#installation)
 * [Automation](#automation)
