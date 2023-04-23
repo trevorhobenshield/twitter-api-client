@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.7.3",
+    version="0.7.4",
     python_requires=">=3.11.0",
     description="Twitter API",
     long_description=dedent('''
@@ -193,6 +193,9 @@ setup(
     followers = scraper.followers([123, 234, 345])
     scraper.tweet_stats([111111, 222222, 333333])
     
+    # get recommended users based on user
+    scraper.recommended_users()
+    scraper.recommended_users(123)
     
     # tweet data
     tweets_by_ids = scraper.tweets_by_id([987, 876, 754])
@@ -206,6 +209,8 @@ setup(
         333333,
         444444,
     ])
+    
+
     
     # trends
     scraper.trends()

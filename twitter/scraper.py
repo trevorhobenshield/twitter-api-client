@@ -94,6 +94,22 @@ class Scraper:
     def tweet_stats(self, user_ids: list[int]) -> list[dict]:
         return self._run(user_ids, Operation.TweetStats)
 
+    def recommended_users(self, user_id: int = None) -> dict:
+        qid, op, key = Operation.ConnectTabTimeline
+        context = {"contextualUserId": user_id} if user_id else {}
+        params = {k: orjson.dumps(v).decode() for k, v in {
+            'variables': Operation.default_variables | {key: orjson.dumps(context).decode()},
+            'features': Operation.default_features,
+        }.items()}
+        r = self.session.get(f'{self.api}/{qid}/{op}', headers=get_headers(self.session), params=params)
+        txt = r.text
+        data = r.json()
+        if self.debug:
+            self.log(r, txt, data)
+        if self.save:
+            save_data(data, op, user_id)
+        return data
+
     # special case, batch query
     def users_by_ids(self, user_ids: list[int]) -> dict:
         """
@@ -101,9 +117,9 @@ class Scraper:
 
         Batch-size limited to around 200-300 users
         """
-        qid, op, k = Operation.UsersByRestIds
+        qid, op, key = Operation.UsersByRestIds
         params = {k: orjson.dumps(v).decode() for k, v in {
-            'variables': Operation.default_variables | {k: user_ids},
+            'variables': Operation.default_variables | {key: user_ids},
             'features': Operation.default_features,
         }.items()}
         r = self.session.get(f'{self.api}/{qid}/{op}', headers=get_headers(self.session), params=params)

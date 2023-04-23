@@ -184,6 +184,10 @@ following = scraper.following([123, 234, 345])
 followers = scraper.followers([123, 234, 345])
 scraper.tweet_stats([111111, 222222, 333333])
 
+# get recommended users based on user
+scraper.recommended_users()
+scraper.recommended_users(123)
+
 # tweet data
 tweets_by_ids = scraper.tweets_by_id([987, 876, 754])
 tweets_details = scraper.tweets_details([987, 876, 754])

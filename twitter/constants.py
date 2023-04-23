@@ -81,6 +81,7 @@ class Operation:
     Following = 'wjvx62Hye2dGVvnvVco0xA', 'Following', 'userId'
     Retweeters = '0BoJlKAxoNPQUHRftlwZ2w', 'Retweeters', 'tweetId'
     Favoriters = 'XRRjv1-uj1HZn3o324etOQ', 'Favoriters', 'tweetId'
+    ConnectTabTimeline = 'lq02A-gEzbLefqTgD_PFzQ', 'ConnectTabTimeline', 'context'
 
     # Account Operations
     useSendMessageMutation = 'MaxK2PKX1F9Z-9SwqwavTw', 'useSendMessageMutation'
@@ -171,7 +172,6 @@ class Operation:
     CommunityUpdateRole = '5eq76kkUqfdCzInCtcxQOA', 'CommunityUpdateRole'
     CommunityUserInvite = 'x8hUNaBCOV2tSalqB9cwWQ', 'CommunityUserInvite'
     CommunityUserRelationshipTypeahead = 'gi_UGcUurYp6N6p2BaLJqQ', 'CommunityUserRelationshipTypeahead'
-    ConnectTabTimeline = 'lq02A-gEzbLefqTgD_PFzQ', 'ConnectTabTimeline'
     ConversationControlChange = 'hb1elGcj6769uT8qVYqtjw', 'ConversationControlChange'
     ConversationControlDelete = 'OoMO_aSZ1ZXjegeamF9QmA', 'ConversationControlDelete'
     ConvertRitoSuggestedActions = '2njnYoE69O2jdUM7KMEnDw', 'ConvertRitoSuggestedActions'
