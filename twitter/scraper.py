@@ -159,10 +159,6 @@ class Scraper:
             r = await self._query(session, _id, operation, cursor=cursor)
             data = r.json()
 
-            if len(find_key(data, 'entries')[0]) <= 2:
-                # only top/bottom cursor in result
-                return res
-
             cursor = get_cursor(data)
             ids |= set(find_key(data, 'rest_id'))
 

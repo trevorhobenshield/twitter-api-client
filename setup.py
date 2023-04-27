@@ -13,8 +13,8 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.7.6",
-    python_requires=">=3.11.0",
+    version="0.7.7",
+    python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
     Implementation of Twitter's v1, v2, and GraphQL APIs
