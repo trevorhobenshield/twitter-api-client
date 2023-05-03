@@ -214,7 +214,15 @@ from twitter.search import Search
 email, username, password = ..., ..., ...
 search = Search(email, username, password)
 
-res = search.run(
+latest_results = search.run(
+    'brasil portugal -argentina',
+    'paperswithcode -tensorflow -tf',
+    'ios android',
+    limit=100,
+    latest=True,  # get latest tweets only
+)
+
+general_results = search.run(
     '(#dogs OR #cats) min_retweets:500',
     'min_faves:10000 @elonmusk until:2023-02-16 since:2023-02-01',
     'brasil portugal -argentina',

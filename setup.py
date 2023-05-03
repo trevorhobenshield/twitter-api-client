@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.7.7",
+    version="0.7.8",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -216,7 +216,15 @@ setup(
     email, username, password = ..., ..., ...
     search = Search(email, username, password)
     
-    res = search.run(
+    latest_results = search.run(
+        'brasil portugal -argentina',
+        'paperswithcode -tensorflow -tf',
+        'ios android',
+        limit=100,
+        latest=True,  # get latest tweets only
+    )
+    
+    general_results = search.run(
         '(#dogs OR #cats) min_retweets:500',
         'min_faves:10000 @elonmusk until:2023-02-16 since:2023-02-01',
         'brasil portugal -argentina',

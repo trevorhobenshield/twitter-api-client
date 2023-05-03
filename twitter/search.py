@@ -6,13 +6,12 @@ import random
 import time
 from pathlib import Path
 
-import aiohttp
 import orjson
 from httpx import AsyncClient
 
 from .constants import *
 from .login import login
-from .util import set_qs, get_headers
+from .util import set_qs, get_headers, find_key
 
 reset = '\u001b[0m'
 colors = [f'\u001b[{i}m' for i in range(30, 38)]
@@ -30,6 +29,8 @@ except:
 if platform.system() != 'Windows':
     try:
         import uvloop
+
+        uvloop.install()
     except ImportError as e:
         ...
 
@@ -41,9 +42,8 @@ class Search:
 
     def run(self, *args, out: str = 'data', **kwargs):
         out_path = self.make_output_dirs(out)
-        if platform.system() != 'Windows':
-            with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
-                return runner.run(self.process(args, search_config, out_path, **kwargs))
+        if kwargs.get('latest', False):
+            search_config['tweet_search_mode'] = 'live'
         return asyncio.run(self.process(args, search_config, out_path, **kwargs))
 
     async def process(self, queries: tuple, config: dict, out: Path, **kwargs) -> list:
@@ -98,6 +98,9 @@ class Search:
 
     def get_cursor(self, res: dict):
         try:
+            if live := find_key(res, 'value'):
+                if cursor := [x for x in live if 'scroll' in x]:
+                    return cursor[0]
             for instr in res['timeline']['instructions']:
                 if replaceEntry := instr.get('replaceEntry'):
                     cursor = replaceEntry['entry']['content']['operation']['cursor']
