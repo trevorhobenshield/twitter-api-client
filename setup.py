@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.7.8",
+    version="0.7.9",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -206,6 +206,21 @@ setup(
     
     # trends
     scraper.trends()
+
+
+    from twitter.scraper import Scraper
+    from twitter.constants import Operation
+    
+    email, username, password = ...,...,...
+    scraper = Scraper(email, username, password, debug=1, save=True)
+    
+    operation = Operation.Followers
+    user_id = 44196397
+    cursor = '1765001818576065118|1654241854176100129' # example cursor
+    limit = 250  # arbitrary limit for demonstration
+    
+    follower_subset, last_cursor = scraper.resume_pagination(scraper.session, user_id, operation, limit=limit, cursor=cursor)
+    # use last_cursor to resume pagination
     ```
     
     #### Search

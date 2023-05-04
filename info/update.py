@@ -104,6 +104,12 @@ async def get(session: aiohttp.ClientSession, url: str, **kwargs) -> tuple[str, 
 #         (JS_FILES / u).write_text(r)
 #     subprocess.run(f'prettier --write "{JS_FILES.name}/*.js" {JS_FILES_MAP}', shell=True)
 
+def get_js(res: list):
+    for url, r in res:
+        u = url.split('/')[-1]
+        (JS_FILES / u).write_text(r)
+    subprocess.run(f'prettier --write "{JS_FILES.name}/*.js" {JS_FILES_MAP}', shell=True)
+
 
 def find_strings():
     # find strings < 120 chars long
@@ -127,6 +133,7 @@ def main():
     )
     headers = get_headers()
     res = asyncio.run(process(get, headers, urls))
+    get_js(res)
     # update_endpoints(res)
     find_strings()
 

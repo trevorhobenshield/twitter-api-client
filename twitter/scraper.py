@@ -5,6 +5,7 @@ import platform
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import List
 from urllib.parse import urlsplit
 
 import httpx
@@ -140,21 +141,30 @@ class Scraper:
         async with AsyncClient(headers=get_headers(self.session)) as s:
             return await asyncio.gather(*(self._paginate(s, _id, op, limit) for _id in ids))
 
-    async def _paginate(self, session: AsyncClient, _id: int | str | list[int], operation: tuple,
-                        limit: int | None) -> list[dict]:
+    async def _paginate(self, session: AsyncClient, _id: int | str, operation: tuple,
+                        limit: int | None, **kwargs) -> list[dict] | tuple[list[dict], str]:
 
-        r = await self._query(session, _id, operation)
-        initial_data = r.json()
-        res = [initial_data]
-        ids = set(find_key(initial_data, 'rest_id'))
+        cursor = kwargs.get('cursor')
+        is_resuming = False
         dups = 0
         DUP_LIMIT = 3
 
-        cursor = get_cursor(initial_data)
+        if cursor:
+            is_resuming = True
+            res = []
+            ids = set()
+        else:
+            r = await self._query(session, _id, operation)
+            initial_data = r.json()
+            res = [initial_data]
+            ids = set(find_key(initial_data, 'rest_id'))
+            cursor = get_cursor(initial_data)
+
         while (dups < DUP_LIMIT) and cursor:
             prev_len = len(ids)
             if prev_len >= limit:
-                return res
+                # return res
+                break
 
             r = await self._query(session, _id, operation, cursor=cursor)
             data = r.json()
@@ -169,7 +179,16 @@ class Scraper:
                 dups += 1
 
             res.append(data)
+
+        if is_resuming:
+            return res, cursor
         return res
+
+    def resume_pagination(self, *args, **kwargs):
+        async def _resume(session: AsyncClient, _id: int | str, operation: tuple, limit=math.inf, **kwargs) -> tuple:
+            session = AsyncClient(headers=get_headers(session), cookies=self.session.cookies)
+            return await self._paginate(session, _id, operation, limit, **kwargs)
+        return asyncio.run(_resume(*args, **kwargs))
 
     async def _query(self, session: AsyncClient, _id: int | str | list, operation: tuple, **kwargs) -> Response:
         qid, op, k = operation
