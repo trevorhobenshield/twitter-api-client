@@ -58,6 +58,7 @@ class Search:
             r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
         except Exception as e:
             data = {}
+            logger.debug(f'[{RED}Failure{RESET}] no data found. Try changing the query or checking if the account is suspended (in this case try again in 15 minutes).')
         if data:
             all_data = [data]
             c = colors.pop() if colors else ''
@@ -83,7 +84,7 @@ class Search:
                         encoding='utf-8'
                     )
                     all_data.append(data)
-        logger.debug(f'[{RED}Failure{RESET}] no data found. Try changing the query or checking if the account is suspended (in this case try again in 15 minutes).')
+        
         return all_data
 
     async def backoff(self, fn, info, retries=3):
