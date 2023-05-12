@@ -52,29 +52,41 @@ class Search:
 
     async def paginate(self, query: str, session: AsyncClient, config: dict, out: Path, **kwargs) -> list[
         dict]:
+        all_data, data = [], {}
         config['q'] = query
-        r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
-        all_data = [data]
-        c = colors.pop() if colors else ''
-        ids = set()
-        while next_cursor:
-            ids |= set(data['globalObjects']['tweets'])
-            if len(ids) >= kwargs.get('limit', math.inf):
-                logger.debug(f'[{GREEN}success{RESET}] returned {len(ids)} search results for {c}{query}{reset}')
-                return all_data
-            logger.debug(f'{c}{query}{reset}')
-            config['cursor'] = next_cursor
-
+        try:
             r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
-            data['query'] = query
-            (out / f'raw/{time.time_ns()}.json').write_text(
-                orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
-                encoding='utf-8'
-            )
-            all_data.append(data)
+        except Exception as e:
+            data = {}
+        if data:
+            all_data = [data]
+            c = colors.pop() if colors else ''
+            ids = set()
+            while next_cursor:
+                ids |= set(data['globalObjects']['tweets'])
+                if len(ids) >= kwargs.get('limit', math.inf):
+                    logger.debug(f'[{GREEN}success{RESET}] returned {len(ids)} search results for {c}{query}{reset}')
+                    return all_data
+                logger.debug(f'{c}{query}{reset}')
+                config['cursor'] = next_cursor
+                data = {}
+                try:
+                    r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
+                except Exception as e:
+                    data = {}
+                    logger.debug(f'[{YELLOW}Partial success{RESET}] only returned {len(ids)} search results for {c}{query}{reset}')
+                    break
+                if data:
+                    data['query'] = query
+                    (out / f'raw/{time.time_ns()}.json').write_text(
+                        orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
+                        encoding='utf-8'
+                    )
+                    all_data.append(data)
+        logger.debug(f'[{RED}Failure{RESET}] no data found. Try changing the query or checking if the account is suspended (in this case try again in 15 minutes).')
         return all_data
 
-    async def backoff(self, fn, info, retries=12):
+    async def backoff(self, fn, info, retries=3):
         for i in range(retries + 1):
             try:
                 r, data, next_cursor = await fn()
@@ -84,7 +96,7 @@ class Search:
             except Exception as e:
                 if i == retries:
                     logger.debug(f'Max retries exceeded\n{e}')
-                    return
+                    return 
                 t = 2 ** i + random.random()
                 logger.debug(f'No data for: \u001b[1m{info}\u001b[0m | retrying in {f"{t:.2f}"} seconds\t\t{e}')
                 time.sleep(t)
