@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.8.0",
+    version="0.8.1",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -206,8 +206,10 @@ setup(
     
     # trends
     scraper.trends()
-
-
+    ```
+    
+    #### Resume Pagination
+    ```python
     from twitter.scraper import Scraper
     from twitter.constants import Operation
     
@@ -229,7 +231,8 @@ setup(
     from twitter.search import Search
     
     email, username, password = ..., ..., ...
-    search = Search(email, username, password)
+    # default output directory is `data/raw` if save=True
+    search = Search(email, username, password, debug=1, save=True)
     
     latest_results = search.run(
         'brasil portugal -argentina',

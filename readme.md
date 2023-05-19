@@ -202,8 +202,10 @@ scraper.download_media([
 
 # trends
 scraper.trends()
+```
 
-
+#### Resume Pagination
+```python
 from twitter.scraper import Scraper
 from twitter.constants import Operation
 
@@ -223,11 +225,13 @@ follower_subset, last_cursor = scraper.resume_pagination(scraper.session, user_i
 
 ![](assets/search.gif)
 
+
 ```python   
 from twitter.search import Search
 
 email, username, password = ..., ..., ...
-search = Search(email, username, password)
+# default output directory is `data/raw` if save=True
+search = Search(email, username, password, debug=1, save=True)
 
 latest_results = search.run(
     'brasil portugal -argentina',
@@ -247,12 +251,9 @@ general_results = search.run(
     'cheese bread butter',
     'ios android',
     limit=100,
-    retries=11,
+    retries=7,
 )
 ```
-
-- search results are output to `~/data/raw`
-- ~400 search results rate limiting occurs
 
 **Search Operators Reference**
 

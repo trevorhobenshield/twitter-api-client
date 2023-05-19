@@ -4,8 +4,8 @@ import math
 import platform
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from logging import Logger
 from pathlib import Path
-from typing import List
 from urllib.parse import urlsplit
 
 import httpx
@@ -16,9 +16,6 @@ from tqdm import tqdm
 from .constants import *
 from .login import login
 from .util import find_key, save_data, get_cursor, get_headers, set_qs, fmt_status
-
-logging.config.dictConfig(log_config)
-logger = logging.getLogger(__name__)
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -38,11 +35,17 @@ if platform.system() != 'Windows':
 
 
 class Scraper:
-    def __init__(self, email: str, username: str, password: str, *, save=True, debug=False):
+    def __init__(self, email: str, username: str, password: str, **kwargs):
         self.session = login(email, username, password)
         self.api = 'https://twitter.com/i/api/graphql'
-        self.save = save
-        self.debug = debug
+        self.save = kwargs.get('save', True)
+        self.debug = kwargs.get('debug', 0)
+        self.logger = self.init_logger(kwargs.get('log_config', False))
+
+    @staticmethod
+    def init_logger(cfg: dict) -> Logger:
+        logging.config.dictConfig(cfg or log_config)
+        return logging.getLogger(__name__)
 
     def users(self, screen_names: list[str]) -> list:
         return self._run(screen_names, Operation.UserByScreenName)
@@ -173,7 +176,7 @@ class Scraper:
             ids |= set(find_key(data, 'rest_id'))
 
             if self.debug:
-                logger.debug(f'cursor: {cursor}\tunique results: {len(ids)}')
+                self.logger.debug(f'cursor: {cursor}\tunique results: {len(ids)}')
 
             if prev_len == len(ids):
                 dups += 1
@@ -188,6 +191,7 @@ class Scraper:
         async def _resume(session: AsyncClient, _id: int | str, operation: tuple, limit=math.inf, **kwargs) -> tuple:
             session = AsyncClient(headers=get_headers(session), cookies=self.session.cookies)
             return await self._paginate(session, _id, operation, limit, **kwargs)
+
         return asyncio.run(_resume(*args, **kwargs))
 
     async def _query(self, session: AsyncClient, _id: int | str | list, operation: tuple, **kwargs) -> Response:
@@ -236,7 +240,7 @@ class Scraper:
                     for chunk in r.iter_bytes(chunk_size=chunk_size):
                         f.write(chunk)
         except Exception as e:
-            logger.debug(f'[{RED}error{RESET}] failed to download media: {post_url} {e}')
+            self.logger.debug(f'[{RED}error{RESET}] failed to download media: {post_url} {e}')
 
     def trends(self) -> dict:
         """Get trends for all UTC offsets"""
@@ -270,26 +274,26 @@ class Scraper:
 
         def stat(r):
             if self.debug >= 1:
-                logger.debug(f'{r.url}')
+                self.logger.debug(f'{r.url}')
             if self.debug >= 2:
-                logger.debug(f'{txt}')
+                self.logger.debug(f'{txt}')
 
             limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
             current_time = int(time.time())
             wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
-            logger.debug(
+            self.logger.debug(
                 f"remaining: {MAGENTA}{limits['x-rate-limit-remaining']}/{limits['x-rate-limit-limit']}{RESET} requests")
-            logger.debug(f'reset:     {MAGENTA}{(wait / 60):.2f}{RESET} minutes')
+            self.logger.debug(f'reset:     {MAGENTA}{(wait / 60):.2f}{RESET} minutes')
 
         try:
             if 'json' in r.headers.get('content-type', ''):
                 if data.get('errors'):
-                    logger.debug(f'[{RED}error{RESET}] {status} {data}')
+                    self.logger.debug(f'[{RED}error{RESET}] {status} {data}')
                 else:
-                    logger.debug(fmt_status(status))
+                    self.logger.debug(fmt_status(status))
                     stat(r)
             else:
-                logger.debug(fmt_status(status))
+                self.logger.debug(fmt_status(status))
                 stat(r)
         except Exception as e:
-            logger.debug(f'failed to log: {e}')
+            self.logger.debug(f'failed to log: {e}')

@@ -6,6 +6,7 @@ import random
 import time
 from copy import deepcopy
 from datetime import datetime
+from logging import Logger
 from pathlib import Path
 from urllib.parse import urlencode
 from uuid import uuid1, getnode
@@ -18,18 +19,21 @@ from .constants import *
 from .login import login
 from .util import find_key, get_headers, fmt_status, get_cursor, save_data
 
-logging.config.dictConfig(log_config)
-logger = logging.getLogger(__name__)
-
 
 class Account:
 
-    def __init__(self, email: str, username: str, password: str, *, save=True, debug: int = 0):
+    def __init__(self, email: str, username: str, password: str, **kwargs):
         self.session = login(email, username, password)
         self.gql_url = 'https://twitter.com/i/api/graphql'
         self.v1_url = 'https://api.twitter.com/1.1'
-        self.save = save
-        self.debug = debug
+        self.save = kwargs.get('save', True)
+        self.debug = kwargs.get('debug', 0)
+        self.logger = self.init_logger(kwargs.get('log_config', False))
+
+    @staticmethod
+    def init_logger(cfg: dict) -> Logger:
+        logging.config.dictConfig(cfg or log_config)
+        return logging.getLogger(__name__)
 
     def gql(self, method: str, operation: tuple, variables: dict, features: dict = Operation.default_features) -> dict:
         qid, op = operation
@@ -372,7 +376,7 @@ class Account:
             headers=headers,
             json=settings,
         )
-        logger.debug(r)
+        self.logger.debug(r)
         return r
 
     def update_settings(self, settings: dict) -> dict:
@@ -447,7 +451,7 @@ class Account:
             ids |= set(find_key(data, 'rest_id'))
 
             if self.debug:
-                logger.debug(f'cursor: {cursor}\tunique results: {len(ids)}')
+                self.logger.debug(f'cursor: {cursor}\tunique results: {len(ids)}')
 
             if prev_len == len(ids):
                 dups += 1
@@ -496,7 +500,7 @@ class Account:
                     files = {'media': chunk}
                     r = self.session.post(url=url, headers=headers, data=data, files=files)
                     if r.status_code < 200 or r.status_code > 299:
-                        logger.debug(f'{r.status_code} {r.text}')
+                        self.logger.debug(f'{r.status_code} {r.text}')
                         raise Exception(f'[{RED}error{RESET}] upload failed')
                     i += 1
                     pbar.update(f.tell() - pbar.n)
@@ -506,7 +510,7 @@ class Account:
             data |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
         r = self.session.post(url=url, headers=headers, data=data)
 
-        # logger.debug(f'processing, please wait...')
+        # self.logger.debug(f'processing, please wait...')
         processing_info = r.json().get('processing_info')
         while processing_info:
             state = processing_info['state']
@@ -521,7 +525,7 @@ class Account:
             params = {'command': 'STATUS', 'media_id': media_id}
             r = self.session.get(url=url, headers=headers, params=params)
             processing_info = r.json().get('processing_info')
-        # logger.debug('processing complete')
+        # self.logger.debug('processing complete')
         return media_id
 
     def _add_alt_text(self, media_id: int, text: str) -> Response:
@@ -534,16 +538,16 @@ class Account:
         status = fmt_status(response.status_code)
         if 'json' in response.headers.get('content-type', ''):
             if response.json().get('errors'):
-                logger.debug(f'[{RED}twitter error{RESET}]')
-                logger.debug(f'{response.url}')
-                logger.debug(f'{response.text}')
+                self.logger.debug(f'[{RED}twitter error{RESET}]')
+                self.logger.debug(f'{response.url}')
+                self.logger.debug(f'{response.text}')
                 return
-        logger.debug(status)
+        self.logger.debug(status)
         if self.debug >= 1:
-            logger.debug(f'{response.url}')
+            self.logger.debug(f'{response.url}')
         if self.debug >= 2:
-            logger.debug(f'{response.text}')
+            self.logger.debug(f'{response.text}')
         if self.debug >= 3:
-            logger.debug(f'{response.headers}')
+            self.logger.debug(f'{response.headers}')
         if self.debug >= 4:
-            logger.debug(f'{response.cookies}')
+            self.logger.debug(f'{response.cookies}')
