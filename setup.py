@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.7.9",
+    version="0.8.0",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -237,6 +237,7 @@ setup(
         'ios android',
         limit=100,
         latest=True,  # get latest tweets only
+        retries=3,
     )
     
     general_results = search.run(
@@ -248,6 +249,7 @@ setup(
         'cheese bread butter',
         'ios android',
         limit=100,
+        retries=11,
     )
     ```
     '''),

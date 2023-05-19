@@ -235,6 +235,7 @@ latest_results = search.run(
     'ios android',
     limit=100,
     latest=True,  # get latest tweets only
+    retries=3,
 )
 
 general_results = search.run(
@@ -246,6 +247,7 @@ general_results = search.run(
     'cheese bread butter',
     'ios android',
     limit=100,
+    retries=11,
 )
 ```
 

@@ -53,7 +53,7 @@ class Search:
     async def paginate(self, query: str, session: AsyncClient, config: dict, out: Path, **kwargs) -> list[
         dict]:
         config['q'] = query
-        r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
+        r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query, **kwargs)
         all_data = [data]
         c = colors.pop() if colors else ''
         ids = set()
@@ -65,7 +65,9 @@ class Search:
             logger.debug(f'{c}{query}{reset}')
             config['cursor'] = next_cursor
 
-            r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query)
+            r, data, next_cursor = await self.backoff(lambda: self.get(session, config), query, **kwargs)
+            if r is None:
+                return all_data
             data['query'] = query
             (out / f'raw/{time.time_ns()}.json').write_text(
                 orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
@@ -74,7 +76,8 @@ class Search:
             all_data.append(data)
         return all_data
 
-    async def backoff(self, fn, info, retries=12):
+    async def backoff(self, fn, info, **kwargs):
+        retries = kwargs.get('retries', 3)
         for i in range(retries + 1):
             try:
                 r, data, next_cursor = await fn()
@@ -84,7 +87,7 @@ class Search:
             except Exception as e:
                 if i == retries:
                     logger.debug(f'Max retries exceeded\n{e}')
-                    return
+                    return None, None, None
                 t = 2 ** i + random.random()
                 logger.debug(f'No data for: \u001b[1m{info}\u001b[0m | retrying in {f"{t:.2f}"} seconds\t\t{e}')
                 time.sleep(t)
