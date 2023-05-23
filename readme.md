@@ -4,7 +4,7 @@ Implementation of Twitter's v1, v2, and GraphQL APIs
 
 Tools include: [Scraping](#scraping), [Account Automation](#automation), [Search](#search)
 
-Automated email challenge solvers are supported for **Proton Mail** accounts. See [here](#automated-solvers) for more information.
+Automated email challenge solvers are supported for **Proton Mail** accounts using [proton-python-client](https://github.com/ProtonMail/proton-python-client). See [here](#automated-solvers) for more information.
 
 * [Installation](#installation)
 * [Automation](#automation)
