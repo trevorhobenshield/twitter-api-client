@@ -36,7 +36,7 @@ if platform.system() != 'Windows':
 
 class Search:
     def __init__(self, email: str, username: str, password: str, **kwargs):
-        self.session = login(email, username, password)
+        self.session = login(email, username, password, **kwargs)
         self.api = 'https://api.twitter.com/2/search/adaptive.json?'
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)

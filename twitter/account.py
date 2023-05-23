@@ -23,7 +23,7 @@ from .util import find_key, get_headers, fmt_status, get_cursor, save_data
 class Account:
 
     def __init__(self, email: str, username: str, password: str, **kwargs):
-        self.session = login(email, username, password)
+        self.session = login(email, username, password, **kwargs)
         self.gql_url = 'https://twitter.com/i/api/graphql'
         self.v1_url = 'https://api.twitter.com/1.1'
         self.save = kwargs.get('save', True)

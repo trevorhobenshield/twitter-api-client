@@ -1,12 +1,17 @@
+> Currently affected by layoffs. If anyone is hiring in **Vancouver, BC** or remotely in **Canada** please feel free to send me a message at `trevorhobenshield@gmail.com`. Thanks!
+
 Implementation of Twitter's v1, v2, and GraphQL APIs
 
-Includes tools to **scrape**, **automate**, and **search**.
+Tools include: [Scraping](#scraping), [Account Automation](#automation), [Search](#search)
+
+Automated email challenge solvers are supported for Proton Mail accounts. See [here](#automated-solvers) for more information.
 
 * [Installation](#installation)
 * [Automation](#automation)
 * [Scraping](#scraping)
-    * [Get all user/tweet data](#get-all-usertweet-data)
+    * [Users/Tweets data](#get-all-usertweet-data)
     * [Search](#search)
+* [Automated Solvers](#automated-solvers)
 * [Example API Responses](#example-api-responses)
 
 ### Installation
@@ -205,6 +210,7 @@ scraper.trends()
 ```
 
 #### Resume Pagination
+Pagination is already done by default, however there are circumstances where you may need to resume pagination from a specific cursor. For example, the `Followers` endpoint only allows for 50 requests every 15 minutes. In this case, we can resume from where we left off by providing a specific cursor value. This technique applies to any other endpoint defined in `twitter.constants.Operation`.
 ```python
 from twitter.scraper import Scraper
 from twitter.constants import Operation
@@ -260,6 +266,21 @@ general_results = search.run(
 https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-operators
 
 https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
+
+
+### Automated Solvers
+To set up automated email confirmation/verification solvers, add your Proton Mail credentials below as shown.
+This removes the need to manually solve email challenges via the web app. These credentials can be used in `Scraper`, `Account`, and `Search` constructors.
+
+E.g.
+
+```python
+from twitter.scraper import Scraper
+
+email, username, password = ..., ..., ...
+proton_email, proton_password = ..., ...
+account = Scraper(email, username, password, debug=1, save=True, protonmail={'email':proton_email, 'password':proton_password})
+```
 
 ### Example API Responses
 

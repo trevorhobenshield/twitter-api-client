@@ -8,19 +8,39 @@ install_requires = [
     "httpx",
     "tqdm",
     "orjson",
+    "requests",
+    "bcrypt",
+    "python-gnupg",
+    "pyopenssl",
     'uvloop; platform_system != "Windows"',
 ]
 
 setup(
     name="twitter-api-client",
-    version="0.8.1",
+    version="0.8.2",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
     Implementation of Twitter's v1, v2, and GraphQL APIs
     
-    Includes tools to **scrape**, **automate**, and **search**.
-
+    Tools include: [Scraping](#scraping), [Account Automation](#automation), [Search](#search)
+    
+    Automated email challenge solvers are supported for Proton Mail accounts. See [here](#automated-solvers) for more information.
+    
+    * [Installation](#installation)
+    * [Automation](#automation)
+    * [Scraping](#scraping)
+        * [Users/Tweets data](#get-all-usertweet-data)
+        * [Search](#search)
+    * [Automated Solvers](#automated-solvers)
+    * [Example API Responses](#example-api-responses)
+    
+    ### Installation
+    
+    ```bash
+    pip install twitter-api-client
+    ```
+    
     ### Automation
     
     ```python
@@ -202,13 +222,12 @@ setup(
         444444,
     ])
     
-
-    
     # trends
     scraper.trends()
     ```
     
     #### Resume Pagination
+    Pagination is already done by default, however there are circumstances where you may need to resume pagination from a specific cursor. For example, the `Followers` endpoint only allows for 50 requests every 15 minutes. In this case, we can resume from where we left off by providing a specific cursor value. This technique applies to any other endpoint defined in `twitter.constants.Operation`.
     ```python
     from twitter.scraper import Scraper
     from twitter.constants import Operation
@@ -252,8 +271,29 @@ setup(
         'cheese bread butter',
         'ios android',
         limit=100,
-        retries=11,
+        retries=7,
     )
+    ```
+    
+    **Search Operators Reference**
+    
+    https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-operators
+    
+    https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
+    
+    
+    ### Automated Solvers
+    To set up automated email confirmation/verification solvers, add your Proton Mail credentials below as shown.
+    This removes the need to manually solve email challenges via the web app. These credentials can be used in `Scraper`, `Account`, and `Search` constructors.
+    
+    E.g.
+    
+    ```python
+    from twitter.scraper import Scraper
+    
+    email, username, password = ..., ..., ...
+    proton_email, proton_password = ..., ...
+    account = Scraper(email, username, password, debug=1, save=True, protonmail={'email':proton_email, 'password':proton_password})
     ```
     '''),
     long_description_content_type='text/markdown',
