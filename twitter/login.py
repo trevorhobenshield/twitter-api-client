@@ -20,8 +20,6 @@ def update_token(session: Client, key: str, url: str, **kwargs) -> Client:
         r = session.post(url, headers=headers, **kwargs)
         info = r.json()
 
-        print(f'{info = }')
-
         for task in info.get('subtasks', []):
             if task.get('enter_text', {}).get('keyboard_type') == 'email':
                 print(f"[{YELLOW}warning{RESET}] {' '.join(find_key(task, 'text'))}")
