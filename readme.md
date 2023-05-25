@@ -1,4 +1,4 @@
-> Currently affected by layoffs. If anyone is hiring in **Vancouver, BC** or remotely in **Canada** please feel free to send me a message at `trevorhobenshield@gmail.com`. Thanks!
+> Currently affected by layoffs. If anyone is hiring for Software Developers or Machine Learning Engineers in **Vancouver, BC** or remotely in **Canada** please feel free to send me a message at `trevorhobenshield@gmail.com`. Thanks!
 
 Implementation of Twitter's v1, v2, and GraphQL APIs
 
