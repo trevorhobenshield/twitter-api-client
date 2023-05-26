@@ -1,6 +1,6 @@
 > Currently affected by layoffs. If anyone is hiring for Software Developer or Machine Learning Engineer roles in **Vancouver, BC** or remotely in **Canada** please feel free to send me a message at `trevorhobenshield@gmail.com`. Thanks!
 
-Implementation of Twitter's v1, v2, and GraphQL APIs
+### Implementation of Twitter's v1, v2, and GraphQL APIs
 
 Tools include: [Scraping](#scraping), [Account Automation](#automation), [Search](#search)
 
