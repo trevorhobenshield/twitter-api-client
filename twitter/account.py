@@ -2,6 +2,7 @@ import hashlib
 import logging.config
 import math
 import mimetypes
+import platform
 import random
 from copy import deepcopy
 from datetime import datetime
@@ -13,6 +14,22 @@ from tqdm import tqdm
 from .constants import *
 from .login import login
 from .util import *
+
+try:
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+
+        nest_asyncio.apply()
+except:
+    ...
+
+if platform.system() != 'Windows':
+    try:
+        import uvloop
+
+        uvloop.install()
+    except ImportError as e:
+        ...
 
 
 class Account:

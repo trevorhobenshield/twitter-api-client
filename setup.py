@@ -9,16 +9,12 @@ install_requires = [
     "httpx",
     "tqdm",
     "orjson",
-    "bcrypt",
-    "python-gnupg",
-    "pyopenssl",
-    "requests",
     'uvloop; platform_system != "Windows"',
 ]
 
 setup(
     name="twitter-api-client",
-    version="0.8.4",
+    version="0.8.5",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -366,6 +362,9 @@ setup(
     ```
     
     ### Automated Solvers
+    
+    > **Currently removed** due to issues running on Mac. Code has been commented out for now. Cloning the repo, adding the proton mail package, and uncommenting the code referencing `protonmail` can be used as a temporary workaround to re-enable this feature.
+    
     To set up automated email confirmation/verification solvers, add your Proton Mail credentials below as shown.
     This removes the need to manually solve email challenges via the web app. These credentials can be used in `Scraper`, `Account`, and `Search` constructors.
     

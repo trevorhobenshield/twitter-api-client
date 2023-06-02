@@ -1,5 +1,4 @@
 import asyncio
-import logging.config
 import re
 import subprocess
 from pathlib import Path
@@ -10,10 +9,8 @@ import requests
 import uvloop
 from requests import Session
 
-from twitter.constants import log_config
+from twitter.constants import logger
 
-logging.config.dictConfig(log_config)
-logger = logging.getLogger(__name__)
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 BOLD = '\u001b[1m'

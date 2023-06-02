@@ -2,10 +2,6 @@
 
 ## Implementation of Twitter's v1, v2, and GraphQL APIs
 
-Tools include: [Scraping](#scraping), [Account Automation](#automation), [Search](#search)
-
-Automated email challenge solvers are supported for **Proton Mail** accounts using [proton-python-client](https://github.com/ProtonMail/proton-python-client). See [here](#automated-solvers) for more information.
-
 ## Table of Contents
 
 * [Installation](#installation)
@@ -360,6 +356,9 @@ spaces = scraper.spaces(search=[
 
 
 ### Automated Solvers
+
+> **Currently removed** due to issues running on Mac. Code has been commented out for now. Cloning the repo, adding the protonmail package, and uncommenting the code referencing `protonmail` can be used as a temporary workaround to re-enable this feature.
+
 To set up automated email confirmation/verification solvers, add your Proton Mail credentials below as shown.
 This removes the need to manually solve email challenges via the web app. These credentials can be used in `Scraper`, `Account`, and `Search` constructors.
 
