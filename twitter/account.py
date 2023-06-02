@@ -3,37 +3,46 @@ import logging.config
 import math
 import mimetypes
 import random
-import time
 from copy import deepcopy
 from datetime import datetime
-from logging import Logger
-from pathlib import Path
-from urllib.parse import urlencode
+from string import ascii_letters
 from uuid import uuid1, getnode
 
-import orjson
-from httpx import Response
 from tqdm import tqdm
 
 from .constants import *
 from .login import login
-from .util import find_key, get_headers, fmt_status, get_cursor, save_data
+from .util import *
 
 
 class Account:
 
-    def __init__(self, email: str, username: str, password: str, **kwargs):
-        self.session = login(email, username, password, **kwargs)
+    def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
+        self.logger = self.init_logger(kwargs.get('log_config', False))
+        self.session = self.validate_session(email, username, password, session, **kwargs)
         self.gql_url = 'https://twitter.com/i/api/graphql'
         self.v1_url = 'https://api.twitter.com/1.1'
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
-        self.logger = self.init_logger(kwargs.get('log_config', False))
 
     @staticmethod
     def init_logger(cfg: dict) -> Logger:
-        logging.config.dictConfig(cfg or log_config)
-        return logging.getLogger(__name__)
+        if cfg:
+            logging.config.dictConfig(cfg)
+            return logging.getLogger(__name__)
+        return logger
+
+    @staticmethod
+    def validate_session(*args, **kwargs):
+        email, username, password, session = args
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            # authenticated session provided
+            return session
+        if not session:
+            # no session provided, login to authenticate
+            return login(email, username, password, **kwargs)
+        raise Exception('Session not authenticated. '
+                        'Please use an authenticated session or remove the `session` argument and try again.')
 
     def gql(self, method: str, operation: tuple, variables: dict, features: dict = Operation.default_features) -> dict:
         qid, op = operation
@@ -53,9 +62,7 @@ class Account:
             **data
         )
         if self.debug:
-            self.log(r)
-        if self.save:
-            save_data(r.json(), op, self.session.cookies.get('username', '_'))
+            log(self.logger, self.debug, r)
         return r.json()
 
     def v1(self, path: str, params: dict) -> dict:
@@ -63,9 +70,7 @@ class Account:
         headers['content-type'] = 'application/x-www-form-urlencoded'
         r = self.session.post(f'{self.v1_url}/{path}', headers=headers, data=urlencode(params))
         if self.debug:
-            self.log(r)
-        if self.save:
-            save_data(r.json(), '_', self.session.cookies.get('username', '_'))
+            log(self.logger, self.debug, r)
         return r.json()
 
     def create_poll(self, text: str, choices: list[str], poll_duration: int) -> dict:
@@ -96,7 +101,10 @@ class Account:
             variables['message']['media'] = {'id': media_id, 'text': text}
         else:
             variables['message']['text'] = {'text': text}
-        return self.gql('POST', Operation.useSendMessageMutation, variables)
+        res = self.gql('POST', Operation.useSendMessageMutation, variables)
+        if find_key(res, 'dm_validation_failure_type'):
+            logger.debug(f"{RED}Failed to send DM(s) to {receivers}{RESET}")
+        return res
 
     def tweet(self, text: str, *, media: any = None, **kwargs) -> dict:
         variables = {
@@ -171,16 +179,11 @@ class Account:
         return self.gql('POST', Operation.CreateScheduledTweet, variables)
 
     def unschedule_tweet(self, tweet_id: int) -> dict:
-        variables = {
-            'scheduled_tweet_id': tweet_id,
-        }
+        variables = {'scheduled_tweet_id': tweet_id}
         return self.gql('POST', Operation.DeleteScheduledTweet, variables)
 
     def untweet(self, tweet_id: int) -> dict:
-        variables = {
-            'tweet_id': tweet_id,
-            'dark_request': False,
-        }
+        variables = {'tweet_id': tweet_id, 'dark_request': False}
         return self.gql('POST', Operation.DeleteTweet, variables)
 
     def reply(self, text: str, tweet_id: int) -> dict:
@@ -215,17 +218,11 @@ class Account:
         return self.gql('POST', Operation.CreateTweet, variables)
 
     def retweet(self, tweet_id: int) -> dict:
-        variables = {
-            "tweet_id": tweet_id,
-            "dark_request": False
-        }
+        variables = {"tweet_id": tweet_id, "dark_request": False}
         return self.gql('POST', Operation.CreateRetweet, variables)
 
     def unretweet(self, tweet_id: int) -> dict:
-        variables = {
-            "source_tweet_id": tweet_id,
-            "dark_request": False
-        }
+        variables = {"source_tweet_id": tweet_id, "dark_request": False}
         return self.gql('POST', Operation.DeleteRetweet, variables)
 
     def like(self, tweet_id: int) -> dict:
@@ -295,20 +292,16 @@ class Account:
         return self.gql('POST', Operation.DeleteListBanner, {'listId': list_id})
 
     def follow_topic(self, topic_id: int) -> dict:
-        variables = {'topicId': str(topic_id)}
-        return self.gql('POST', Operation.TopicFollow, variables)
+        return self.gql('POST', Operation.TopicFollow, {'topicId': str(topic_id)})
 
     def unfollow_topic(self, topic_id: int) -> dict:
-        variables = {'topicId': str(topic_id)}
-        return self.gql('POST', Operation.TopicUnfollow, variables)
+        return self.gql('POST', Operation.TopicUnfollow, {'topicId': str(topic_id)})
 
     def pin(self, tweet_id: int) -> dict:
-        params = {'tweet_mode': 'extended', 'id': tweet_id}
-        return self.v1('account/pin_tweet.json', params)
+        return self.v1('account/pin_tweet.json', {'tweet_mode': 'extended', 'id': tweet_id})
 
     def unpin(self, tweet_id: int) -> dict:
-        params = {'tweet_mode': 'extended', 'id': tweet_id}
-        return self.v1('account/unpin_tweet.json', params)
+        return self.v1('account/unpin_tweet.json', {'tweet_mode': 'extended', 'id': tweet_id})
 
     def follow(self, user_id: int) -> dict:
         settings = deepcopy(follow_settings)
@@ -321,12 +314,10 @@ class Account:
         return self.v1('friendships/destroy.json', settings)
 
     def mute(self, user_id: int) -> dict:
-        params = {'user_id': user_id}
-        return self.v1('mutes/users/create.json', params)
+        return self.v1('mutes/users/create.json', {'user_id': user_id})
 
     def unmute(self, user_id: int) -> dict:
-        params = {'user_id': user_id}
-        return self.v1('mutes/users/destroy.json', params)
+        return self.v1('mutes/users/destroy.json', {'user_id': user_id})
 
     def enable_notifications(self, user_id: int) -> dict:
         settings = deepcopy(notification_settings)
@@ -339,12 +330,10 @@ class Account:
         return self.v1('friendships/update.json', settings)
 
     def block(self, user_id: int) -> dict:
-        params = {'user_id': user_id}
-        return self.v1('blocks/create.json', params)
+        return self.v1('blocks/create.json', {'user_id': user_id})
 
     def unblock(self, user_id: int) -> dict:
-        params = {'user_id': user_id}
-        return self.v1('blocks/destroy.json', params)
+        return self.v1('blocks/destroy.json', {'user_id': user_id})
 
     def update_profile_image(self, media: str) -> Response:
         media_id = self._upload_media(media, is_profile=True)
@@ -376,7 +365,6 @@ class Account:
             headers=headers,
             json=settings,
         )
-        self.logger.debug(r)
         return r
 
     def update_settings(self, settings: dict) -> dict:
@@ -460,6 +448,9 @@ class Account:
         return res
 
     def _upload_media(self, filename: str, is_dm: bool = False, is_profile=False) -> int | None:
+        """
+        https://developer.twitter.com/en/docs/twitter-api/v1/media/upload-media/uploading-media/media-best-practices
+        """
 
         def check_media(category: str, size: int) -> None:
             fmt = lambda x: f'{(x / 1e6):.2f} MB'
@@ -471,10 +462,12 @@ class Account:
             if category == 'video' and size > MAX_VIDEO_SIZE:
                 raise Exception(msg(MAX_VIDEO_SIZE))
 
-        if is_profile:
-            url = 'https://upload.twitter.com/i/media/upload.json'
-        else:
-            url = 'https://upload.twitter.com/1.1/media/upload.json'
+        # if is_profile:
+        #     url = 'https://upload.twitter.com/i/media/upload.json'
+        # else:
+        #     url = 'https://upload.twitter.com/1.1/media/upload.json'
+
+        url = 'https://upload.twitter.com/i/media/upload.json'
 
         file = Path(filename)
         total_bytes = file.stat().st_size
@@ -486,40 +479,71 @@ class Account:
 
         check_media(media_category, total_bytes)
 
-        data = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes,
-                'media_category': media_category}
-        r = self.session.post(url=url, headers=headers, data=data)
+        params = {'command': 'INIT', 'media_type': media_type, 'total_bytes': total_bytes,
+                  'media_category': media_category}
+        r = self.session.post(url=url, headers=headers, params=params)
+
+        if r.status_code >= 400:
+            raise Exception(f'{r.text}')
+
         media_id = r.json()['media_id']
 
         desc = f"uploading: {file.name}"
         with tqdm(total=total_bytes, desc=desc, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
-            with open(file, 'rb') as f:
+            with open(file, 'rb') as fp:
                 i = 0
-                while chunk := f.read(UPLOAD_CHUNK_SIZE):  # todo: arbitrary max size for now
-                    data = {'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
-                    files = {'media': chunk}
-                    r = self.session.post(url=url, headers=headers, data=data, files=files)
-                    if r.status_code < 200 or r.status_code > 299:
-                        self.logger.debug(f'{r.status_code} {r.text}')
-                        raise Exception(f'[{RED}error{RESET}] upload failed')
-                    i += 1
-                    pbar.update(f.tell() - pbar.n)
+                while chunk := fp.read(UPLOAD_CHUNK_SIZE):
+                    params = {'command': 'APPEND', 'media_id': media_id, 'segment_index': i}
+                    try:
+                        pad = bytes(''.join(random.choices(ascii_letters, k=16)), encoding='utf-8')
+                        data = b''.join([
+                            b'------WebKitFormBoundary',
+                            pad,
+                            b'\r\nContent-Disposition: form-data; name="media"; filename="blob"',
+                            b'\r\nContent-Type: application/octet-stream',
+                            b'\r\n\r\n',
+                            chunk,
+                            b'\r\n------WebKitFormBoundary',
+                            pad,
+                            b'--\r\n',
+                        ])
+                        _headers = {b'content-type': b'multipart/form-data; boundary=----WebKitFormBoundary' + pad}
+                        r = self.session.post(url=url, headers=headers | _headers, params=params, content=data)
+                    except Exception as e:
+                        self.logger.error('Failed to upload chunk, trying alternative method')
+                        try:
+                            files = {'media': chunk}
+                            r = self.session.post(url=url, headers=headers, params=params, files=files)
+                        except Exception as e:
+                            self.logger.error(f'Failed to upload chunk: {e}')
+                            return
 
-        data = {'command': 'FINALIZE', 'media_id': media_id, 'allow_async': 'true'}
+                    if r.status_code < 200 or r.status_code > 299:
+                        self.logger.debug(f'{RED}{r.status_code} {r.text}{RESET}')
+
+                    i += 1
+                    pbar.update(fp.tell() - pbar.n)
+
+        params = {'command': 'FINALIZE', 'media_id': media_id, 'allow_async': 'true'}
         if is_dm:
-            data |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
-        r = self.session.post(url=url, headers=headers, data=data)
+            params |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
+        r = self.session.post(url=url, headers=headers, params=params)
+        if r.status_code == 400:
+            self.logger.debug(f'{RED}{r.status_code} {r.text}{RESET}')
+            return
 
         # self.logger.debug(f'processing, please wait...')
         processing_info = r.json().get('processing_info')
         while processing_info:
             state = processing_info['state']
             if error := processing_info.get("error"):
-                raise Exception(f'media upload failed: {error}')
+                self.logger.debug(f'{RED}{error}{RESET}')
+                return
             if state == MEDIA_UPLOAD_SUCCEED:
                 break
             if state == MEDIA_UPLOAD_FAIL:
-                raise Exception(f'[{RED}error{RESET}] media processing failed')
+                self.logger.debug(f'{RED}{r.status_code} {r.text} {RESET}')
+                return
             check_after_secs = processing_info.get('check_after_secs', random.randint(1, 5))
             time.sleep(check_after_secs)
             params = {'command': 'STATUS', 'media_id': media_id}
@@ -533,21 +557,3 @@ class Account:
         url = f'{self.v1_url}/media/metadata/create.json'
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
-
-    def log(self, response: Response):
-        status = fmt_status(response.status_code)
-        if 'json' in response.headers.get('content-type', ''):
-            if response.json().get('errors'):
-                self.logger.debug(f'[{RED}twitter error{RESET}]')
-                self.logger.debug(f'{response.url}')
-                self.logger.debug(f'{response.text}')
-                return
-        self.logger.debug(status)
-        if self.debug >= 1:
-            self.logger.debug(f'{response.url}')
-        if self.debug >= 2:
-            self.logger.debug(f'{response.text}')
-        if self.debug >= 3:
-            self.logger.debug(f'{response.headers}')
-        if self.debug >= 4:
-            self.logger.debug(f'{response.cookies}')

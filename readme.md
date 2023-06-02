@@ -1,16 +1,23 @@
 > Currently affected by layoffs. If anyone is hiring for Software Developer or Machine Learning Engineer roles in **Vancouver, BC** or remotely in **Canada** please feel free to send me a message at `trevorhobenshield@gmail.com`. Thanks!
 
-### Implementation of Twitter's v1, v2, and GraphQL APIs
+## Implementation of Twitter's v1, v2, and GraphQL APIs
 
 Tools include: [Scraping](#scraping), [Account Automation](#automation), [Search](#search)
 
 Automated email challenge solvers are supported for **Proton Mail** accounts using [proton-python-client](https://github.com/ProtonMail/proton-python-client). See [here](#automated-solvers) for more information.
 
+## Table of Contents
+
 * [Installation](#installation)
 * [Automation](#automation)
 * [Scraping](#scraping)
-    * [Users/Tweets data](#get-all-usertweet-data)
-    * [Search](#search)
+  * [Get all user/tweet data](#get-all-usertweet-data)
+  * [Resume Pagination](#resume-pagination)
+  * [Search](#search)
+* [Spaces](#spaces)
+  * [Live Audio Capture](#live-audio-capture)
+  * [Live Transcript Capture](#live-transcript-capture)
+  * [Search and Metadata](#search-and-metadata)
 * [Automated Solvers](#automated-solvers)
 * [Example API Responses](#example-api-responses)
 
@@ -190,7 +197,7 @@ scraper.tweet_stats([111111, 222222, 333333])
 
 # get recommended users based on user
 scraper.recommended_users()
-scraper.recommended_users(123)
+scraper.recommended_users([123])
 
 # tweet data
 tweets_by_ids = scraper.tweets_by_id([987, 876, 754])
@@ -210,20 +217,18 @@ scraper.trends()
 ```
 
 #### Resume Pagination
-Pagination is already done by default, however there are circumstances where you may need to resume pagination from a specific cursor. For example, the `Followers` endpoint only allows for 50 requests every 15 minutes. In this case, we can resume from where we left off by providing a specific cursor value. This technique applies to any other endpoint defined in `twitter.constants.Operation`.
+**Pagination is already done by default**, however there are circumstances where you may need to resume pagination from a specific cursor. For example, the `Followers` endpoint only allows for 50 requests every 15 minutes. In this case, we can resume from where we left off by providing a specific cursor value.
 ```python
 from twitter.scraper import Scraper
-from twitter.constants import Operation
 
 email, username, password = ...,...,...
 scraper = Scraper(email, username, password, debug=1, save=True)
 
-operation = Operation.Followers
 user_id = 44196397
-cursor = '1765001818576065118|1654241854176100129' # example cursor
-limit = 250  # arbitrary limit for demonstration
+cursor = '1767341853908517597|1663601806447476672'  # example cursor
+limit = 100  # arbitrary limit for demonstration
+follower_subset, last_cursor = scraper.followers([user_id], limit=limit, cursor=cursor)
 
-follower_subset, last_cursor = scraper.resume_pagination(scraper.session, user_id, operation, limit=limit, cursor=cursor)
 # use last_cursor to resume pagination
 ```
 
@@ -266,6 +271,92 @@ general_results = search.run(
 https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-operators
 
 https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
+
+### Spaces
+
+#### Live Audio Capture
+
+Capture live audio for up to 500 streams per IP
+
+![](assets/spaces-audio.gif)
+
+```python
+from twitter.scraper import Scraper
+from twitter.util import init_session
+
+session = init_session() # initialize guest session, no login required
+scraper = Scraper(session=session, debug=1, save=True)
+
+rooms = [...]
+scraper.spaces_live(rooms=rooms) # capture live audio from list of rooms
+```
+
+#### Live Transcript Capture
+
+**Raw transcript chunks**
+
+![](assets/spaces-transcript-02.gif)
+
+```python
+from twitter.scraper import Scraper
+from twitter.util import init_session
+
+session = init_session() # initialize guest session, no login required
+scraper = Scraper(session=session, debug=1, save=True)
+
+# room must be live, i.e. in "Running" state
+scraper.space_live_transcript('1zqKVPlQNApJB', frequency=2)  # word-level live transcript. (dirty, on-the-fly transcription before post-processing)
+```
+
+
+**Processed (final) transcript chunks**
+
+![](assets/spaces-transcript-01.gif)
+
+
+```python
+from twitter.scraper import Scraper
+from twitter.util import init_session
+
+session = init_session() # initialize guest session, no login required
+scraper = Scraper(session=session, debug=1, save=True)
+
+# room must be live, i.e. in "Running" state
+scraper.space_live_transcript('1zqKVPlQNApJB', frequency=1)  # finalized live transcript.  (clean)
+```
+
+#### Search and Metadata
+```python
+from twitter.scraper import Scraper
+from twitter.util import init_session
+from twitter.constants import SpaceCategory
+
+session = init_session() # initialize guest session, no login required
+scraper = Scraper(session=session, debug=1, save=True)
+
+# download audio and chat-log from space
+spaces = scraper.spaces(rooms=['1eaJbrAPnBVJX', '1eaJbrAlZjjJX'], audio=True, chat=True)
+
+# pull metadata only
+spaces = scraper.spaces(rooms=['1eaJbrAPnBVJX', '1eaJbrAlZjjJX'])
+
+# search for spaces in "Upcoming", "Top" and "Live" categories
+spaces = scraper.spaces(search=[
+    {
+        'filter': SpaceCategory.Upcoming,
+        'query': 'hello'
+    },
+    {
+        'filter': SpaceCategory.Top,
+        'query': 'world'
+    },
+    {
+        'filter': SpaceCategory.Live,
+        'query': 'foo bar'
+    }
+])
+```
+
 
 
 ### Automated Solvers

@@ -1,11 +1,87 @@
 import re
 import time
+from logging import Logger
 from pathlib import Path
 from urllib.parse import urlsplit, urlencode, urlunsplit, parse_qs, quote
+
 import orjson
+import protonmail
+from httpx import Response, Client
 
 from .constants import GREEN, MAGENTA, RED, RESET
-import protonmail
+
+
+def init_session():
+    client = Client(headers={
+        'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+    })
+    r = client.post('https://api.twitter.com/1.1/guest/activate.json').json()
+    client.headers.update({
+        'content-type': 'application/json',
+        'x-guest-token': r['guest_token'],
+        'x-twitter-active-user': 'yes',
+    })
+    return client
+
+
+def batch_ids(ids: list[int], char_limit: int = 4_500) -> list[dict]:
+    """ To avoid 431 errors """
+    length = 0
+    res, batch = [], []
+    for x in map(str, ids):
+        curr_length = len(x)
+        if length + curr_length > char_limit:
+            res.append(batch)
+            batch = []
+            length = 0
+        batch.append(x)
+        length += curr_length
+    if batch:
+        res.append(batch)
+    return res
+
+
+def build_params(params: dict) -> dict:
+    return {k: orjson.dumps(v).decode() for k, v in params.items()}
+
+
+def save_json(r: Response, path: Path, name: str, **kwargs):
+    try:
+        data = r.json()
+        kwargs.pop('cursor', None)
+        out = path / '_'.join(map(str, kwargs.values()))
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f'{time.time_ns()}_{name}.json').write_bytes(orjson.dumps(data))
+    except Exception as e:
+        print(f'Failed to save data: {e}')
+
+
+def flatten(seq: list | tuple) -> list:
+    flat = []
+    for e in seq:
+        if isinstance(e, list | tuple):
+            flat.extend(flatten(e))
+        else:
+            flat.append(e)
+    return flat
+
+
+def get_json(res: list[Response], name: str, save=True, **kwargs) -> dict | tuple:
+    cursor = kwargs.get('cursor')
+    temp = res
+    if any(isinstance(r, (list, tuple)) for r in res):
+        temp = flatten(res)
+    for r in temp:
+        try:
+            data = r.json()
+            # if save:
+            #     dump(data, name=name)
+
+            # parentheses very important
+            return (data, cursor) if cursor else data
+        except Exception as e:
+            print('Cannot parse JSON response', e)
 
 
 def set_qs(url: str, qs: dict, update=False, **kwargs) -> str:
@@ -45,29 +121,6 @@ def get_headers(session, **kwargs) -> dict:
     return dict(sorted({k.lower(): v for k, v in headers.items()}.items()))
 
 
-def fmt_status(status: int) -> str:
-    color = None
-    if 200 <= status < 300:
-        color = GREEN
-    elif 300 <= status < 400:
-        color = MAGENTA
-    elif 400 <= status < 600:
-        color = RED
-    return f'[{color}{status}{RESET}]'
-
-
-def save_data(data: list, op: str, key: str | int):
-    try:
-        path = Path(f'data/raw/{key}')
-        path.mkdir(parents=True, exist_ok=True)
-        (path / f'{time.time_ns()}_{op}.json').write_text(
-            orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
-            encoding='utf-8'
-        )
-    except Exception as e:
-        print(f'failed to save data: {e}')
-
-
 def find_key(obj: any, key: str) -> list:
     """
     Find all values of a given key within a nested dict or list of dicts
@@ -97,7 +150,7 @@ def find_key(obj: any, key: str) -> list:
     return helper(obj, key, [])
 
 
-def init_session(email: str, password: str) -> protonmail.api.Session:
+def init_protonmail_session(email: str, password: str) -> protonmail.api.Session:
     """
     Create an authenticated Proton Mail session
 
@@ -177,3 +230,52 @@ def get_confirmation_code(inbox: dict) -> str:
         return list(filter(len, (re.findall(expr, conv['Subject']) for conv in inbox['Conversations'])))[0][0]
     except Exception as e:
         print('Failed to get Twitter confirmation code:', e)
+
+
+def log(logger: Logger, level: int, r: Response):
+    def stat(r, txt, data):
+        if level >= 1:
+            logger.debug(f'{r.url.path}')
+        if level >= 2:
+            logger.debug(f'{r.url}')
+        if level >= 3:
+            logger.debug(f'{txt}')
+        if level >= 4:
+            logger.debug(f'{data}')
+
+        try:
+            limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
+            current_time = int(time.time())
+            wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
+            remaining = limits.get('x-rate-limit-remaining')
+            limit = limits.get('x-rate-limit-limit')
+            logger.debug(f"remaining: {MAGENTA}{remaining}/{limit}{RESET} requests")
+            logger.debug(f'reset:     {MAGENTA}{(wait / 60):.2f}{RESET} minutes')
+        except Exception as e:
+            logger.error(f'Rate limit info unavailable: {e}')
+
+    try:
+        status = r.status_code
+        txt, data, = r.text, r.json()
+        if 'json' in r.headers.get('content-type', ''):
+            if data.get('errors') and not find_key(data, 'instructions'):
+                logger.error(f'[{RED}error{RESET}] {status} {data}')
+            else:
+                logger.debug(fmt_status(status))
+                stat(r, txt, data)
+        else:
+            logger.debug(fmt_status(status))
+            stat(r, txt, {})
+    except Exception as e:
+        logger.error(f'Failed to log: {e}')
+
+
+def fmt_status(status: int) -> str:
+    color = None
+    if 200 <= status < 300:
+        color = GREEN
+    elif 300 <= status < 400:
+        color = MAGENTA
+    elif 400 <= status < 600:
+        color = RED
+    return f'[{color}{status}{RESET}]'

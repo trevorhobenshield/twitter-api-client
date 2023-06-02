@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import logging
+import logging.config
 
 MAX_IMAGE_SIZE = 5_242_880  # ~5 MB
 MAX_GIF_SIZE = 15_728_640  # ~15 MB
@@ -19,69 +21,100 @@ WHITE = '\x1b[37m'
 BOLD = '\x1b[1m'
 RESET = '\x1b[0m'
 
-log_config = {
-    "version": 1,
-    "formatters": {
-        "simple": {
-            "format": "%(asctime)s.%(msecs)03d %(levelname)s: %(message)s"
-        }
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "level": "DEBUG",
-            "formatter": "simple",
-            "stream": "ext://sys.stdout"
+DISABLE_LOG_PROPAGATION = [
+    'httpx',
+    'httpcore',
+    'aiofiles',
+    'websockets',
+    'nest_asyncio',
+    'orjson',
+    'tqdm',
+    'bcrypt',
+    'python-gnupg',
+    'pyopenssl',
+    'uvloop',
+]
+
+LOGGING_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s.%(msecs)03d [%(levelname)s] :: %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
         },
-        "file": {
-            "class": "logging.FileHandler",
-            "level": "DEBUG",
-            "formatter": "simple",
-            "filename": "debug.log",
-            "encoding": "utf8",
-            "mode": "a"
-        }
     },
-    "loggers": {
-        "myLogger": {
-            "level": "DEBUG",
-            "handlers": [
-                "console"
-            ],
-            "propagate": "no"
-        }
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG',
+            'formatter': 'standard',
+            'stream': 'ext://sys.stdout',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'level': 'DEBUG',
+            'formatter': 'standard',
+            'filename': 'log.log',
+            'mode': 'a',
+        },
     },
-    "root": {
-        "level": "DEBUG",
-        "handlers": [
-            "console",
-            "file"
-        ]
-    }
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        pkg: {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False
+        }
+        for pkg in DISABLE_LOG_PROPAGATION
+    },
 }
+
+logging.config.dictConfig(LOGGING_CONFIG)
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SpaceCategory:
+    Top = 'Top'
+    Live = 'Live'
+    Upcoming = 'Upcoming'
+
+
+@dataclass
+class SpaceState:
+    Ended = 'Ended'
+    Canceled = 'Canceled'
+    NotStarted = 'NotStarted'
+    PrePublished = 'PrePublished'
+    Running = 'Running'
+    TimedOut = 'TimedOut'
 
 
 @dataclass
 class Operation:
-    # Scraper Operations
-    ProfileSpotlightsQuery = '9zwVLJ48lmVUk8u_Gh9DmA', 'ProfileSpotlightsQuery', 'screen_name'
-    UserByScreenName = 'sLVLhk0bGj3MVFEKTdax1w', 'UserByScreenName', 'screen_name'
-    UserByRestId = 'GazOglcBvgLigl3ywt6b3Q', 'UserByRestId', 'userId'
-    UsersByRestIds = 'OJBgJQIrij6e3cjqQ3Zu1Q', 'UsersByRestIds', 'userIds'
-    UserTweets = 'HuTx74BxAnezK1gWvYY7zg', 'UserTweets', 'userId'
-    UserMedia = 'YqiE3JL1KNgf9nSljYdxaA', 'UserMedia', 'userId'
-    UserTweetsAndReplies = 'RIWc55YCNyUJ-U3HHGYkdg', 'UserTweetsAndReplies', 'userId'
-    TweetResultByRestId = 'D_jNhjWZeRZT5NURzfJZSQ', 'TweetResultByRestId', 'tweetId'
-    TweetDetail = 'zXaXQgfyR4GxE21uwYQSyA', 'TweetDetail', 'focalTweetId'
-    TweetStats = 'EvbTkPDT-xQCfupPu0rWMA', 'TweetStats', 'rest_id'
-
-    # auth required
-    Likes = 'nYrjBgnUWQFt_tRyCGatZA', 'Likes', 'userId'
-    Followers = 'pd8Tt1qUz1YWrICegqZ8cw', 'Followers', 'userId'
-    Following = 'wjvx62Hye2dGVvnvVco0xA', 'Following', 'userId'
-    Retweeters = '0BoJlKAxoNPQUHRftlwZ2w', 'Retweeters', 'tweetId'
-    Favoriters = 'XRRjv1-uj1HZn3o324etOQ', 'Favoriters', 'tweetId'
-    ConnectTabTimeline = 'lq02A-gEzbLefqTgD_PFzQ', 'ConnectTabTimeline', 'context'
+    # todo: dynamically update
+    AudioSpaceById = {'id': str}, 'fYAuJHiY3TmYdBmrRtIKhA', 'AudioSpaceById'
+    AudioSpaceSearch = {'filter': str, 'query': str}, 'NTq79TuSz6fHj8lQaferJw', 'AudioSpaceSearch',
+    UserByScreenName = {'screen_name': str}, 'sLVLhk0bGj3MVFEKTdax1w', 'UserByScreenName'
+    UserTweets = {'userId': int}, 'HuTx74BxAnezK1gWvYY7zg', 'UserTweets'
+    ProfileSpotlightsQuery = {'screen_name': str}, '9zwVLJ48lmVUk8u_Gh9DmA', 'ProfileSpotlightsQuery'
+    UserByRestId = {'userId': int}, 'GazOglcBvgLigl3ywt6b3Q', 'UserByRestId'
+    UsersByRestIds = {'userIds': list}, 'OJBgJQIrij6e3cjqQ3Zu1Q', 'UsersByRestIds'
+    UserMedia = {'userId': int}, 'YqiE3JL1KNgf9nSljYdxaA', 'UserMedia'
+    UserTweetsAndReplies = {'userId': int}, 'RIWc55YCNyUJ-U3HHGYkdg', 'UserTweetsAndReplies'
+    TweetResultByRestId = {'tweetId': int}, 'D_jNhjWZeRZT5NURzfJZSQ', 'TweetResultByRestId'
+    TweetDetail = {'focalTweetId': int}, 'zXaXQgfyR4GxE21uwYQSyA', 'TweetDetail'
+    TweetStats = {'rest_id': int}, 'EvbTkPDT-xQCfupPu0rWMA', 'TweetStats'
+    Likes = {'userId': int}, 'nXEl0lfN_XSznVMlprThgQ', 'Likes'
+    Followers = {'userId': int}, 'pd8Tt1qUz1YWrICegqZ8cw', 'Followers'
+    Following = {'userId': int}, 'wjvx62Hye2dGVvnvVco0xA', 'Following'
+    Retweeters = {'tweetId': int}, '0BoJlKAxoNPQUHRftlwZ2w', 'Retweeters'
+    Favoriters = {'tweetId': int}, 'XRRjv1-uj1HZn3o324etOQ', 'Favoriters'
+    ConnectTabTimeline = {'context': dict}, 'lq02A-gEzbLefqTgD_PFzQ', 'ConnectTabTimeline'
 
     # Account Operations
     useSendMessageMutation = 'MaxK2PKX1F9Z-9SwqwavTw', 'useSendMessageMutation'
@@ -116,8 +149,6 @@ class Operation:
     ArticleTimeline = 'o9FyvnC-xg8mVBXqL4g-rg', 'ArticleTimeline'
     ArticleTweetsTimeline = 'x4ywSpvg6BesoDszkfbFQg', 'ArticleTweetsTimeline'
     AudienceEstimate = '1LYVUabJBYkPlUAWRabB3g', 'AudienceEstimate'
-    AudioSpaceById = 'QB5okPsUwVP3TefHBFItnw', 'AudioSpaceById'
-    AudioSpaceSearch = 'NTq79TuSz6fHj8lQaferJw', 'AudioSpaceSearch'
     AuthenticatedUserTFLists = 'QjN8ZdavFDqxUjNn3r9cig', 'AuthenticatedUserTFLists'
     BirdwatchAliasSelect = '3ss48WFwGokBH_gj8t_8aQ', 'BirdwatchAliasSelect'
     BirdwatchCreateAppeal = 'TKdL0YFsX4DMOpMKeneLvA', 'BirdwatchCreateAppeal'
@@ -309,21 +340,23 @@ class Operation:
     updateCaptionsAlwaysDisplayPreference = 'uCUQhvZ5sJ9qHinRp6CFlQ', 'updateCaptionsAlwaysDisplayPreference'
 
     default_variables = {
-        "count": 1000,
-        "withSafetyModeUserFields": True,
-        "includePromotedContent": True,
-        "withQuickPromoteEligibilityTweetFields": True,
-        "withVoice": True,
-        "withV2Timeline": True,
-        "withDownvotePerspective": False,
-        "withBirdwatchNotes": True,
-        "withCommunity": True,
-        "withSuperFollowsUserFields": True,
-        "withReactionsMetadata": False,
-        "withReactionsPerspective": False,
-        "withSuperFollowsTweetFields": True
+        'count': 1000,
+        'withSafetyModeUserFields': True,
+        'includePromotedContent': True,
+        'withQuickPromoteEligibilityTweetFields': True,
+        'withVoice': True,
+        'withV2Timeline': True,
+        'withDownvotePerspective': False,
+        'withBirdwatchNotes': True,
+        'withCommunity': True,
+        'withSuperFollowsUserFields': True,
+        'withReactionsMetadata': False,
+        'withReactionsPerspective': False,
+        'withSuperFollowsTweetFields': True,
+        'isMetatagsQuery': False,
+        'withReplays': True,
+        'withClientEventToken': False,
     }
-
     default_features = {
         'blue_business_profile_image_shape_enabled': True,
         'responsive_web_graphql_exclude_directive_enabled': True,
@@ -339,7 +372,8 @@ class Operation:
         'freedom_of_speech_not_reach_fetch_enabled': False,
         'standardized_nudges_misinfo': True,
         'tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled': False,
-        'interactive_text_enabled': True, 'responsive_web_text_conversations_enabled': False,
+        'interactive_text_enabled': True,
+        'responsive_web_text_conversations_enabled': False,
         'longform_notetweets_rich_text_read_enabled': True,
         'responsive_web_enhance_cards_enabled': False,
         'responsive_web_twitter_blue_verified_badge_is_enabled': True,
@@ -347,179 +381,184 @@ class Operation:
         'profile_foundations_tweet_stats_enabled': True,
         'profile_foundations_tweet_stats_tweet_frequency': True,
         'graphql_timeline_v2_bookmark_timeline': True,
+        'spaces_2022_h2_clipping': True,
+        'spaces_2022_h2_spaces_communities': True,
+        'creator_subscriptions_tweet_preview_api_enabled': True,
+        'longform_notetweets_inline_media_enabled': False,
+        'rweb_lists_timeline_redesign_enabled': True,
     }
 
 
 trending_params = {
-    "include_profile_interstitial_type": "1",
-    "include_blocking": "1",
-    "include_blocked_by": "1",
-    "include_followed_by": "1",
-    "include_want_retweets": "1",
-    "include_mute_edge": "1",
-    "include_can_dm": "1",
-    "include_can_media_tag": "1",
-    "include_ext_has_nft_avatar": "1",
-    "include_ext_is_blue_verified": "1",
-    "include_ext_verified_type": "1",
-    "skip_status": "1",
-    "cards_platform": "Web-12",
-    "include_cards": "1",
-    "include_ext_alt_text": "true",
-    "include_ext_limited_action_results": "false",
-    "include_quote_count": "true",
-    "include_reply_count": "1",
-    "tweet_mode": "extended",
-    "include_ext_views": "true",
-    "include_entities": "true",
-    "include_user_entities": "true",
-    "include_ext_media_color": "true",
-    "include_ext_media_availability": "true",
-    "include_ext_sensitive_media_warning": "true",
-    "include_ext_trusted_friends_metadata": "true",
-    "send_error_codes": "true",
-    "simple_quoted_tweet": "true",
-    "count": 1000,
-    "requestContext": "launch",
-    "include_page_configuration": "true",
-    "initial_tab_id": "trending",
-    "entity_tokens": "false",
-    "ext": "mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,enrichments,superFollowMetadata,unmentionInfo,editControl,vibe"
+    'include_profile_interstitial_type': '1',
+    'include_blocking': '1',
+    'include_blocked_by': '1',
+    'include_followed_by': '1',
+    'include_want_retweets': '1',
+    'include_mute_edge': '1',
+    'include_can_dm': '1',
+    'include_can_media_tag': '1',
+    'include_ext_has_nft_avatar': '1',
+    'include_ext_is_blue_verified': '1',
+    'include_ext_verified_type': '1',
+    'skip_status': '1',
+    'cards_platform': 'Web-12',
+    'include_cards': '1',
+    'include_ext_alt_text': 'true',
+    'include_ext_limited_action_results': 'false',
+    'include_quote_count': 'true',
+    'include_reply_count': '1',
+    'tweet_mode': 'extended',
+    'include_ext_views': 'true',
+    'include_entities': 'true',
+    'include_user_entities': 'true',
+    'include_ext_media_color': 'true',
+    'include_ext_media_availability': 'true',
+    'include_ext_sensitive_media_warning': 'true',
+    'include_ext_trusted_friends_metadata': 'true',
+    'send_error_codes': 'true',
+    'simple_quoted_tweet': 'true',
+    'count': 1000,
+    'requestContext': 'launch',
+    'include_page_configuration': 'true',
+    'initial_tab_id': 'trending',
+    'entity_tokens': 'false',
+    'ext': 'mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,enrichments,superFollowMetadata,unmentionInfo,editControl,vibe'
 }
 
 account_settings = {
-    "address_book_live_sync_enabled": False,
-    "allow_ads_personalization": False,
-    "allow_authenticated_periscope_requests": True,
-    "allow_dm_groups_from": "following",
-    "allow_dms_from": "following",  # all
-    "allow_location_history_personalization": False,
-    "allow_logged_out_device_personalization": False,
-    "allow_media_tagging": "none",  # all, following
-    "allow_sharing_data_for_third_party_personalization": False,
-    "alt_text_compose_enabled": None,
-    "always_use_https": True,
-    "autoplay_disabled": False,
-    "country_code": "us",
-    "discoverable_by_email": False,
-    "discoverable_by_mobile_phone": False,
-    "display_sensitive_media": True,
-    "dm_quality_filter": "enabled",  # disabled
-    "dm_receipt_setting": "all_disabled",  # all_enabled
-    "geo_enabled": False,
-    "include_alt_text_compose": True,
-    "include_mention_filter": True,
-    "include_nsfw_admin_flag": True,
-    "include_nsfw_user_flag": True,
-    "include_ranked_timeline": True,
-    "language": "en",
-    "mention_filter": "unfiltered",
-    "nsfw_admin": False,
-    "nsfw_user": False,
-    "personalized_trends": True,
-    "protected": False,
-    "ranked_timeline_eligible": None,
-    "ranked_timeline_setting": None,
-    "require_password_login": False,
-    "requires_login_verification": False,
-    "settings_metadata": {},
-    "sleep_time": {
-        "enabled": False,
-        "end_time": None,
-        "start_time": None
+    'address_book_live_sync_enabled': False,
+    'allow_ads_personalization': False,
+    'allow_authenticated_periscope_requests': True,
+    'allow_dm_groups_from': 'following',
+    'allow_dms_from': 'following',  # all
+    'allow_location_history_personalization': False,
+    'allow_logged_out_device_personalization': False,
+    'allow_media_tagging': 'none',  # all, following
+    'allow_sharing_data_for_third_party_personalization': False,
+    'alt_text_compose_enabled': None,
+    'always_use_https': True,
+    'autoplay_disabled': False,
+    'country_code': 'us',
+    'discoverable_by_email': False,
+    'discoverable_by_mobile_phone': False,
+    'display_sensitive_media': True,
+    'dm_quality_filter': 'enabled',  # disabled
+    'dm_receipt_setting': 'all_disabled',  # all_enabled
+    'geo_enabled': False,
+    'include_alt_text_compose': True,
+    'include_mention_filter': True,
+    'include_nsfw_admin_flag': True,
+    'include_nsfw_user_flag': True,
+    'include_ranked_timeline': True,
+    'language': 'en',
+    'mention_filter': 'unfiltered',
+    'nsfw_admin': False,
+    'nsfw_user': False,
+    'personalized_trends': True,
+    'protected': False,
+    'ranked_timeline_eligible': None,
+    'ranked_timeline_setting': None,
+    'require_password_login': False,
+    'requires_login_verification': False,
+    'settings_metadata': {},
+    'sleep_time': {
+        'enabled': False,
+        'end_time': None,
+        'start_time': None
     },
-    "translator_type": "none",
-    "universal_quality_filtering_enabled": "enabled",
-    "use_cookie_personalization": False,
+    'translator_type': 'none',
+    'universal_quality_filtering_enabled': 'enabled',
+    'use_cookie_personalization': False,
     ## todo: not yet implemented - requires additional steps
-    # "allow_contributor_request": "all",
-    # "protect_password_reset": False,
+    # 'allow_contributor_request': 'all',
+    # 'protect_password_reset': False,
 }
 notification_settings = {
-    "cursor": "-1",
-    "include_profile_interstitial_type": "1",
-    "include_blocking": "1",
-    "include_blocked_by": "1",
-    "include_followed_by": "1",
-    "include_want_retweets": "1",
-    "include_mute_edge": "1",
-    "include_can_dm": "1",
-    "include_can_media_tag": "1",
-    "include_ext_has_nft_avatar": "1",
-    "include_ext_is_blue_verified": "1",
-    "include_ext_verified_type": "1",
-    "skip_status": "1",
+    'cursor': '-1',
+    'include_profile_interstitial_type': '1',
+    'include_blocking': '1',
+    'include_blocked_by': '1',
+    'include_followed_by': '1',
+    'include_want_retweets': '1',
+    'include_mute_edge': '1',
+    'include_can_dm': '1',
+    'include_can_media_tag': '1',
+    'include_ext_has_nft_avatar': '1',
+    'include_ext_is_blue_verified': '1',
+    'include_ext_verified_type': '1',
+    'skip_status': '1',
 }
 
 follow_settings = {
-    "include_profile_interstitial_type": "1",
-    "include_blocking": "1",
-    "include_blocked_by": "1",
-    "include_followed_by": "1",
-    "include_want_retweets": "1",
-    "include_mute_edge": "1",
-    "include_can_dm": "1",
-    "include_can_media_tag": "1",
-    "include_ext_has_nft_avatar": "1",
-    "include_ext_is_blue_verified": "1",
-    "include_ext_verified_type": "1",
-    "skip_status": "1",
+    'include_profile_interstitial_type': '1',
+    'include_blocking': '1',
+    'include_blocked_by': '1',
+    'include_followed_by': '1',
+    'include_want_retweets': '1',
+    'include_mute_edge': '1',
+    'include_can_dm': '1',
+    'include_can_media_tag': '1',
+    'include_ext_has_nft_avatar': '1',
+    'include_ext_is_blue_verified': '1',
+    'include_ext_verified_type': '1',
+    'skip_status': '1',
 }
 
 account_search_settings = {
-    "optInFiltering": True,  # filter out nsfw content
-    "optInBlocking": True,  # filter out blocked accounts
+    'optInFiltering': True,  # filter out nsfw content
+    'optInBlocking': True,  # filter out blocked accounts
 }
 
 profile_settings = {
-    "birthdate_day": int,
-    "birthdate_month": int,
-    "birthdate_year": int,  # 1985
-    "birthdate_visibility": str,  # "self",
-    "birthdate_year_visibility": str,  # "self",
-    "displayNameMaxLength": int,  # "50",
-    "url": str,  # "https://example.com",
-    "name": str,  # "foo",
-    "description": str,  # "bar",
-    "location": str,  # "world",
+    'birthdate_day': int,
+    'birthdate_month': int,
+    'birthdate_year': int,  # 1985
+    'birthdate_visibility': str,  # 'self',
+    'birthdate_year_visibility': str,  # 'self',
+    'displayNameMaxLength': int,  # '50',
+    'url': str,  # 'https://example.com',
+    'name': str,  # 'foo',
+    'description': str,  # 'bar',
+    'location': str,  # 'world',
 }
 
 search_config = {
-    "include_profile_interstitial_type": 1,
-    "include_blocking": 1,
-    "include_blocked_by": 1,
-    "include_followed_by": 1,
-    "include_want_retweets": 1,
-    "include_mute_edge": 1,
-    "include_can_dm": 1,
-    "include_can_media_tag": 1,
-    "include_ext_has_nft_avatar": 1,
-    "include_ext_is_blue_verified": 1,
-    "include_ext_verified_type": 1,
-    "skip_status": 1,
-    "cards_platform": "Web-12",
-    "include_cards": 1,
-    "include_ext_alt_text": "true",
-    "include_ext_limited_action_results": "false",
-    "include_quote_count": "true",
-    "include_reply_count": 1,
-    "tweet_mode": "extended",
-    "include_ext_collab_control": "true",
-    "include_ext_views": "true",
-    "include_entities": "true",
-    "include_user_entities": "true",
-    "include_ext_media_color": "true",
-    "include_ext_media_availability": "true",
-    "include_ext_sensitive_media_warning": "true",
-    "include_ext_trusted_friends_metadata": "true",
-    "send_error_codes": "true",
-    "simple_quoted_tweet": "true",
-    "query_source": "typed_query",
-    "count": 1000,
-    "q": "",
-    "requestContext": "launch",
-    "pc": 1,
-    "spelling_corrections": 1,
-    "include_ext_edit_control": "true",
-    "ext": "mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,enrichments,superFollowMetadata,unmentionInfo,editControl,collab_control,vibe"
+    'include_profile_interstitial_type': 1,
+    'include_blocking': 1,
+    'include_blocked_by': 1,
+    'include_followed_by': 1,
+    'include_want_retweets': 1,
+    'include_mute_edge': 1,
+    'include_can_dm': 1,
+    'include_can_media_tag': 1,
+    'include_ext_has_nft_avatar': 1,
+    'include_ext_is_blue_verified': 1,
+    'include_ext_verified_type': 1,
+    'skip_status': 1,
+    'cards_platform': 'Web-12',
+    'include_cards': 1,
+    'include_ext_alt_text': 'true',
+    'include_ext_limited_action_results': 'false',
+    'include_quote_count': 'true',
+    'include_reply_count': 1,
+    'tweet_mode': 'extended',
+    'include_ext_collab_control': 'true',
+    'include_ext_views': 'true',
+    'include_entities': 'true',
+    'include_user_entities': 'true',
+    'include_ext_media_color': 'true',
+    'include_ext_media_availability': 'true',
+    'include_ext_sensitive_media_warning': 'true',
+    'include_ext_trusted_friends_metadata': 'true',
+    'send_error_codes': 'true',
+    'simple_quoted_tweet': 'true',
+    'query_source': 'typed_query',
+    'count': 1000,
+    'q': '',
+    'requestContext': 'launch',
+    'pc': 1,
+    'spelling_corrections': 1,
+    'include_ext_edit_control': 'true',
+    'ext': 'mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,enrichments,superFollowMetadata,unmentionInfo,editControl,collab_control,vibe'
 }
