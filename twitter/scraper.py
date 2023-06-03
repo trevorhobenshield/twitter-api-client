@@ -113,7 +113,7 @@ class Scraper:
     def tweet_stats(self, user_ids: list[int], **kwargs) -> list[dict]:
         return self._run(Operation.TweetStats, user_ids, **kwargs)
 
-    def users_by_rest_ids(self, user_ids: list[int], **kwargs) -> list[dict]:
+    def users_by_ids(self, user_ids: list[int], **kwargs) -> list[dict]:
         return self._run(Operation.UsersByRestIds, batch_ids(user_ids), **kwargs)
 
     def recommended_users(self, user_ids: list[int] = None, **kwargs) -> dict:

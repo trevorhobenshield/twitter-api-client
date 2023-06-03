@@ -14,16 +14,13 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.8.5",
+    version="0.8.6",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
     
     ## Implementation of Twitter's v1, v2, and GraphQL APIs
 
-    Tools include: [Scraping](#scraping), [Account Automation](#automation), [Search](#search)
-    
-    Automated email challenge solvers are supported for **Proton Mail** accounts using [proton-python-client](https://github.com/ProtonMail/proton-python-client). See [here](#automated-solvers) for more information.
     
     ## Table of Contents
     
