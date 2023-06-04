@@ -109,40 +109,6 @@ def get_features():
     Path('features.json').write_bytes(orjson.dumps(dict(sorted(features.items())), option=orjson.OPT_INDENT_2))
 
 
-def find_paths(obj, **kwargs):
-    """ find absolute paths to keys or values, by str or regex"""
-    paths = []
-    allowed = ("key", "value", "regex", "key_regex", "value_regex", "unique")
-    key, value, regex, key_regex, value_regex, unique = (kwargs.get(k) for k in allowed)
-
-    def helper(obj, curr=[]):
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                new = curr + [f"['{k}']"]
-                if any(
-                        cond
-                        for cond in [
-                            k == key,
-                            v == value,
-                            key_regex and isinstance(k, str) and re.search(key_regex, k),
-                            value_regex and isinstance(v, str) and re.search(value_regex, v),
-                            regex and isinstance(v, str) and re.search(regex, v),
-                        ]
-                ):
-                    paths.append("".join(new))
-                helper(v, new)
-        elif isinstance(obj, list):
-            for i, k in enumerate(obj):
-                new = curr + [f"[{i}]"]
-                helper(k, new)
-
-    helper(obj)
-
-    if unique:
-        return sorted(set(re.sub(r"\[\d+\]", "[i]", x) for x in paths), key=len)
-    return paths
-
-
 def main():
     session = Client(headers={
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
