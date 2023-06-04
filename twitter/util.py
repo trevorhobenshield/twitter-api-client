@@ -15,7 +15,7 @@ def init_session():
     client = Client(headers={
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
-    })
+    }, follow_redirects=True)
     r = client.post('https://api.twitter.com/1.1/guest/activate.json').json()
     client.headers.update({
         'content-type': 'application/json',
@@ -67,7 +67,7 @@ def flatten(seq: list | tuple) -> list:
     return flat
 
 
-def get_json(res: list[Response], name: str, save=True, **kwargs) -> dict | tuple:
+def get_json(res: list[Response], **kwargs) -> dict | tuple:
     cursor = kwargs.get('cursor')
     temp = res
     if any(isinstance(r, (list, tuple)) for r in res):
@@ -75,9 +75,6 @@ def get_json(res: list[Response], name: str, save=True, **kwargs) -> dict | tupl
     for r in temp:
         try:
             data = r.json()
-            # if save:
-            #     dump(data, name=name)
-
             # parentheses very important
             return (data, cursor) if cursor else data
         except Exception as e:
@@ -111,7 +108,7 @@ def get_headers(session, **kwargs) -> dict:
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         'cookie': '; '.join(f'{k}={v}' for k, v in session.cookies.items()),
         'referer': 'https://twitter.com/',
-        'user-agent': 'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
         'x-csrf-token': session.cookies.get('ct0', ''),
         'x-guest-token': session.cookies.get('guest_token', ''),
         'x-twitter-auth-type': 'OAuth2Session' if session.cookies.get('auth_token') else '',
@@ -124,6 +121,11 @@ def get_headers(session, **kwargs) -> dict:
 def find_key(obj: any, key: str) -> list:
     """
     Find all values of a given key within a nested dict or list of dicts
+
+    Most data of interest is nested, and sometimes defined by different schemas.
+    It is not worth our time to enumerate all absolute paths to a given key, then update
+    the paths in our parsing functions every time Twitter changes their API.
+    Instead, we recursively search for the key here, then run post-processing functions on the results.
 
     @param obj: dictionary or list of dictionaries
     @param key: key to search for
@@ -149,6 +151,54 @@ def find_key(obj: any, key: str) -> list:
 
     return helper(obj, key, [])
 
+
+def log(logger: Logger, level: int, r: Response):
+    def stat(r, txt, data):
+        if level >= 1:
+            logger.debug(f'{r.url.path}')
+        if level >= 2:
+            logger.debug(f'{r.url}')
+        if level >= 3:
+            logger.debug(f'{txt}')
+        if level >= 4:
+            logger.debug(f'{data}')
+
+        try:
+            limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
+            current_time = int(time.time())
+            wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
+            remaining = limits.get('x-rate-limit-remaining')
+            limit = limits.get('x-rate-limit-limit')
+            logger.debug(f"remaining: {MAGENTA}{remaining}/{limit}{RESET} requests")
+            logger.debug(f'reset:     {MAGENTA}{(wait / 60):.2f}{RESET} minutes')
+        except Exception as e:
+            logger.error(f'Rate limit info unavailable: {e}')
+
+    try:
+        status = r.status_code
+        txt, data, = r.text, r.json()
+        if 'json' in r.headers.get('content-type', ''):
+            if data.get('errors') and not find_key(data, 'instructions'):
+                logger.error(f'[{RED}error{RESET}] {status} {data}')
+            else:
+                logger.debug(fmt_status(status))
+                stat(r, txt, data)
+        else:
+            logger.debug(fmt_status(status))
+            stat(r, txt, {})
+    except Exception as e:
+        logger.error(f'Failed to log: {e}')
+
+
+def fmt_status(status: int) -> str:
+    color = None
+    if 200 <= status < 300:
+        color = GREEN
+    elif 300 <= status < 400:
+        color = MAGENTA
+    elif 400 <= status < 600:
+        color = RED
+    return f'[{color}{status}{RESET}]'
 
 # def init_protonmail_session(email: str, password: str) -> protonmail.api.Session:
 #     """
@@ -230,52 +280,3 @@ def find_key(obj: any, key: str) -> list:
 #         return list(filter(len, (re.findall(expr, conv['Subject']) for conv in inbox['Conversations'])))[0][0]
 #     except Exception as e:
 #         print('Failed to get Twitter confirmation code:', e)
-
-
-def log(logger: Logger, level: int, r: Response):
-    def stat(r, txt, data):
-        if level >= 1:
-            logger.debug(f'{r.url.path}')
-        if level >= 2:
-            logger.debug(f'{r.url}')
-        if level >= 3:
-            logger.debug(f'{txt}')
-        if level >= 4:
-            logger.debug(f'{data}')
-
-        try:
-            limits = {k: v for k, v in r.headers.items() if 'x-rate-limit' in k}
-            current_time = int(time.time())
-            wait = int(r.headers.get('x-rate-limit-reset', current_time)) - current_time
-            remaining = limits.get('x-rate-limit-remaining')
-            limit = limits.get('x-rate-limit-limit')
-            logger.debug(f"remaining: {MAGENTA}{remaining}/{limit}{RESET} requests")
-            logger.debug(f'reset:     {MAGENTA}{(wait / 60):.2f}{RESET} minutes')
-        except Exception as e:
-            logger.error(f'Rate limit info unavailable: {e}')
-
-    try:
-        status = r.status_code
-        txt, data, = r.text, r.json()
-        if 'json' in r.headers.get('content-type', ''):
-            if data.get('errors') and not find_key(data, 'instructions'):
-                logger.error(f'[{RED}error{RESET}] {status} {data}')
-            else:
-                logger.debug(fmt_status(status))
-                stat(r, txt, data)
-        else:
-            logger.debug(fmt_status(status))
-            stat(r, txt, {})
-    except Exception as e:
-        logger.error(f'Failed to log: {e}')
-
-
-def fmt_status(status: int) -> str:
-    color = None
-    if 200 <= status < 300:
-        color = GREEN
-    elif 300 <= status < 400:
-        color = MAGENTA
-    elif 400 <= status < 600:
-        color = RED
-    return f'[{color}{status}{RESET}]'

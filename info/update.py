@@ -1,22 +1,30 @@
 import asyncio
+import platform
 import re
 import subprocess
 from pathlib import Path
 
-import aiohttp
 import orjson
 import requests
-import uvloop
-from requests import Session
+from httpx import AsyncClient, Client
 
-from twitter.constants import logger
+from twitter.constants import *
 
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+try:
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
 
-BOLD = '\u001b[1m'
-SUCCESS = '\u001b[32m'
-WARN = '\u001b[31m'
-RESET = '\u001b[0m'
+        nest_asyncio.apply()
+except:
+    ...
+
+if platform.system() != 'Windows':
+    try:
+        import uvloop
+
+        uvloop.install()
+    except ImportError as e:
+        ...
 
 _a = 'a.js'
 _base = 'https://abs.twimg.com/responsive-web/client-web'
@@ -42,64 +50,37 @@ def find_api_script(res: requests.Response) -> str:
     return f'{_base}/{js}'
 
 
-def get_operations(session: Session) -> tuple:
+def get_operations(session: Client) -> None:
     """
     Get operations and their respective queryId and feature definitions
     @return: list of operations
     """
-    headers = {
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-    }
-    r1 = session.get('https://twitter.com', headers=headers)
+    r1 = session.get('https://twitter.com')
     script = find_api_script(r1)
-    r2 = session.get(script, headers=headers)
-    temp = '[{' + re.search('\d+:e=>\{e\.exports=\{.*?(?=,\d+:e=>\{"use strict";)', r2.text).group() + '}]'
-    temp = re.sub('e\.exports=', 'return', temp)
+    r2 = session.get(script)
+    temp = '[{' + re.search('\d+:\w=>\{\w\.exports=\{.*?(?=,\d+:\w=>\{"use strict";)', r2.text).group() + '}]'
+    temp = re.sub('\w\.exports=', 'return', temp)
 
     js = 'const obj={},out=Object.entries(O[0]).forEach(([e,t])=>{let a=t(),o={};for(let r of a.metadata.featureSwitches)o[r]=!0;obj[a.operationName]={queryId:a.queryId,variables:{},features:o}});require("fs").writeFile("' + OPERATIONS.with_suffix(
         '.json').name + '",JSON.stringify(obj,null,2),e=>e);'
     js_out = OPERATIONS.with_suffix('.js')
     js_out.expanduser().write_text(f"O={temp};" + js)
     subprocess.run(f'node {js_out}', shell=True)
-    return js_out, orjson.loads(Path(OPERATIONS.with_suffix('.json')).read_bytes())
 
 
-def get_headers(filename: str = 'headers.txt') -> dict:
-    if (path := Path(filename)).exists():
-        return {y.group(): z.group()
-                for x in path.read_text().splitlines()
-                if (y := re.search('^[\w-]+(?=:\s)', x),
-                    z := re.search(f'(?<={y.group()}:\s).*', x))}
-    # default
-    return {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                          '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-
-
-async def process(fn: callable, headers: dict, urls: any, **kwargs) -> list:
-    conn = aiohttp.TCPConnector(ssl=False, limit=420, ttl_dns_cache=69)
-    async with aiohttp.ClientSession(headers=headers, connector=conn) as s:
+async def process(session: Client, fn: callable, urls: any, **kwargs) -> list:
+    async with AsyncClient(follow_redirects=True, headers=session.headers) as s:
         return await asyncio.gather(*(fn(s, u, **kwargs) for u in urls))
 
 
-async def get(session: aiohttp.ClientSession, url: str, **kwargs) -> tuple[str, dict]:
+async def get(session: AsyncClient, url: str, **kwargs) -> tuple[str, str]:
     try:
         logger.debug(f"GET {url}")
-        res = await session.get(url)
-        data = await getattr(res, kwargs.get('res', 'text'))()
-        return url, data
+        r = await session.get(url)
+        return url, r.text
     except Exception as e:
-        logger.debug(f"[{WARN}FAILED{RESET}]: {url}\n{e}")
+        logger.error(f"[{RED}failed{RESET}] Failed to get {url}\n{e}")
 
-
-# def update_endpoints(res: list):
-#     # update endpoints, remove old files
-#     current_files = {p.name.split('.')[1]: p.name for p in JS_FILES.iterdir()}
-#     for url, r in res:
-#         u = url.split('/')[-1]
-#         if x := current_files.get(u.split('.')[1]):
-#             (JS_FILES / x).unlink()
-#         (JS_FILES / u).write_text(r)
-#     subprocess.run(f'prettier --write "{JS_FILES.name}/*.js" {JS_FILES_MAP}', shell=True)
 
 def get_js(res: list):
     for url, r in res:
@@ -108,7 +89,7 @@ def get_js(res: list):
     subprocess.run(f'prettier --write "{JS_FILES.name}/*.js" {JS_FILES_MAP}', shell=True)
 
 
-def find_strings():
+def get_strings():
     # find strings < 120 chars long
     # queryId's are usually 22 chars long
     s = set()
@@ -120,19 +101,63 @@ def find_strings():
     PATHS.write_text('\n'.join(sorted(s for s in s if '/' in s)))
 
 
+def get_features():
+    operations = orjson.loads(OPERATIONS.with_suffix('.json').read_bytes())
+    features = {}
+    for k, v in operations.items():
+        features |= v.get('features', {})
+    Path('features.json').write_bytes(orjson.dumps(dict(sorted(features.items())), option=orjson.OPT_INDENT_2))
+
+
+def find_paths(obj, **kwargs):
+    """ find absolute paths to keys or values, by str or regex"""
+    paths = []
+    allowed = ("key", "value", "regex", "key_regex", "value_regex", "unique")
+    key, value, regex, key_regex, value_regex, unique = (kwargs.get(k) for k in allowed)
+
+    def helper(obj, curr=[]):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                new = curr + [f"['{k}']"]
+                if any(
+                        cond
+                        for cond in [
+                            k == key,
+                            v == value,
+                            key_regex and isinstance(k, str) and re.search(key_regex, k),
+                            value_regex and isinstance(v, str) and re.search(value_regex, v),
+                            regex and isinstance(v, str) and re.search(regex, v),
+                        ]
+                ):
+                    paths.append("".join(new))
+                helper(v, new)
+        elif isinstance(obj, list):
+            for i, k in enumerate(obj):
+                new = curr + [f"[{i}]"]
+                helper(k, new)
+
+    helper(obj)
+
+    if unique:
+        return sorted(set(re.sub(r"\[\d+\]", "[i]", x) for x in paths), key=len)
+    return paths
+
+
 def main():
-    get_operations(Session())
+    session = Client(headers={
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+    }, follow_redirects=True)
+    get_operations(session)
     urls = (
         f'{_base}/{k}.{v}{_a}'
         for k, v in orjson.loads(JS_FILES_MAP.read_text()).items()
-        if not re.search('i18n|icons\/', k)
+        if not re.search('participantreaction|\.countries-|emojipicker|i18n|icons\/', k, flags=re.I)
         # if 'endpoint' in k
     )
-    headers = get_headers()
-    res = asyncio.run(process(get, headers, urls))
+    res = asyncio.run(process(session, get, urls))
     get_js(res)
-    # update_endpoints(res)
-    find_strings()
+    get_strings()
+    get_features()
 
 
 if __name__ == '__main__':

@@ -3,13 +3,10 @@ import logging.config
 import math
 import platform
 import random
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import aiofiles
-import httpx
 import websockets
 from httpx import AsyncClient, Limits, ReadTimeout, URL
-from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
 from .constants import *
@@ -41,27 +38,6 @@ class Scraper:
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.out_path = Path('data')
-        self.api = 'https://twitter.com/i/api/graphql'
-
-    @staticmethod
-    def init_logger(cfg: dict) -> Logger:
-        if cfg:
-            logging.config.dictConfig(cfg)
-            return logging.getLogger(__name__)
-        return logger
-
-    def validate_session(self, *args, **kwargs):
-        email, username, password, session = args
-        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
-            # authenticated session provided
-            return session
-        if not session:
-            # no session provided, login to authenticate
-            return login(email, username, password, **kwargs)
-        self.logger.warning(f'\n{RED}WARNING: This is a guest session, '
-                            f'some endpoints cannot be accessed.{RESET}\n')
-        self.guest = True
-        return session
 
     def users(self, screen_names: list[str], **kwargs) -> list[dict]:
         return self._run(Operation.UserByScreenName, screen_names, **kwargs)
@@ -123,13 +99,16 @@ class Scraper:
             contexts = [{'context': None}]
         return self._run(Operation.ConnectTabTimeline, contexts, **kwargs)
 
-    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True) -> None:
+    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True,
+                       chunk_size: int = 8192) -> None:
+
+        out = (self.out_path / 'media')
+        out.mkdir(parents=True, exist_ok=True)
         tweets = self.tweets_by_id(ids)
         urls = []
         for tweet in tweets:
-            tweet_ids = find_key(tweet, 'id_str')
-            tweet_id = tweet_ids[0]
-            url = f'https://twitter.com/i/status/{tweet_id}'  # `i` evaluates to screen_name
+            tweet_id = find_key(tweet, 'id_str')[0]
+            url = f'https://twitter.com/i/status/{tweet_id}'
             media = [y for x in find_key(tweet, 'media') for y in x]
             if photos:
                 photo_urls = list({u for m in media if 'ext_tw_video_thumb' not in (u := m['media_url_https'])})
@@ -139,52 +118,53 @@ class Scraper:
                 hq_videos = {sorted(v, key=lambda d: d.get('bitrate', 0))[-1]['url'] for v in video_urls}
                 [urls.append([url, video]) for video in hq_videos]
 
-        with tqdm(total=len(urls), desc='downloading media') as pbar:
-            with ThreadPoolExecutor(max_workers=32) as e:
-                for future in as_completed(e.submit(self._download, x, y) for x, y in urls):
-                    future.result()
-                    pbar.update()
+        async def process():
+            async with AsyncClient(headers=self.session.headers, cookies=self.session.cookies) as client:
+                return await tqdm_asyncio.gather(*(download(client, x, y) for x, y in urls),
+                                                 desc='downloading media')
 
-    def _download(self, post_url: str, cdn_url: str, path: str = 'media', chunk_size: int = 4096) -> None:
-        (self.out_path / 'media').mkdir(parents=True, exist_ok=True)
-        name = urlsplit(post_url).path.replace('/', '_')[1:]
-        ext = urlsplit(cdn_url).path.split('/')[-1]
-        try:
-            with httpx.stream('GET', cdn_url, headers=self.session.headers, cookies=self.session.cookies) as r:
-                with open(f'{path}/{name}_{ext}', 'wb') as f:
+        async def download(client: AsyncClient, post_url: str, cdn_url: str) -> None:
+            name = urlsplit(post_url).path.replace('/', '_')[1:]
+            ext = urlsplit(cdn_url).path.split('/')[-1]
+            try:
+                r = await client.get(cdn_url)
+                async with aiofiles.open(out / f'{name}_{ext}', 'wb') as fp:
                     for chunk in r.iter_bytes(chunk_size=chunk_size):
-                        f.write(chunk)
-        except Exception as e:
-            self.logger.error(f'[{RED}error{RESET}] Failed to download media: {post_url} {e}')
+                        await fp.write(chunk)
+            except Exception as e:
+                self.logger.error(f'[{RED}error{RESET}] Failed to download media: {post_url} {e}')
 
-    def trends(self) -> dict:
+        asyncio.run(process())
+
+    def trends(self, utc: list[str] = None) -> dict:
         """Get trends for all UTC offsets"""
 
-        def get_trends(offset: str, url: str, headers: dict):
+        async def get_trends(client: AsyncClient, offset: str, url: str):
             try:
-                headers['x-twitter-utcoffset'] = offset
-                r = self.session.get(url, headers=headers)
+                client.headers['x-twitter-utcoffset'] = offset
+                r = await client.get(url)
                 trends = find_key(r.json(), 'item')
                 return {t['content']['trend']['name']: t for t in trends}
             except Exception as e:
-                self.logger.error('Failed to get trends', e)
+                self.logger.error(f'[{RED}error{RESET}] Failed to get trends\n{e}')
 
-        headers = get_headers(self.session)
-        url = set_qs('https://twitter.com/i/api/2/guide.json', trending_params)
-        offsets = [f"{str(i).zfill(3)}00" if i < 0 else f"+{str(i).zfill(2)}00" for i in range(-12, 15)]
-        trends = {}
-        with tqdm(total=len(offsets), desc='downloading trends') as pbar:
-            with ThreadPoolExecutor(max_workers=32) as e:
-                for future in as_completed(e.submit(get_trends, o, url, headers) for o in offsets):
-                    trends |= future.result()
-                    pbar.update()
+        async def process():
+            url = set_qs('https://twitter.com/i/api/2/guide.json', trending_params)
+            offsets = utc or ["-1200", "-1100", "-1000", "-0900", "-0800", "-0700", "-0600", "-0500", "-0400", "-0300",
+                              "-0200", "-0100", "+0000", "+0100", "+0200", "+0300", "+0400", "+0500", "+0600", "+0700",
+                              "+0800", "+0900", "+1000", "+1100", "+1200", "+1300", "+1400"]
+            async with AsyncClient(headers=get_headers(self.session)) as client:
+                return await tqdm_asyncio.gather(
+                    *(get_trends(client, o, url) for o in offsets),
+                    desc='downloading media'
+                )
 
-        path = self.out_path / 'raw/trends'
-        path.mkdir(parents=True, exist_ok=True)
-        (path / f'{time.time_ns()}.json').write_text(
-            orjson.dumps(trends, option=orjson.OPT_INDENT_2).decode(),
-            encoding='utf-8'
-        )
+        trends = asyncio.run(process())
+        out = self.out_path / 'raw' / 'trends'
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f'{time.time_ns()}.json').write_text(orjson.dumps(
+            {k: v for d in trends for k, v in d.items()},
+            option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS).decode(), encoding='utf-8')
         return trends
 
     def spaces(self, *, rooms: list[str] = None, search: list[dict] = None, audio: bool = False, chat: bool = False,
@@ -363,12 +343,10 @@ class Scraper:
 
     def _run(self, operation: tuple[dict, str, str], queries: set | list[int | str | dict], **kwargs):
         keys, qid, name = operation
-        save = kwargs.pop('save', True)
         op = kwargs.pop('res', 'json')
-
         ops = {
             None: lambda x: x,  # return raw response
-            'json': lambda x: list(filter(None, (get_json(r, name, save, **kwargs) for r in x))),
+            'json': lambda x: list(filter(None, (get_json(r, **kwargs) for r in x))),
             'text': lambda x: [r.text for r in x],
         }
 
@@ -385,14 +363,13 @@ class Scraper:
         res = ops[op](asyncio.run(self._process(operation, _queries, **kwargs)))
         return res.pop() if kwargs.get('cursor') else flatten(res)
 
-    async def _query(self, c: AsyncClient, operation: tuple, **kwargs) -> Response:
+    async def _query(self, client: AsyncClient, operation: tuple, **kwargs) -> Response:
         keys, qid, name = operation
         params = {
             'variables': Operation.default_variables | keys | kwargs,
             'features': Operation.default_features,
         }
-        url = f'https://twitter.com/i/api/graphql/{qid}/{name}'
-        r = await c.get(url, params=build_params(params))
+        r = await client.get(f'https://twitter.com/i/api/graphql/{qid}/{name}', params=build_params(params))
         if self.debug:
             log(self.logger, self.debug, r)
         if self.save:
@@ -610,3 +587,23 @@ class Scraper:
 
         spaces = self.spaces(rooms=rooms)
         return asyncio.run(process(spaces))
+
+    @staticmethod
+    def init_logger(cfg: dict) -> Logger:
+        if cfg:
+            logging.config.dictConfig(cfg)
+            return logging.getLogger(__name__)
+        return logger
+
+    def validate_session(self, *args, **kwargs):
+        email, username, password, session = args
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            # authenticated session provided
+            return session
+        if not session:
+            # no session provided, log-in to authenticate
+            return login(email, username, password, **kwargs)
+        self.logger.warning(f'\n{RED}WARNING: This is a guest session, '
+                            f'some endpoints cannot be accessed.{RESET}\n')
+        self.guest = True
+        return session

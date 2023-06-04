@@ -37,29 +37,10 @@ class Account:
     def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
         self.logger = self.init_logger(kwargs.get('log_config', False))
         self.session = self.validate_session(email, username, password, session, **kwargs)
-        self.gql_url = 'https://twitter.com/i/api/graphql'
-        self.v1_url = 'https://api.twitter.com/1.1'
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
-
-    @staticmethod
-    def init_logger(cfg: dict) -> Logger:
-        if cfg:
-            logging.config.dictConfig(cfg)
-            return logging.getLogger(__name__)
-        return logger
-
-    @staticmethod
-    def validate_session(*args, **kwargs):
-        email, username, password, session = args
-        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
-            # authenticated session provided
-            return session
-        if not session:
-            # no session provided, login to authenticate
-            return login(email, username, password, **kwargs)
-        raise Exception('Session not authenticated. '
-                        'Please use an authenticated session or remove the `session` argument and try again.')
+        self.gql_api = 'https://twitter.com/i/api/graphql'
+        self.v1_api = 'https://api.twitter.com/1.1'
 
     def gql(self, method: str, operation: tuple, variables: dict, features: dict = Operation.default_features) -> dict:
         qid, op = operation
@@ -74,7 +55,7 @@ class Account:
             data = {'params': {k: orjson.dumps(v).decode() for k, v in params.items()}}
         r = self.session.request(
             method=method,
-            url=f'{self.gql_url}/{qid}/{op}',
+            url=f'{self.gql_api}/{qid}/{op}',
             headers=get_headers(self.session),
             **data
         )
@@ -85,7 +66,7 @@ class Account:
     def v1(self, path: str, params: dict) -> dict:
         headers = get_headers(self.session)
         headers['content-type'] = 'application/x-www-form-urlencoded'
-        r = self.session.post(f'{self.v1_url}/{path}', headers=headers, data=urlencode(params))
+        r = self.session.post(f'{self.v1_api}/{path}', headers=headers, data=urlencode(params))
         if self.debug:
             log(self.logger, self.debug, r)
         return r.json()
@@ -354,7 +335,7 @@ class Account:
 
     def update_profile_image(self, media: str) -> Response:
         media_id = self._upload_media(media, is_profile=True)
-        url = f'{self.v1_url}/account/update_profile_image.json'
+        url = f'{self.v1_api}/account/update_profile_image.json'
         headers = get_headers(self.session)
         params = {'media_id': media_id}
         r = self.session.post(url, headers=headers, params=params)
@@ -362,14 +343,14 @@ class Account:
 
     def update_profile_banner(self, media: str) -> Response:
         media_id = self._upload_media(media, is_profile=True)
-        url = f'{self.v1_url}/account/update_profile_banner.json'
+        url = f'{self.v1_api}/account/update_profile_banner.json'
         headers = get_headers(self.session)
         params = {'media_id': media_id}
         r = self.session.post(url, headers=headers, params=params)
         return r
 
     def update_profile_info(self, **kwargs) -> Response:
-        url = f'{self.v1_url}/account/update_profile.json'
+        url = f'{self.v1_api}/account/update_profile.json'
         headers = get_headers(self.session)
         r = self.session.post(url, headers=headers, params=kwargs)
         return r
@@ -378,7 +359,7 @@ class Account:
         twid = int(self.session.cookies.get('twid').split('=')[-1].strip('"'))
         headers = get_headers(self.session)
         r = self.session.post(
-            url=f'{self.v1_url}/strato/column/User/{twid}/search/searchSafety',
+            url=f'{self.v1_api}/strato/column/User/{twid}/search/searchSafety',
             headers=headers,
             json=settings,
         )
@@ -404,7 +385,7 @@ class Account:
         Pass 'all' to remove all interests
         """
         r = self.session.get(
-            f'{self.v1_url}/account/personalization/twitter_interests.json',
+            f'{self.v1_api}/account/personalization/twitter_interests.json',
             headers=get_headers(self.session)
         )
         current_interests = r.json()['interested_in']
@@ -421,7 +402,7 @@ class Account:
             }
         }
         r = self.session.post(
-            f'{self.v1_url}/account/personalization/p13n_preferences.json',
+            f'{self.v1_api}/account/personalization/p13n_preferences.json',
             headers=get_headers(self.session),
             json=payload
         )
@@ -527,12 +508,12 @@ class Account:
                         _headers = {b'content-type': b'multipart/form-data; boundary=----WebKitFormBoundary' + pad}
                         r = self.session.post(url=url, headers=headers | _headers, params=params, content=data)
                     except Exception as e:
-                        self.logger.error('Failed to upload chunk, trying alternative method')
+                        self.logger.error(f'Failed to upload chunk, trying alternative method\n{e}')
                         try:
                             files = {'media': chunk}
                             r = self.session.post(url=url, headers=headers, params=params, files=files)
                         except Exception as e:
-                            self.logger.error(f'Failed to upload chunk: {e}')
+                            self.logger.error(f'Failed to upload chunk\n{e}')
                             return
 
                     if r.status_code < 200 or r.status_code > 299:
@@ -571,6 +552,25 @@ class Account:
 
     def _add_alt_text(self, media_id: int, text: str) -> Response:
         params = {"media_id": media_id, "alt_text": {"text": text}}
-        url = f'{self.v1_url}/media/metadata/create.json'
+        url = f'{self.v1_api}/media/metadata/create.json'
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
+
+    @staticmethod
+    def init_logger(cfg: dict) -> Logger:
+        if cfg:
+            logging.config.dictConfig(cfg)
+            return logging.getLogger(__name__)
+        return logger
+
+    @staticmethod
+    def validate_session(*args, **kwargs):
+        email, username, password, session = args
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            # authenticated session provided
+            return session
+        if not session:
+            # no session provided, login to authenticate
+            return login(email, username, password, **kwargs)
+        raise Exception('Session not authenticated. '
+                        'Please use an authenticated session or remove the `session` argument and try again.')
