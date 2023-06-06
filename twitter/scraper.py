@@ -35,8 +35,9 @@ class Scraper:
         self.guest = False
         self.logger = self.init_logger(kwargs.get('log_config', False))
         self.session = self.validate_session(email, username, password, session, **kwargs)
-        self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
+        self.save = kwargs.get('save', True)
+        self.pbar = kwargs.get('pbar', True)
         self.out_path = Path('data')
 
     def users(self, screen_names: list[str], **kwargs) -> list[dict]:
@@ -120,8 +121,10 @@ class Scraper:
 
         async def process():
             async with AsyncClient(headers=self.session.headers, cookies=self.session.cookies) as client:
-                return await tqdm_asyncio.gather(*(download(client, x, y) for x, y in urls),
-                                                 desc='downloading media')
+                tasks = (download(client, x, y) for x, y in urls)
+                if self.pbar:
+                    return await tqdm_asyncio.gather(*tasks, desc='Downloading media')
+                return await asyncio.gather(*tasks)
 
         async def download(client: AsyncClient, post_url: str, cdn_url: str) -> None:
             name = urlsplit(post_url).path.replace('/', '_')[1:]
@@ -154,10 +157,10 @@ class Scraper:
                               "-0200", "-0100", "+0000", "+0100", "+0200", "+0300", "+0400", "+0500", "+0600", "+0700",
                               "+0800", "+0900", "+1000", "+1100", "+1200", "+1300", "+1400"]
             async with AsyncClient(headers=get_headers(self.session)) as client:
-                return await tqdm_asyncio.gather(
-                    *(get_trends(client, o, url) for o in offsets),
-                    desc='downloading media'
-                )
+                tasks = (get_trends(client, o, url) for o in offsets)
+                if self.pbar:
+                    return await tqdm_asyncio.gather(*tasks, desc='Getting trends')
+                return await asyncio.gather(*tasks)
 
         trends = asyncio.run(process())
         out = self.out_path / 'raw' / 'trends'
@@ -294,7 +297,10 @@ class Scraper:
             headers = self.session.headers if self.guest else get_headers(self.session)
             cookies = self.session.cookies
             async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
-                return await tqdm_asyncio.gather(*(get(c, key) for key in keys), desc='downloading chat')
+                tasks = (get(c, key) for key in keys)
+                if self.pbar:
+                    return await tqdm_asyncio.gather(*tasks, desc='Downloading chat data')
+                return await asyncio.gather(*tasks)
 
         return asyncio.run(process())
 
@@ -311,7 +317,9 @@ class Scraper:
                 tasks = []
                 for d in data:
                     tasks.extend([get(c, chunk, d['rest_id']) for chunk in d['chunks']])
-                return await tqdm_asyncio.gather(*tasks, desc='downloading audio')
+                if self.pbar:
+                    return await tqdm_asyncio.gather(*tasks, desc='Downloading audio')
+                return await asyncio.gather(*tasks)
 
         chunks = asyncio.run(process(data))
         streams = {}
@@ -381,10 +389,10 @@ class Scraper:
         headers = self.session.headers if self.guest else get_headers(self.session)
         cookies = self.session.cookies
         async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
-            return await tqdm_asyncio.gather(
-                *(self._paginate(c, operation, **q, **kwargs) for q in queries),
-                desc=operation[-1],
-            )
+            tasks = (self._paginate(c, operation, **q, **kwargs) for q in queries)
+            if self.pbar:
+                return await tqdm_asyncio.gather(*tasks, desc=operation[-1])
+            return await asyncio.gather(*tasks)
 
     async def _paginate(self, client: AsyncClient, operation: tuple, **kwargs):
         limit = kwargs.pop('limit', math.inf)
@@ -507,7 +515,10 @@ class Scraper:
 
         limits = Limits(max_connections=100)
         async with AsyncClient(headers=client.headers, limits=limits, timeout=30) as c:
-            return await tqdm_asyncio.gather(*(get(c, _id) for _id in spaces), desc='getting live transcripts')
+            tasks = (get(c, _id) for _id in spaces)
+            if self.pbar:
+                return await tqdm_asyncio.gather(*tasks, desc='Getting live transcripts')
+            return await asyncio.gather(*tasks)
 
     def space_live_transcript(self, room: str, frequency: int = 1):
         async def get(spaces: list[dict]):
@@ -592,8 +603,9 @@ class Scraper:
     def init_logger(cfg: dict) -> Logger:
         if cfg:
             logging.config.dictConfig(cfg)
-            return logging.getLogger(__name__)
-        return logger
+        else:
+            logging.config.dictConfig(LOG_CONFIG)
+        return logging.getLogger(__name__)
 
     def validate_session(self, *args, **kwargs):
         email, username, password, session = args

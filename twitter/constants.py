@@ -35,7 +35,7 @@ DISABLE_LOG_PROPAGATION = [
     'uvloop',
 ]
 
-LOGGING_CONFIG = {
+LOG_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
@@ -72,9 +72,6 @@ LOGGING_CONFIG = {
         for pkg in DISABLE_LOG_PROPAGATION
     },
 }
-
-logging.config.dictConfig(LOGGING_CONFIG)
-logger = logging.getLogger(__name__)
 
 
 @dataclass

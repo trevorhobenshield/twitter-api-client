@@ -41,26 +41,6 @@ class Search:
         self.api = 'https://api.twitter.com/2/search/adaptive.json?'
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
-        self.logger = self.init_logger(kwargs.get('log_config', False))
-
-    @staticmethod
-    def init_logger(cfg: dict) -> Logger:
-        if cfg:
-            logging.config.dictConfig(cfg)
-            return logging.getLogger(__name__)
-        return logger
-
-    @staticmethod
-    def validate_session(*args, **kwargs):
-        email, username, password, session = args
-        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
-            # authenticated session provided
-            return session
-        if not session:
-            # no session provided, login to authenticate
-            return login(email, username, password, **kwargs)
-        raise Exception('Session not authenticated. '
-                        'Please use an authenticated session or remove the `session` argument and try again.')
 
     def run(self, *args, out: str = 'data', **kwargs):
         out_path = self.make_output_dirs(out)
@@ -72,8 +52,7 @@ class Search:
         async with AsyncClient(headers=get_headers(self.session)) as s:
             return await asyncio.gather(*(self.paginate(q, s, config, out, **kwargs) for q in queries))
 
-    async def paginate(self, query: str, session: AsyncClient, config: dict, out: Path, **kwargs) -> list[
-        dict]:
+    async def paginate(self, query: str, session: AsyncClient, config: dict, out: Path, **kwargs) -> list[dict]:
         config['q'] = query
         data, next_cursor = await self.backoff(lambda: self.get(session, config), query, **kwargs)
         all_data = [data]
@@ -84,7 +63,7 @@ class Search:
             if len(ids) >= kwargs.get('limit', math.inf):
                 if self.debug:
                     self.logger.debug(
-                        f'[{GREEN}success{RESET}] returned {len(ids)} search results for {c}{query}{reset}')
+                        f'[{GREEN}success{RESET}] Returned {len(ids)} search results for {c}{query}{reset}')
                 return all_data
             if self.debug:
                 self.logger.debug(f'{c}{query}{reset}')
@@ -120,7 +99,7 @@ class Search:
                 t = 2 ** i + random.random()
                 if self.debug:
                     self.logger.debug(
-                        f'No data for: \u001b[1m{info}\u001b[0m | retrying in {f"{t:.2f}"} seconds\t\t{e}')
+                        f'No data for: {BOLD}{info}{RESET}, retrying in {f"{t:.2f}"} seconds\t\t{e}')
                 time.sleep(t)
 
     async def get(self, session: AsyncClient, params: dict) -> tuple:
@@ -154,3 +133,23 @@ class Search:
         (p / 'processed').mkdir(parents=True, exist_ok=True)
         (p / 'final').mkdir(parents=True, exist_ok=True)
         return p
+
+    @staticmethod
+    def init_logger(cfg: dict) -> Logger:
+        if cfg:
+            logging.config.dictConfig(cfg)
+        else:
+            logging.config.dictConfig(LOG_CONFIG)
+        return logging.getLogger(__name__)
+
+    @staticmethod
+    def validate_session(*args, **kwargs):
+        email, username, password, session = args
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            # authenticated session provided
+            return session
+        if not session:
+            # no session provided, log-in to authenticate
+            return login(email, username, password, **kwargs)
+        raise Exception('Session not authenticated. '
+                        'Please use an authenticated session or remove the `session` argument and try again.')

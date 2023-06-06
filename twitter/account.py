@@ -101,7 +101,7 @@ class Account:
             variables['message']['text'] = {'text': text}
         res = self.gql('POST', Operation.useSendMessageMutation, variables)
         if find_key(res, 'dm_validation_failure_type'):
-            logger.debug(f"{RED}Failed to send DM(s) to {receivers}{RESET}")
+            self.logger.debug(f"{RED}Failed to send DM(s) to {receivers}{RESET}")
         return res
 
     def tweet(self, text: str, *, media: any = None, **kwargs) -> dict:
@@ -560,8 +560,9 @@ class Account:
     def init_logger(cfg: dict) -> Logger:
         if cfg:
             logging.config.dictConfig(cfg)
-            return logging.getLogger(__name__)
-        return logger
+        else:
+            logging.config.dictConfig(LOG_CONFIG)
+        return logging.getLogger(__name__)
 
     @staticmethod
     def validate_session(*args, **kwargs):
