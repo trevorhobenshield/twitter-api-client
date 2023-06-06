@@ -1,12 +1,12 @@
 import asyncio
+import logging.config
 import platform
 import re
 import subprocess
 from pathlib import Path
 
 import orjson
-import requests
-from httpx import AsyncClient, Client
+from httpx import AsyncClient, Client, Response
 
 from twitter.constants import *
 
@@ -35,9 +35,11 @@ JS_FILES_MAP = Path('js.json')
 JS_FILES = Path('js')
 OPERATIONS = Path('operations')
 JS_FILES.mkdir(exist_ok=True, parents=True)
+logging.config.dictConfig(LOGGER_CONFIG)
+logger = logging.getLogger('twitter')
 
 
-def find_api_script(res: requests.Response) -> str:
+def find_api_script(res: Response) -> str:
     """
     Find api script
     @param res: response from homepage: https://twitter.com
@@ -82,13 +84,6 @@ async def get(session: AsyncClient, url: str, **kwargs) -> tuple[str, str]:
         logger.error(f"[{RED}failed{RESET}] Failed to get {url}\n{e}")
 
 
-def get_js(res: list):
-    for url, r in res:
-        u = url.split('/')[-1]
-        (JS_FILES / u).write_text(r)
-    subprocess.run(f'prettier --write "{JS_FILES.name}/*.js" {JS_FILES_MAP}', shell=True)
-
-
 def get_strings():
     # find strings < 120 chars long
     # queryId's are usually 22 chars long
@@ -120,8 +115,7 @@ def main():
         if not re.search('participantreaction|\.countries-|emojipicker|i18n|icons\/', k, flags=re.I)
         # if 'endpoint' in k
     )
-    res = asyncio.run(process(session, get, urls))
-    get_js(res)
+    asyncio.run(process(session, get, urls))
     get_strings()
     get_features()
 
