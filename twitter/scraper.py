@@ -604,8 +604,14 @@ class Scraper:
         if cfg:
             logging.config.dictConfig(cfg)
         else:
-            logging.config.dictConfig(LOG_CONFIG)
-        return logging.getLogger(__name__)
+            logging.config.dictConfig(LOGGER_CONFIG)
+
+        # Set level of all other loggers to ERROR
+        for name in logging.root.manager.loggerDict:
+            if name != LOGGER_NAME:
+                logging.getLogger(name).setLevel(logging.ERROR)
+
+        return logging.getLogger(LOGGER_NAME)
 
     def validate_session(self, *args, **kwargs):
         email, username, password, session = args

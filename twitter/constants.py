@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-import logging
-import logging.config
 
 MAX_IMAGE_SIZE = 5_242_880  # ~5 MB
 MAX_GIF_SIZE = 15_728_640  # ~15 MB
@@ -21,21 +19,8 @@ WHITE = '\x1b[37m'
 BOLD = '\x1b[1m'
 RESET = '\x1b[0m'
 
-DISABLE_LOG_PROPAGATION = [
-    'httpx',
-    'httpcore',
-    'aiofiles',
-    'websockets',
-    'nest_asyncio',
-    'orjson',
-    'tqdm',
-    'bcrypt',
-    'python-gnupg',
-    'pyopenssl',
-    'uvloop',
-]
-
-LOG_CONFIG = {
+LOGGER_NAME = 'twitter'
+LOGGER_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
@@ -59,18 +44,12 @@ LOG_CONFIG = {
             'mode': 'a',
         },
     },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'DEBUG',
-    },
     'loggers': {
-        pkg: {
+        LOGGER_NAME: {
             'handlers': ['console', 'file'],
-            'level': 'WARNING',
-            'propagate': False
+            'level': 'DEBUG',
         }
-        for pkg in DISABLE_LOG_PROPAGATION
-    },
+    }
 }
 
 
