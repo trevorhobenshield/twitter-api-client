@@ -351,25 +351,20 @@ class Scraper:
 
     def _run(self, operation: tuple[dict, str, str], queries: set | list[int | str | dict], **kwargs):
         keys, qid, name = operation
-        op = kwargs.pop('res', 'json')
-        ops = {
-            None: lambda x: x,  # return raw response
-            'json': lambda x: list(filter(None, (get_json(r, **kwargs) for r in x))),
-            'text': lambda x: [r.text for r in x],
-        }
-
         # stay within rate-limits
         if (l := len(queries)) > 500:
             self.logger.warning(f'Got {l} queries, truncating to first 500.')
             queries = list(queries)[:500]
 
         if all(isinstance(q, dict) for q in queries):
-            return ops[op](asyncio.run(self._process(operation, list(queries), **kwargs)))
+            data = asyncio.run(self._process(operation, list(queries), **kwargs))
+            return get_json(data, **kwargs)
 
         # queries are of type set | list[int|str], need to convert to list[dict]
         _queries = [{k: q} for q in queries for k, v in keys.items()]
-        res = ops[op](asyncio.run(self._process(operation, _queries, **kwargs)))
-        return res.pop() if kwargs.get('cursor') else flatten(res)
+        res = asyncio.run(self._process(operation, _queries, **kwargs))
+        data = get_json(res, **kwargs)
+        return data.pop() if kwargs.get('cursor') else flatten(data)
 
     async def _query(self, client: AsyncClient, operation: tuple, **kwargs) -> Response:
         keys, qid, name = operation

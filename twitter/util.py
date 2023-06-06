@@ -67,18 +67,22 @@ def flatten(seq: list | tuple) -> list:
     return flat
 
 
-def get_json(res: list[Response], **kwargs) -> dict | tuple:
+def get_json(res: list[Response], **kwargs) -> list:
     cursor = kwargs.get('cursor')
     temp = res
     if any(isinstance(r, (list, tuple)) for r in res):
         temp = flatten(res)
+    results = []
     for r in temp:
         try:
             data = r.json()
-            # parentheses very important
-            return (data, cursor) if cursor else data
+            if cursor:
+                results.append([data, cursor])
+            else:
+                results.append(data)
         except Exception as e:
             print('Cannot parse JSON response', e)
+    return results
 
 
 def set_qs(url: str, qs: dict, update=False, **kwargs) -> str:
