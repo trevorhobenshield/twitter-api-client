@@ -293,6 +293,7 @@ class Scraper:
             }
 
         async def process():
+            (self.out_path / 'raw').mkdir(parents=True, exist_ok=True)
             limits = Limits(max_connections=100, max_keepalive_connections=10)
             headers = self.session.headers if self.guest else get_headers(self.session)
             cookies = self.session.cookies
