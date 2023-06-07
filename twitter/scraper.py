@@ -33,77 +33,216 @@ if platform.system() != 'Windows':
 class Scraper:
     def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
         self.guest = False
-        self.logger = self.init_logger(kwargs.get('log_config', False))
-        self.session = self.validate_session(email, username, password, session, **kwargs)
+        self.logger = self._init_logger(kwargs.get('log_config', False))
+        self.session = self._validate_session(email, username, password, session, **kwargs)
         self.debug = kwargs.get('debug', 0)
         self.save = kwargs.get('save', True)
         self.pbar = kwargs.get('pbar', True)
         self.out_path = Path('data')
 
     def users(self, screen_names: list[str], **kwargs) -> list[dict]:
+        """
+        Get user data by screen names.
+
+        @param screen_names: list of screen names (usernames)
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
         return self._run(Operation.UserByScreenName, screen_names, **kwargs)
 
     def tweets_by_id(self, tweet_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get tweet metadata by tweet ids.
+
+        @param tweet_ids: list of tweet ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet data as dicts
+        """
         return self._run(Operation.TweetResultByRestId, tweet_ids, **kwargs)
 
     def tweets_details(self, tweet_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get tweet data by tweet ids.
+
+        Includes tweet metadata as well as comments, replies, etc.
+
+        @param tweet_ids: list of tweet ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet data as dicts
+        """
         return self._run(Operation.TweetDetail, tweet_ids, **kwargs)
 
     def tweets(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get tweets by user ids.
+
+        Metadata for users tweets.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet data as dicts
+        """
         return self._run(Operation.UserTweets, user_ids, **kwargs)
 
     def tweets_and_replies(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get tweets and replies by user ids.
+
+        Tweet metadata, including replies.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet data as dicts
+        """
         return self._run(Operation.UserTweetsAndReplies, user_ids, **kwargs)
 
     def media(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get media by user ids.
+
+        Tweet metadata, filtered for tweets containing media.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet data as dicts
+        """
         return self._run(Operation.UserMedia, user_ids, **kwargs)
 
     def likes(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get likes by user ids.
+
+        Tweet metadata for tweets liked by users.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet data as dicts
+        """
         return self._run(Operation.Likes, user_ids, **kwargs)
 
     def followers(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get followers by user ids.
+
+        User data for users followers list.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
         return self._run(Operation.Followers, user_ids, **kwargs)
 
     def following(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get following by user ids.
+
+        User metadata for users following list.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
         return self._run(Operation.Following, user_ids, **kwargs)
 
     def favoriters(self, tweet_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get favoriters by tweet ids.
+
+        User data for users who liked these tweets.
+
+        @param tweet_ids: list of tweet ids
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
         return self._run(Operation.Favoriters, tweet_ids, **kwargs)
 
     def retweeters(self, tweet_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get retweeters by tweet ids.
+
+        User data for users who retweeted these tweets.
+
+        @param tweet_ids: list of tweet ids
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
         return self._run(Operation.Retweeters, tweet_ids, **kwargs)
 
-    def profile_spotlights(self, screen_names: list[str], **kwargs) -> list[dict]:
-        """
-        This endpoint is included for completeness only. It returns very few data points.
-        Use the batched query `users_by_ids` instead if you wish to pull user profile data.
-        """
-        return self._run(Operation.ProfileSpotlightsQuery, screen_names, **kwargs)
-
-    def users_by_id(self, user_ids: list[int], **kwargs) -> list[dict]:
-        """
-        This endpoint is included for completeness only.
-        Use the batched query `users_by_ids` instead if you wish to pull user profile data.
-        """
-        return self._run(Operation.UserByRestId, user_ids, **kwargs)
-
     def tweet_stats(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get tweet statistics by user ids.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet statistics as dicts
+        """
         return self._run(Operation.TweetStats, user_ids, **kwargs)
 
     def users_by_ids(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get user data by user ids.
+
+        Special batch query for user data. Most efficient way to get user data.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
         return self._run(Operation.UsersByRestIds, batch_ids(user_ids), **kwargs)
 
-    def recommended_users(self, user_ids: list[int] = None, **kwargs) -> dict:
+    def recommended_users(self, user_ids: list[int] = None, **kwargs) -> list[dict]:
+        """
+        Get recommended users by user ids, or general recommendations if no user ids are provided.
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of recommended users data as dicts
+        """
         if user_ids:
             contexts = [{"context": orjson.dumps({"contextualUserId": x}).decode()} for x in user_ids]
         else:
             contexts = [{'context': None}]
         return self._run(Operation.ConnectTabTimeline, contexts, **kwargs)
 
+    def profile_spotlights(self, screen_names: list[str], **kwargs) -> list[dict]:
+        """
+        Get user data by screen names.
+
+        This endpoint is included for completeness only.
+        Use the batched query `users_by_ids` instead if you wish to pull user profile data.
+
+        @param screen_names: list of user screen names (usernames)
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
+        return self._run(Operation.ProfileSpotlightsQuery, screen_names, **kwargs)
+
+    def users_by_id(self, user_ids: list[int], **kwargs) -> list[dict]:
+        """
+        Get user data by user ids.
+
+        This endpoint is included for completeness only.
+        Use the batched query `users_by_ids` instead if you wish to pull user profile data.
+
+
+        @param user_ids: list of user ids
+        @param kwargs: optional keyword arguments
+        @return: list of user data as dicts
+        """
+        return self._run(Operation.UserByRestId, user_ids, **kwargs)
+
     def download_media(self, ids: list[int], photos: bool = True, videos: bool = True,
                        chunk_size: int = 8192) -> None:
+        """
+        Download media from tweets by tweet ids.
 
-        out = (self.out_path / 'media')
+        @param ids: list of tweet ids containing media
+        @param photos: flag to include photos
+        @param videos: flag to include videos
+        @param chunk_size: chunk size for download
+        @return: None
+        """
+        out = Path('media')
         out.mkdir(parents=True, exist_ok=True)
         tweets = self.tweets_by_id(ids)
         urls = []
@@ -140,7 +279,12 @@ class Scraper:
         asyncio.run(process())
 
     def trends(self, utc: list[str] = None) -> dict:
-        """Get trends for all UTC offsets"""
+        """
+        Get trends for all UTC offsets
+
+        @param utc: optional list of specific UTC offsets
+        @return: dict of trends
+        """
 
         async def get_trends(client: AsyncClient, offset: str, url: str):
             try:
@@ -172,6 +316,19 @@ class Scraper:
 
     def spaces(self, *, rooms: list[str] = None, search: list[dict] = None, audio: bool = False, chat: bool = False,
                **kwargs) -> list[dict]:
+        """
+        Get Twitter spaces data
+
+        - Get data for specific rooms or search for rooms.
+        - Get audio and/or chat data for rooms.
+
+        @param rooms: list of room ids
+        @param search: list of dicts containing search parameters
+        @param audio: flag to include audio data
+        @param chat: flag to include chat data
+        @param kwargs: optional keyword arguments
+        @return: list of spaces data
+        """
         if rooms:
             spaces = self._run(Operation.AudioSpaceById, rooms, **kwargs)
         else:
@@ -405,7 +562,8 @@ class Scraper:
                 r = await self._query(client, operation, **kwargs)
                 initial_data = r.json()
                 res = [r]
-                ids = set(find_key(initial_data, 'rest_id'))
+                ids = get_ids(initial_data, operation)
+                # ids = set(find_key(initial_data, 'rest_id'))  # todo
                 cursor = get_cursor(initial_data)
             except Exception as e:
                 self.logger.error('Failed to get initial pagination data', e)
@@ -418,12 +576,13 @@ class Scraper:
                 r = await self._query(client, operation, cursor=cursor, **kwargs)
                 data = r.json()
             except Exception as e:
-                self.logger.error('Failed to get pagination data', e)
+                self.logger.error(f'Failed to get pagination data\n{e}')
                 return
             cursor = get_cursor(data)
-            ids |= set(find_key(data, 'rest_id'))
+            ids |= get_ids(data, operation)
+            # ids |= set(find_key(data, 'rest_id')) # todo
             if self.debug:
-                self.logger.debug(f'cursor: {cursor}\tunique results: {len(ids)}')
+                self.logger.debug(f'Unique results: {len(ids)}\tcursor: {cursor}')
             if prev_len == len(ids):
                 dups += 1
             res.append(r)
@@ -517,6 +676,14 @@ class Scraper:
             return await asyncio.gather(*tasks)
 
     def space_live_transcript(self, room: str, frequency: int = 1):
+        """
+        Log live transcript of a space
+
+        @param room: room id
+        @param frequency: granularity of transcript. 1 for real-time, 2 for post-processed or "finalized" transcript
+        @return: None
+        """
+
         async def get(spaces: list[dict]):
             client = init_session()
             chats = await self._get_live_chats(client, spaces)
@@ -526,6 +693,14 @@ class Scraper:
         asyncio.run(get(spaces))
 
     def spaces_live(self, rooms: list[str]):
+        """
+        Capture live audio stream from spaces
+
+        Limited to 500 rooms per IP, as defined by twitter's rate limits.
+
+        @param rooms: list of room ids
+        @return: None
+        """
         chunk_idx = lambda chunk: re.findall('_(\d+)_\w\.aac', chunk)[0]
         sort_chunks = lambda chunks: sorted(chunks, key=lambda x: int(chunk_idx(x)))
         parse_chunks = lambda txt: re.findall('\n(chunk_.*)\n', txt, flags=re.I)
@@ -596,7 +771,7 @@ class Scraper:
         return asyncio.run(process(spaces))
 
     @staticmethod
-    def init_logger(cfg: dict) -> Logger:
+    def _init_logger(cfg: dict) -> Logger:
         if cfg:
             logging.config.dictConfig(cfg)
         else:
@@ -609,7 +784,7 @@ class Scraper:
 
         return logging.getLogger(LOGGER_NAME)
 
-    def validate_session(self, *args, **kwargs):
+    def _validate_session(self, *args, **kwargs):
         email, username, password, session = args
         if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
             # authenticated session provided
@@ -617,7 +792,6 @@ class Scraper:
         if not session:
             # no session provided, log-in to authenticate
             return login(email, username, password, **kwargs)
-        self.logger.warning(f'\n{RED}WARNING: This is a guest session, '
-                            f'some endpoints cannot be accessed.{RESET}\n')
+        self.logger.warning(f'{RED}This is a guest session, some endpoints cannot be accessed.{RESET}\n')
         self.guest = True
         return session

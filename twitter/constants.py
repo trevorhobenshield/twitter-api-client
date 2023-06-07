@@ -52,6 +52,18 @@ LOGGER_CONFIG = {
     }
 }
 
+ID_MAP = {
+    'Followers': '^user-\d+$',
+    'Following': '^user-\d+$',
+    'UserTweets': '^tweet-\d+$',
+    'Likes': '^tweet-\d+$',
+    'UserMedia': '^tweet-\d+$',
+    'TweetsAndReplies': '^profile-conversation-\d+-tweet-\d+$',
+    'TweetDetail': '^conversationthread-\d+-tweet-\d+$',  # if another key after tweet-\d+, it's an ad
+    'Retweeters': '^user-\d+$',
+    'Favoriters': '^user-\d+$'
+}
+
 
 @dataclass
 class SpaceCategory:

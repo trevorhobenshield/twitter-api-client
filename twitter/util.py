@@ -8,7 +8,7 @@ import orjson
 # import protonmail
 from httpx import Response, Client
 
-from .constants import GREEN, MAGENTA, RED, RESET
+from .constants import GREEN, MAGENTA, RED, RESET, ID_MAP
 
 
 def init_session():
@@ -203,6 +203,11 @@ def fmt_status(status: int) -> str:
     elif 400 <= status < 600:
         color = RED
     return f'[{color}{status}{RESET}]'
+
+
+def get_ids(data: list | dict, operation: tuple) -> set:
+    expr = ID_MAP[operation[-1]]
+    return {k for k in find_key(data, 'entryId') if re.search(expr, k)}
 
 # def init_protonmail_session(email: str, password: str) -> protonmail.api.Session:
 #     """

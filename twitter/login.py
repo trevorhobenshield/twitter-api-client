@@ -1,7 +1,7 @@
 import sys
-import time
 
 from httpx import Client
+
 from .constants import GREEN, YELLOW, RED, BOLD, RESET
 from .util import find_key  # ,get_confirmation_code, get_inbox, init_protonmail_session
 
@@ -162,7 +162,7 @@ def login(email: str, username: str, password: str, **kwargs) -> Client:
         headers={
             'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
             'content-type': 'application/json',
-            'user-agent': 'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
             'x-twitter-active-user': 'yes',
             'x-twitter-client-language': 'en',
         })
@@ -170,7 +170,7 @@ def login(email: str, username: str, password: str, **kwargs) -> Client:
     # client.protonmail = kwargs.get('protonmail')
 
     client = execute_login_flow(client)
-    if kwargs.get('debug', True):
+    if kwargs.get('debug'):
         if not client or client.cookies.get('flow_errors') == 'true':
             print(f'[{RED}error{RESET}] {BOLD}{username}{RESET} login failed')
         else:
