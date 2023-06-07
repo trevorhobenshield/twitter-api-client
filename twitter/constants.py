@@ -58,6 +58,7 @@ ID_MAP = {
     'UserTweets': '^tweet-\d+$',
     'Likes': '^tweet-\d+$',
     'UserMedia': '^tweet-\d+$',
+    'TweetResultByRestId': '^tweet-\d+$',
     'TweetsAndReplies': '^profile-conversation-\d+-tweet-\d+$',
     'TweetDetail': '^conversationthread-\d+-tweet-\d+$',  # if another key after tweet-\d+, it's an ad
     'Retweeters': '^user-\d+$',

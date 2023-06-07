@@ -562,8 +562,8 @@ class Scraper:
                 r = await self._query(client, operation, **kwargs)
                 initial_data = r.json()
                 res = [r]
-                ids = get_ids(initial_data, operation)
-                # ids = set(find_key(initial_data, 'rest_id'))  # todo
+                # ids = get_ids(initial_data, operation) # todo
+                ids = set(find_key(initial_data, 'rest_id'))
                 cursor = get_cursor(initial_data)
             except Exception as e:
                 self.logger.error('Failed to get initial pagination data', e)
@@ -579,8 +579,8 @@ class Scraper:
                 self.logger.error(f'Failed to get pagination data\n{e}')
                 return
             cursor = get_cursor(data)
-            ids |= get_ids(data, operation)
-            # ids |= set(find_key(data, 'rest_id')) # todo
+            # ids |= get_ids(data, operation) # todo
+            ids |= set(find_key(data, 'rest_id'))
             if self.debug:
                 self.logger.debug(f'Unique results: {len(ids)}\tcursor: {cursor}')
             if prev_len == len(ids):
