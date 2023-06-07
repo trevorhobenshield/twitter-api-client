@@ -36,8 +36,8 @@ if platform.system() != 'Windows':
 
 class Search:
     def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
-        self.logger = self.init_logger(kwargs.get('log_config', False))
-        self.session = self.validate_session(email, username, password, session, **kwargs)
+        self.logger = self._init_logger(kwargs.get('log_config', False))
+        self.session = self._validate_session(email, username, password, session, **kwargs)
         self.api = 'https://api.twitter.com/2/search/adaptive.json?'
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
@@ -135,7 +135,7 @@ class Search:
         return p
 
     @staticmethod
-    def init_logger(cfg: dict) -> Logger:
+    def _init_logger(cfg: dict) -> Logger:
         if cfg:
             logging.config.dictConfig(cfg)
         else:
@@ -149,7 +149,7 @@ class Search:
         return logging.getLogger(LOGGER_NAME)
 
     @staticmethod
-    def validate_session(*args, **kwargs):
+    def _validate_session(*args, **kwargs):
         email, username, password, session = args
         if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
             # authenticated session provided
