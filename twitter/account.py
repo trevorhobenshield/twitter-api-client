@@ -563,12 +563,15 @@ class Account:
         else:
             logging.config.dictConfig(LOGGER_CONFIG)
 
-        # Set level of all other loggers to ERROR
+        # only support one logger
+        logger_name = list(LOGGER_CONFIG['loggers'].keys())[0]
+
+        # set level of all other loggers to ERROR
         for name in logging.root.manager.loggerDict:
-            if name != LOGGER_NAME:
+            if name != logger_name:
                 logging.getLogger(name).setLevel(logging.ERROR)
 
-        return logging.getLogger(LOGGER_NAME)
+        return logging.getLogger(logger_name)
 
     @staticmethod
     def _validate_session(*args, **kwargs):

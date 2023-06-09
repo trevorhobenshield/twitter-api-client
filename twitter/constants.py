@@ -19,7 +19,6 @@ WHITE = '\x1b[37m'
 BOLD = '\x1b[1m'
 RESET = '\x1b[0m'
 
-LOGGER_NAME = 'twitter'
 LOGGER_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -40,12 +39,12 @@ LOGGER_CONFIG = {
             'class': 'logging.FileHandler',
             'level': 'DEBUG',
             'formatter': 'standard',
-            'filename': 'log.log',
+            'filename': 'twitter.log',
             'mode': 'a',
         },
     },
     'loggers': {
-        LOGGER_NAME: {
+        'twitter': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
         }
