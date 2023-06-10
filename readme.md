@@ -84,7 +84,7 @@ account.update_profile_image('test.jpg')
 account.update_profile_banner('test.png')
 account.update_profile_info(name='Foo Bar', description='test 123', location='Victoria, BC')
 
-#  topics
+# topics
 account.follow_topic(111)
 account.unfollow_topic(111)
 
