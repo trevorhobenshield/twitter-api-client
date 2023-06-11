@@ -521,6 +521,8 @@ class Scraper:
         # queries are of type set | list[int|str], need to convert to list[dict]
         _queries = [{k: q} for q in queries for k, v in keys.items()]
         res = asyncio.run(self._process(operation, _queries, **kwargs))
+        if not any(res):
+            raise Exception("Something went wrong, no data was returned.")
         data = get_json(res, **kwargs)
         return data.pop() if kwargs.get('cursor') else flatten(data)
 
@@ -531,6 +533,7 @@ class Scraper:
             'features': Operation.default_features,
         }
         r = await client.get(f'https://twitter.com/i/api/graphql/{qid}/{name}', params=build_params(params))
+        r.raise_for_status()
         if self.debug:
             log(self.logger, self.debug, r)
         if self.save:
