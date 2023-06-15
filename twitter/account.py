@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import logging.config
 import math
@@ -9,7 +10,9 @@ from datetime import datetime
 from string import ascii_letters
 from uuid import uuid1, getnode
 
+from httpx import AsyncClient, Limits
 from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 
 from .constants import *
 from .login import login
@@ -576,11 +579,88 @@ class Account:
     @staticmethod
     def _validate_session(*args, **kwargs):
         email, username, password, session = args
-        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
-            # authenticated session provided
-            return session
-        if not session:
-            # no session provided, login to authenticate
+
+        # validate credentials
+        if all((email, username, password)):
             return login(email, username, password, **kwargs)
+
+        # invalid credentials, try validating session
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            return session
+
+        # invalid credentials and session
+        cookies = kwargs.get('cookies')
+
+        # try validating cookies dict
+        if isinstance(cookies, dict) and all(cookies.get(c) for c in {'ct0', 'auth_token'}):
+            _session = Client(cookies=cookies, follow_redirects=True)
+            _session.headers.update(get_headers(_session))
+            return _session
+
+        # try validating cookies from file
+        if isinstance(cookies, str):
+            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True)
+            _session.headers.update(get_headers(_session))
+            return _session
+
         raise Exception('Session not authenticated. '
                         'Please use an authenticated session or remove the `session` argument and try again.')
+
+    def dm_history(self, conversation_ids: list[str]) -> list[dict]:
+        async def get(session: AsyncClient, conversation_id: str):
+            params = deepcopy(dm_history_params)
+            r = await session.get(
+                f'{self.v1_api}/dm/conversation/{conversation_id}.json',
+                params=params,
+            )
+            res = r.json().get('conversation_timeline', {})
+            data = [x['message'] for x in res.get('entries', [])]
+            entry_id = res.get('min_entry_id')
+            while entry_id:
+                params['max_id'] = entry_id
+                r = await session.get(
+                    f'{self.v1_api}/dm/conversation/{conversation_id}.json',
+                    params=params,
+                )
+                res = r.json().get('conversation_timeline', {})
+                data.extend(x['message'] for x in res.get('entries', []))
+                entry_id = res.get('min_entry_id')
+            return data
+
+        async def process():
+            limits = Limits(max_connections=100)
+            headers, cookies = get_headers(self.session), self.session.cookies
+            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
+                return await tqdm_asyncio.gather(*(get(c, _id) for _id in conversation_ids), desc="Getting DMs")
+
+        return asyncio.run(process())
+
+    def dm_delete(self, conversation_id: str):
+        return self.session.post(
+            f'{self.v1_api}/dm/conversation/{conversation_id}/delete.json',
+            headers=get_headers(self.session),
+        )
+
+    def dm_search(self, query: str):
+        def get(cursor=None):
+            if cursor:
+                params['variables']['cursor'] = cursor.pop()
+            _id, op = Operation.DmAllSearchSlice
+            r = self.session.get(
+                f'https://twitter.com/i/api/graphql/{_id}/{op}',
+                params=build_params(params)
+            )
+            res = r.json()
+            cursor = find_key(res, 'next_cursor')
+            return res, cursor
+
+        variables = deepcopy(Operation.default_variables)
+        variables['count'] = 50  # strict limit, errors thrown if exceeded
+        variables['query'] = query
+        params = {'variables': variables, 'features': Operation.default_features}
+        res, cursor = get()
+        data = [res]
+        while cursor:
+            res, cursor = get(cursor)
+            data.append(res)
+        return {'query': query, 'data': data}

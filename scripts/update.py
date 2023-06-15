@@ -5,6 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import aiofiles
 import orjson
 from httpx import AsyncClient, Client, Response
 
@@ -79,6 +80,8 @@ async def get(session: AsyncClient, url: str, **kwargs) -> tuple[str, str]:
     try:
         logger.debug(f"GET {url}")
         r = await session.get(url)
+        async with aiofiles.open(JS_FILES / url.split('/')[-1], 'wb') as f:
+            await f.write(r.content)
         return url, r.text
     except Exception as e:
         logger.error(f"[{RED}failed{RESET}] Failed to get {url}\n{e}")
@@ -115,7 +118,7 @@ def main():
         if not re.search('participantreaction|\.countries-|emojipicker|i18n|icons\/', k, flags=re.I)
         # if 'endpoint' in k
     )
-    asyncio.run(process(session, get, urls))
+    # asyncio.run(process(session, get, urls))
     get_strings()
     get_features()
 

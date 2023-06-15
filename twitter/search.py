@@ -154,11 +154,29 @@ class Search:
     @staticmethod
     def _validate_session(*args, **kwargs):
         email, username, password, session = args
-        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
-            # authenticated session provided
-            return session
-        if not session:
-            # no session provided, log-in to authenticate
+
+        # validate credentials
+        if all((email, username, password)):
             return login(email, username, password, **kwargs)
+
+        # invalid credentials, try validating session
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            return session
+
+        # invalid credentials and session
+        cookies = kwargs.get('cookies')
+
+        # try validating cookies dict
+        if isinstance(cookies, dict) and all(cookies.get(c) for c in {'ct0', 'auth_token'}):
+            _session = Client(cookies=cookies, follow_redirects=True)
+            _session.headers.update(get_headers(_session))
+            return _session
+
+        # try validating cookies from file
+        if isinstance(cookies, str):
+            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True)
+            _session.headers.update(get_headers(_session))
+            return _session
+
         raise Exception('Session not authenticated. '
                         'Please use an authenticated session or remove the `session` argument and try again.')

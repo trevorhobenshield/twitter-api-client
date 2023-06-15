@@ -14,7 +14,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.9.5",
+    version="0.9.6",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -48,8 +48,16 @@ setup(
     ```python
     from twitter.account import Account
     
+    ## sign-in with credentials
     email, username, password = ..., ..., ...
-    account = Account(email, username, password, debug=2, save=True)
+    account = Account(email, username, password)
+    
+    ## or, resume session using cookies
+    # account = Account(cookies={"ct0": ..., "auth_token": ...})
+    
+    ## or, resume session using cookies (JSON file)
+    # account = Account(cookies='twitter.cookies')
+    
     
     account.tweet('test 123')
     account.untweet(123456)
@@ -130,6 +138,15 @@ setup(
     # get bookmarks
     bookmarks = account.bookmarks()
     
+    # get all dms
+    dms = account.dm_history(['12345-67890'])
+    
+    # search dms
+    dms = account.dm_search('test')
+    
+    # delete conversation
+    account.dm_delete('12345-67890')
+    
     # example configuration
     account.update_settings({
         "address_book_live_sync_enabled": False,
@@ -193,8 +210,19 @@ setup(
     ```python
     from twitter.scraper import Scraper
     
+    ## sign-in with credentials
     email, username, password = ..., ..., ...
-    scraper = Scraper(email, username, password, debug=1, save=True)
+    scraper = Scraper(email, username, password)
+    
+    ## or, resume session using cookies
+    # scraper = Scraper(cookies={"ct0": ..., "auth_token": ...})
+    
+    ## or, resume session using cookies (JSON file)
+    # scraper = Scraper(cookies='twitter.cookies')
+    
+    ## or, initialize guest session (limited endpoints)
+    # from twitter.util import init_session
+    # scraper = Scraper(session=init_session())
     
     # user data
     users = scraper.users(['foo', 'bar', 'hello', 'world'])
@@ -234,7 +262,7 @@ setup(
     from twitter.scraper import Scraper
     
     email, username, password = ...,...,...
-    scraper = Scraper(email, username, password, debug=1, save=True)
+    scraper = Scraper(email, username, password)
     
     user_id = 44196397
     cursor = '1767341853908517597|1663601806447476672'  # example cursor
@@ -251,7 +279,7 @@ setup(
     
     email, username, password = ..., ..., ...
     # default output directory is `data/raw` if save=True
-    search = Search(email, username, password, debug=1, save=True)
+    search = Search(email, username, password)
     
     latest_results = search.run(
         'brasil portugal -argentina',
@@ -292,7 +320,7 @@ setup(
     from twitter.util import init_session
     
     session = init_session() # initialize guest session, no login required
-    scraper = Scraper(session=session, debug=1, save=True)
+    scraper = Scraper(session=session)
     
     rooms = [...]
     scraper.spaces_live(rooms=rooms) # capture live audio from list of rooms
@@ -307,7 +335,7 @@ setup(
     from twitter.util import init_session
     
     session = init_session() # initialize guest session, no login required
-    scraper = Scraper(session=session, debug=1, save=True)
+    scraper = Scraper(session=session)
     
     # room must be live, i.e. in "Running" state
     scraper.space_live_transcript('1zqKVPlQNApJB', frequency=2)  # word-level live transcript. (dirty, on-the-fly transcription before post-processing)
@@ -320,7 +348,7 @@ setup(
     from twitter.util import init_session
     
     session = init_session() # initialize guest session, no login required
-    scraper = Scraper(session=session, debug=1, save=True)
+    scraper = Scraper(session=session)
     
     # room must be live, i.e. in "Running" state
     scraper.space_live_transcript('1zqKVPlQNApJB', frequency=1)  # finalized live transcript.  (clean)
@@ -333,7 +361,7 @@ setup(
     from twitter.constants import SpaceCategory
     
     session = init_session() # initialize guest session, no login required
-    scraper = Scraper(session=session, debug=1, save=True)
+    scraper = Scraper(session=session)
     
     # download audio and chat-log from space
     spaces = scraper.spaces(rooms=['1eaJbrAPnBVJX', '1eaJbrAlZjjJX'], audio=True, chat=True)
@@ -372,7 +400,7 @@ setup(
     
     email, username, password = ..., ..., ...
     proton_email, proton_password = ..., ...
-    account = Scraper(email, username, password, debug=1, save=True, protonmail={'email':proton_email, 'password':proton_password})
+    account = Scraper(email, username, password, protonmail={'email':proton_email, 'password':proton_password})
     ```
     
     '''),

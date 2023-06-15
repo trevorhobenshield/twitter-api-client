@@ -165,7 +165,9 @@ def login(email: str, username: str, password: str, **kwargs) -> Client:
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
             'x-twitter-active-user': 'yes',
             'x-twitter-client-language': 'en',
-        })
+        },
+        follow_redirects=True
+    )
 
     # client.protonmail = kwargs.get('protonmail')
 
