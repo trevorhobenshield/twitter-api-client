@@ -14,7 +14,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.9.6",
+    version="0.9.7",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -138,14 +138,23 @@ setup(
     # get bookmarks
     bookmarks = account.bookmarks()
     
-    # get all dms
-    dms = account.dm_history(['12345-67890'])
+    # get DM inbox metadata    
+    inbox = account.dm_inbox()
     
-    # search dms
-    dms = account.dm_search('test')
+    # get DMs from all conversations    
+    dms = account.dm_history()
     
-    # delete conversation
-    account.dm_delete('12345-67890')
+    # get DMs from specific conversations
+    dms = account.dm_history(['123456-789012', '345678-901234'])
+    
+    # search DMs by keyword
+    dms = account.dm_search('test123')
+    
+    # delete entire conversation
+    account.dm_delete(conversation_id='123456-789012')
+    
+    # delete (hide) specific DM
+    account.dm_delete(message_id='123456')
     
     # example configuration
     account.update_settings({

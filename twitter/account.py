@@ -606,15 +606,37 @@ class Account:
         raise Exception('Session not authenticated. '
                         'Please use an authenticated session or remove the `session` argument and try again.')
 
-    def dm_history(self, conversation_ids: list[str]) -> list[dict]:
+    def dm_inbox(self) -> dict:
+        """
+        Get DM inbox metadata.
+
+        @return: inbox as dict
+        """
+        r = self.session.get(
+            f'{self.v1_api}/dm/inbox_initial_state.json',
+            headers=get_headers(self.session),
+            params=dm_params
+        )
+        return r.json()
+
+    def dm_history(self, conversation_ids: list[str] = None) -> list[dict]:
+        """
+        Get DM history.
+
+        Call without arguments to get all DMS from all conversations.
+
+        @param conversation_ids: optional list of conversation ids
+        @return: list of messages as dicts
+        """
+
         async def get(session: AsyncClient, conversation_id: str):
-            params = deepcopy(dm_history_params)
+            params = deepcopy(dm_params)
             r = await session.get(
                 f'{self.v1_api}/dm/conversation/{conversation_id}.json',
                 params=params,
             )
             res = r.json().get('conversation_timeline', {})
-            data = [x['message'] for x in res.get('entries', [])]
+            data = [x.get('message') for x in res.get('entries', [])]
             entry_id = res.get('min_entry_id')
             while entry_id:
                 params['max_id'] = entry_id
@@ -627,33 +649,68 @@ class Account:
                 entry_id = res.get('min_entry_id')
             return data
 
-        async def process():
+        async def process(ids):
             limits = Limits(max_connections=100)
             headers, cookies = get_headers(self.session), self.session.cookies
             async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
-                return await tqdm_asyncio.gather(*(get(c, _id) for _id in conversation_ids), desc="Getting DMs")
+                return await tqdm_asyncio.gather(*(get(c, _id) for _id in ids), desc="Getting DMs")
 
-        return asyncio.run(process())
+        if conversation_ids:
+            ids = conversation_ids
+        else:
+            # get all conversations
+            inbox = self.dm_inbox()
+            ids = list(inbox['inbox_initial_state']['conversations'])
 
-    def dm_delete(self, conversation_id: str):
-        return self.session.post(
-            f'{self.v1_api}/dm/conversation/{conversation_id}/delete.json',
-            headers=get_headers(self.session),
-        )
+        return asyncio.run(process(ids))
 
-    def dm_search(self, query: str):
+    def dm_delete(self, *, conversation_id: str = None, message_id: str = None) -> dict:
+        """
+        Delete operations
+
+        - delete (hide) a single DM
+        - delete an entire conversation
+
+        @param conversation_id: the conversation id
+        @param message_id: the message id
+        @return: result metadata
+        """
+        self.session.headers.update(headers=get_headers(self.session))
+        results = {'conversation': None, 'message': None}
+        if conversation_id:
+            results['conversation'] = self.session.post(
+                f'{self.v1_api}/dm/conversation/{conversation_id}/delete.json',
+            ).text  # not json response
+        if message_id:
+            # delete single message
+            _id, op = Operation.DMMessageDeleteMutation
+            results['message'] = self.session.post(
+                f'https://twitter.com/i/api/graphql/{_id}/{op}',
+                json={'queryId': _id, 'variables': {'messageId': message_id}},
+            ).json()
+        return results
+
+    def dm_search(self, query: str) -> dict:
+        """
+        Search DMs by keyword
+
+        @param query: search term
+        @return: search results as dict
+        """
+
         def get(cursor=None):
             if cursor:
                 params['variables']['cursor'] = cursor.pop()
             _id, op = Operation.DmAllSearchSlice
             r = self.session.get(
                 f'https://twitter.com/i/api/graphql/{_id}/{op}',
-                params=build_params(params)
+                params=build_params(params),
             )
             res = r.json()
             cursor = find_key(res, 'next_cursor')
             return res, cursor
 
+        self.session.headers.update(headers=get_headers(self.session))
         variables = deepcopy(Operation.default_variables)
         variables['count'] = 50  # strict limit, errors thrown if exceeded
         variables['query'] = query

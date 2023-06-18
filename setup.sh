@@ -1,4 +1,4 @@
 #!/usr/bin/bash
 
-python3 -m build
-python3 -m twine upload dist/*
+python -m build
+python -m twine upload dist/*

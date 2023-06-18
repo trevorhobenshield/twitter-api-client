@@ -215,6 +215,7 @@ class Operation:
     DmAllSearchSlice = 'U-QXVRZ6iddb1QuZweh5DQ', 'DmAllSearchSlice'
     DmGroupSearchSlice = '5zpY1dCR-8NyxQJS_CFJoQ', 'DmGroupSearchSlice'
     DmMutedTimeline = 'lrcWa13oyrQc7L33wRdLAQ', 'DmMutedTimeline'
+    DMMessageDeleteMutation = 'BJ6DtxA2llfjnRoRjaiIiw', 'DMMessageDeleteMutation'
     DmNsfwMediaFilterUpdate = 'of_N6O33zfyD4qsFJMYFxA', 'DmNsfwMediaFilterUpdate'
     DmPeopleSearchSlice = 'xYSm8m5kJnzm_gFCn5GH-w', 'DmPeopleSearchSlice'
     EditBookmarkFolder = 'a6kPp1cS1Dgbsjhapz1PNw', 'EditBookmarkFolder'
@@ -561,7 +562,7 @@ search_config = {
     'ext': 'mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,enrichments,superFollowMetadata,unmentionInfo,editControl,collab_control,vibe'
 }
 
-dm_history_params = {
+dm_params = {
     'context': 'FETCH_DM_CONVERSATION',
     'include_profile_interstitial_type': '1',
     'include_blocking': '1',
