@@ -14,7 +14,7 @@ install_requires = [
 
 setup(
     name="twitter-api-client",
-    version="0.9.7",
+    version="0.9.8",
     python_requires=">=3.10.10",
     description="Twitter API",
     long_description=dedent('''
@@ -155,6 +155,24 @@ setup(
     
     # delete (hide) specific DM
     account.dm_delete(message_id='123456')
+    
+    # get all scheduled tweets
+    scheduled_tweets = account.scheduled_tweets()
+    
+    # delete a scheduled tweet
+    account.delete_scheduled_tweet(12345678)
+    
+    # get all draft tweets
+    draft_tweets = account.draft_tweets()
+    
+    # delete a draft tweet
+    account.delete_draft_tweet(12345678)
+    
+    # delete all scheduled tweets
+    account.clear_scheduled_tweets()
+    
+    # delete all draft tweets
+    account.clear_draft_tweets()
     
     # example configuration
     account.update_settings({

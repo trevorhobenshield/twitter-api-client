@@ -117,6 +117,44 @@ class Account:
             },
             'semantic_annotation_ids': [],
         }
+
+        if reply_params := kwargs.get('reply_params', {}):
+            variables |= reply_params
+        if quote_params := kwargs.get('quote_params', {}):
+            variables |= quote_params
+        if poll_params := kwargs.get('poll_params', {}):
+            variables |= poll_params
+
+        draft = kwargs.get('draft')
+        schedule = kwargs.get('schedule')
+
+        if draft or schedule:
+            variables = {
+                'post_tweet_request': {
+                    'auto_populate_reply_metadata': False,
+                    'status': text,
+                    'exclude_reply_user_ids': [],
+                    'media_ids': [],
+                },
+            }
+            if media:
+                for m in media:
+                    media_id = self._upload_media(m['media'])
+                    variables['post_tweet_request']['media_ids'].append(media_id)
+                    if alt := m.get('alt'):
+                        self._add_alt_text(media_id, alt)
+
+            if schedule:
+                variables['execute_at'] = (
+                    datetime.strptime(schedule, "%Y-%m-%d %H:%M").timestamp()
+                    if isinstance(schedule, str)
+                    else schedule
+                )
+                return self.gql('POST', Operation.CreateScheduledTweet, variables)
+
+            return self.gql('POST', Operation.CreateDraftTweet, variables)
+
+        # regular tweet
         if media:
             for m in media:
                 media_id = self._upload_media(m['media'])
@@ -126,12 +164,7 @@ class Account:
                 })
                 if alt := m.get('alt'):
                     self._add_alt_text(media_id, alt)
-        if reply_params := kwargs.get('reply_params', {}):
-            variables |= reply_params
-        if quote_params := kwargs.get('quote_params', {}):
-            variables |= quote_params
-        if poll_params := kwargs.get('poll_params', {}):
-            variables |= poll_params
+
         return self.gql('POST', Operation.CreateTweet, variables)
 
     def schedule_tweet(self, text: str, date: int | str, *, media: list = None) -> dict:
@@ -685,7 +718,7 @@ class Account:
             # delete single message
             _id, op = Operation.DMMessageDeleteMutation
             results['message'] = self.session.post(
-                f'https://twitter.com/i/api/graphql/{_id}/{op}',
+                f'{self.gql_api}/{_id}/{op}',
                 json={'queryId': _id, 'variables': {'messageId': message_id}},
             ).json()
         return results
@@ -703,7 +736,7 @@ class Account:
                 params['variables']['cursor'] = cursor.pop()
             _id, op = Operation.DmAllSearchSlice
             r = self.session.get(
-                f'https://twitter.com/i/api/graphql/{_id}/{op}',
+                f'{self.gql_api}/{_id}/{op}',
                 params=build_params(params),
             )
             res = r.json()
@@ -721,3 +754,34 @@ class Account:
             res, cursor = get(cursor)
             data.append(res)
         return {'query': query, 'data': data}
+
+    def scheduled_tweets(self, ascending: bool = True) -> dict:
+        variables = {"ascending": ascending}
+        return self.gql('GET', Operation.FetchScheduledTweets, variables)
+
+    def delete_scheduled_tweet(self, tweet_id: int) -> dict:
+        """duplicate, same as `unschedule_tweet()`"""
+        variables = {'scheduled_tweet_id': tweet_id}
+        return self.gql('POST', Operation.DeleteScheduledTweet, variables)
+
+    def clear_scheduled_tweets(self) -> None:
+        user_id = int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+        drafts = self.gql('GET', Operation.FetchScheduledTweets, {"ascending": True})
+        for _id in set(find_key(drafts, 'rest_id')):
+            if _id != user_id:
+                self.gql('POST', Operation.DeleteScheduledTweet, {'scheduled_tweet_id': _id})
+
+    def draft_tweets(self, ascending: bool = True) -> dict:
+        variables = {"ascending": ascending}
+        return self.gql('GET', Operation.FetchDraftTweets, variables)
+
+    def delete_draft_tweet(self, tweet_id: int) -> dict:
+        variables = {'draft_tweet_id': tweet_id}
+        return self.gql('POST', Operation.DeleteDraftTweet, variables)
+
+    def clear_draft_tweets(self) -> None:
+        user_id = int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+        drafts = self.gql('GET', Operation.FetchDraftTweets, {"ascending": True})
+        for _id in set(find_key(drafts, 'rest_id')):
+            if _id != user_id:
+                self.gql('POST', Operation.DeleteDraftTweet, {'draft_tweet_id': _id})

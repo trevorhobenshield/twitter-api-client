@@ -108,14 +108,16 @@ def get_headers(session, **kwargs) -> dict:
     """
     Get the headers required for authenticated requests
     """
+    cookies = session.cookies
+    cookies.delete('ct0', domain='.twitter.com')
     headers = kwargs | {
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        'cookie': '; '.join(f'{k}={v}' for k, v in session.cookies.items()),
+        'cookie': '; '.join(f'{k}={v}' for k, v in cookies.items()),
         'referer': 'https://twitter.com/',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
-        'x-csrf-token': session.cookies.get('ct0', ''),
-        'x-guest-token': session.cookies.get('guest_token', ''),
-        'x-twitter-auth-type': 'OAuth2Session' if session.cookies.get('auth_token') else '',
+        'x-csrf-token': cookies.get('ct0', ''),
+        'x-guest-token': cookies.get('guest_token', ''),
+        'x-twitter-auth-type': 'OAuth2Session' if cookies.get('auth_token') else '',
         'x-twitter-active-user': 'yes',
         'x-twitter-client-language': 'en',
     }
@@ -208,6 +210,14 @@ def fmt_status(status: int) -> str:
 def get_ids(data: list | dict, operation: tuple) -> set:
     expr = ID_MAP[operation[-1]]
     return {k for k in find_key(data, 'entryId') if re.search(expr, k)}
+
+
+def dump(path: str, **kwargs):
+    fname, data = list(kwargs.items())[0]
+    out = Path(path)
+    out.mkdir(exist_ok=True, parents=True)
+    (out / f'{fname}_{time.time_ns()}.json').write_bytes(
+        orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS))
 
 # def init_protonmail_session(email: str, password: str) -> protonmail.api.Session:
 #     """
