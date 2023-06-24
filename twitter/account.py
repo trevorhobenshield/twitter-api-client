@@ -615,10 +615,13 @@ class Account:
 
         # validate credentials
         if all((email, username, password)):
-            return login(email, username, password, **kwargs)
+            session = login(email, username, password, **kwargs)
+            session._init_with_cookies = False
+            return session
 
         # invalid credentials, try validating session
         if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            session._init_with_cookies = True
             return session
 
         # invalid credentials and session
@@ -627,12 +630,14 @@ class Account:
         # try validating cookies dict
         if isinstance(cookies, dict) and all(cookies.get(c) for c in {'ct0', 'auth_token'}):
             _session = Client(cookies=cookies, follow_redirects=True)
+            _session._init_with_cookies = True
             _session.headers.update(get_headers(_session))
             return _session
 
         # try validating cookies from file
         if isinstance(cookies, str):
             _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True)
+            _session._init_with_cookies = True
             _session.headers.update(get_headers(_session))
             return _session
 

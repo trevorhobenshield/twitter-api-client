@@ -109,7 +109,12 @@ def get_headers(session, **kwargs) -> dict:
     Get the headers required for authenticated requests
     """
     cookies = session.cookies
-    cookies.delete('ct0', domain='.twitter.com')
+    # todo httpx cookie issues
+    try:
+        if session._init_with_cookies:
+            cookies.delete('ct0', domain='.twitter.com')
+    except:
+        ...
     headers = kwargs | {
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         'cookie': '; '.join(f'{k}={v}' for k, v in cookies.items()),
@@ -122,6 +127,38 @@ def get_headers(session, **kwargs) -> dict:
         'x-twitter-client-language': 'en',
     }
     return dict(sorted({k.lower(): v for k, v in headers.items()}.items()))
+
+
+# def get_headers(session, **kwargs) -> dict:
+#     """
+#     Get the headers required for authenticated requests
+#     """
+#     cookies = {}
+#     for k in {'auth_token', 'ct0', 'flow_token', 'guest_id', 'guest_id_ads', 'guest_id_marketing', 'guest_token', 'kdt',
+#               'personalization_id', 'twid'}:
+#         cookies[k] = session.cookies.get(k, domain=None) or session.cookies.get(k, domain='.twitter.com')
+#     #
+#     # if cookies.get('ct0', domain=None):
+#     #     cookies.delete('ct0', domain='.twitter.com')
+#     # elif cookies.get('ct0', domain='.twitter.com'):
+#     #     cookies.delete('ct0', domain=None)
+#
+#     session.cookies.clear_session_cookies()
+#
+#     session.cookies.update(cookies)
+#
+#     headers = kwargs | {
+#         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+#         'cookie': '; '.join(f'{k}={v}' for k, v in cookies.items()),
+#         'referer': 'https://twitter.com/',
+#         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+#         'x-csrf-token': cookies['ct0'] or '',
+#         'x-guest-token': cookies['guest_token'] or '',
+#         'x-twitter-auth-type': 'OAuth2Session' if cookies['auth_token'] else '',
+#         'x-twitter-active-user': 'yes',
+#         'x-twitter-client-language': 'en',
+#     }
+#     return dict(sorted({k.lower(): v for k, v in headers.items()}.items()))
 
 
 def find_key(obj: any, key: str) -> list:
