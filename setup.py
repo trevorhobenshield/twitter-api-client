@@ -234,7 +234,9 @@ setup(
         "optInBlocking": True,  # filter blocked accounts
     })
 
-    ## change_password('old pwd','new pwd)
+    notifications = account.notifications()
+
+    account.change_password('old pwd','new pwd')
 
     ```
 
@@ -437,10 +439,10 @@ setup(
     from proton.client import ProtonMail
     
     proton_username, proton_password = ..., ...
-    proton = ProtonMail(proton_username, proton_password)
+    proton = lambda: get_code(ProtonMail(proton_username, proton_password))
     
     email, username, password = ..., ..., ...
-    account = Account(email, username, password, proton=(lambda: get_code(proton)))
+    account = Account(email, username, password, proton=proton)
     ```
 
     '''),

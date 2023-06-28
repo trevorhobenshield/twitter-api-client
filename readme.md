@@ -52,18 +52,18 @@ account.schedule_tweet('schedule foo', 1681851240)
 account.unschedule_tweet(123456)
 
 account.tweet('hello world', media=[
-    {'media': 'test.jpg', 'alt': 'some alt text', 'tagged_users': [123]},
-    {'media': 'test.jpeg', 'alt': 'some alt text', 'tagged_users': [123]},
-    {'media': 'test.png', 'alt': 'some alt text', 'tagged_users': [123]},
-    {'media': 'test.jfif', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.jpg', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.jpeg', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.png', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.jfif', 'alt': 'some alt text', 'tagged_users': [123]},
 ])
 
 account.schedule_tweet('foo bar', '2023-04-18 15:42', media=[
-    {'media': 'test.gif', 'alt': 'some alt text'},
+  {'media': 'test.gif', 'alt': 'some alt text'},
 ])
 
 account.schedule_reply('hello world', '2023-04-19 15:42', tweet_id=123456, media=[
-    {'media': 'test.gif', 'alt': 'some alt text'},
+  {'media': 'test.gif', 'alt': 'some alt text'},
 ])
 
 account.dm('my message', [1234], media='test.jpg')
@@ -83,8 +83,8 @@ account.follow(1234)
 account.unfollow(1234)
 account.mute(1234)
 account.unmute(1234)
-account.enable_notifications(1234)
-account.disable_notifications(1234)
+account.enable_follower_notifications(1234)
+account.disable_follower_notifications(1234)
 account.block(1234)
 account.unblock(1234)
 
@@ -159,57 +159,59 @@ account.clear_draft_tweets()
 
 # example configuration
 account.update_settings({
-    "address_book_live_sync_enabled": False,
-    "allow_ads_personalization": False,
-    "allow_authenticated_periscope_requests": True,
-    "allow_dm_groups_from": "following",
-    "allow_dms_from": "following",
-    "allow_location_history_personalization": False,
-    "allow_logged_out_device_personalization": False,
-    "allow_media_tagging": "none",
-    "allow_sharing_data_for_third_party_personalization": False,
-    "alt_text_compose_enabled": None,
-    "always_use_https": True,
-    "autoplay_disabled": False,
-    "country_code": "us",
-    "discoverable_by_email": False,
-    "discoverable_by_mobile_phone": False,
-    "display_sensitive_media": False,
-    "dm_quality_filter": "enabled",
-    "dm_receipt_setting": "all_disabled",
-    "geo_enabled": False,
-    "include_alt_text_compose": True,
-    "include_mention_filter": True,
-    "include_nsfw_admin_flag": True,
-    "include_nsfw_user_flag": True,
-    "include_ranked_timeline": True,
-    "language": "en",
-    "mention_filter": "unfiltered",
-    "nsfw_admin": False,
-    "nsfw_user": False,
-    "personalized_trends": True,
-    "protected": False,
-    "ranked_timeline_eligible": None,
-    "ranked_timeline_setting": None,
-    "require_password_login": False,
-    "requires_login_verification": False,
-    "sleep_time": {
-        "enabled": False,
-        "end_time": None,
-        "start_time": None
-    },
-    "translator_type": "none",
-    "universal_quality_filtering_enabled": "enabled",
-    "use_cookie_personalization": False,
+  "address_book_live_sync_enabled": False,
+  "allow_ads_personalization": False,
+  "allow_authenticated_periscope_requests": True,
+  "allow_dm_groups_from": "following",
+  "allow_dms_from": "following",
+  "allow_location_history_personalization": False,
+  "allow_logged_out_device_personalization": False,
+  "allow_media_tagging": "none",
+  "allow_sharing_data_for_third_party_personalization": False,
+  "alt_text_compose_enabled": None,
+  "always_use_https": True,
+  "autoplay_disabled": False,
+  "country_code": "us",
+  "discoverable_by_email": False,
+  "discoverable_by_mobile_phone": False,
+  "display_sensitive_media": False,
+  "dm_quality_filter": "enabled",
+  "dm_receipt_setting": "all_disabled",
+  "geo_enabled": False,
+  "include_alt_text_compose": True,
+  "include_mention_filter": True,
+  "include_nsfw_admin_flag": True,
+  "include_nsfw_user_flag": True,
+  "include_ranked_timeline": True,
+  "language": "en",
+  "mention_filter": "unfiltered",
+  "nsfw_admin": False,
+  "nsfw_user": False,
+  "personalized_trends": True,
+  "protected": False,
+  "ranked_timeline_eligible": None,
+  "ranked_timeline_setting": None,
+  "require_password_login": False,
+  "requires_login_verification": False,
+  "sleep_time": {
+    "enabled": False,
+    "end_time": None,
+    "start_time": None
+  },
+  "translator_type": "none",
+  "universal_quality_filtering_enabled": "enabled",
+  "use_cookie_personalization": False,
 })
 
 # example configuration
 account.update_search_settings({
-    "optInFiltering": True,  # filter nsfw content
-    "optInBlocking": True,  # filter blocked accounts
+  "optInFiltering": True,  # filter nsfw content
+  "optInBlocking": True,  # filter blocked accounts
 })
 
-## change_password('old pwd','new pwd)
+notifications = account.notifications()
+
+account.change_password('old pwd','new pwd')
 
 ```
 
@@ -428,10 +430,10 @@ from twitter.util import get_code
 from proton.client import ProtonMail
 
 proton_username, proton_password = ..., ...
-proton = ProtonMail(proton_username, proton_password)
+proton = lambda: get_code(ProtonMail(proton_username, proton_password))
 
 email, username, password = ..., ..., ...
-account = Account(email, username, password, proton=(lambda: get_code(proton)))
+account = Account(email, username, password, proton=proton)
 ```
 
 ### Example API Responses

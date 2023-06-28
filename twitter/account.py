@@ -353,13 +353,13 @@ class Account:
     def unmute(self, user_id: int) -> dict:
         return self.v1('mutes/users/destroy.json', {'user_id': user_id})
 
-    def enable_notifications(self, user_id: int) -> dict:
-        settings = deepcopy(notification_settings)
+    def enable_follower_notifications(self, user_id: int) -> dict:
+        settings = deepcopy(follower_notification_settings)
         settings |= {'id': user_id, 'device': 'true'}
         return self.v1('friendships/update.json', settings)
 
-    def disable_notifications(self, user_id: int) -> dict:
-        settings = deepcopy(notification_settings)
+    def disable_follower_notifications(self, user_id: int) -> dict:
+        settings = deepcopy(follower_notification_settings)
         settings |= {'id': user_id, 'device': 'false'}
         return self.v1('friendships/update.json', settings)
 
@@ -790,3 +790,13 @@ class Account:
         for _id in set(find_key(drafts, 'rest_id')):
             if _id != user_id:
                 self.gql('POST', Operation.DeleteDraftTweet, {'draft_tweet_id': _id})
+
+    def notifications(self, params: dict = None) -> dict:
+        r = self.session.get(
+            'https://twitter.com/i/api/2/notifications/all.json',
+            headers=get_headers(self.session),
+            params=params or live_notification_params
+        )
+        if self.debug:
+            log(self.logger, self.debug, r)
+        return r.json()
