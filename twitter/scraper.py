@@ -812,6 +812,7 @@ class Scraper:
             return _session
 
         # no session, credentials, or cookies provided. use guest session.
-        self.logger.warning(f'{RED}This is a guest session, some endpoints cannot be accessed.{RESET}\n')
+        if self.debug:
+            self.logger.warning(f'{RED}This is a guest session, some endpoints cannot be accessed.{RESET}\n')
         self.guest = True
         return session
