@@ -36,7 +36,7 @@ JS_FILES_MAP = Path('js.json')
 JS_FILES = Path('js')
 OPERATIONS = Path('operations')
 JS_FILES.mkdir(exist_ok=True, parents=True)
-logging.config.dictConfig(LOGGER_CONFIG)
+logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger('twitter')
 
 

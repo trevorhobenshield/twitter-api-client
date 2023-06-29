@@ -19,7 +19,7 @@ WHITE = '\x1b[37m'
 BOLD = '\x1b[1m'
 RESET = '\x1b[0m'
 
-LOGGER_CONFIG = {
+LOG_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
