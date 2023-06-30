@@ -818,3 +818,13 @@ class Account:
         if self.debug:
             log(self.logger, self.debug, r)
         return r.json()
+
+    @property
+    def id(self) -> int:
+        """ Get User ID """
+        return int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+
+    def save_cookies(self, fname: str = None):
+        """ Save cookies to file """
+        cookies = self.session.cookies
+        Path(f'{fname or cookies.get("username")}.cookies').write_bytes(orjson.dumps(dict(cookies)))

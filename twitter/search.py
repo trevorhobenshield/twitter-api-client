@@ -3,6 +3,7 @@ import logging.config
 import math
 import platform
 import random
+import re
 import time
 from logging import Logger
 from pathlib import Path
@@ -178,3 +179,13 @@ class Search:
 
         raise Exception('Session not authenticated. '
                         'Please use an authenticated session or remove the `session` argument and try again.')
+
+    @property
+    def id(self) -> int:
+        """ Get User ID """
+        return int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+
+    def save_cookies(self, fname: str = None):
+        """ Save cookies to file """
+        cookies = self.session.cookies
+        Path(f'{fname or cookies.get("username")}.cookies').write_bytes(orjson.dumps(dict(cookies)))

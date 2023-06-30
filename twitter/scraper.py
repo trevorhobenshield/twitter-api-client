@@ -815,3 +815,13 @@ class Scraper:
             self.logger.warning(f'{RED}This is a guest session, some endpoints cannot be accessed.{RESET}\n')
         self.guest = True
         return session
+
+    @property
+    def id(self) -> int:
+        """ Get User ID """
+        return int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+
+    def save_cookies(self, fname: str = None):
+        """ Save cookies to file """
+        cookies = self.session.cookies
+        Path(f'{fname or cookies.get("username")}.cookies').write_bytes(orjson.dumps(dict(cookies)))
