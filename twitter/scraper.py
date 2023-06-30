@@ -2,7 +2,6 @@ import asyncio
 import logging.config
 import math
 import platform
-import random
 
 import aiofiles
 import websockets

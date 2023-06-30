@@ -629,3 +629,23 @@ live_notification_params = params = {
     "skip_status": "1",
     "tweet_mode": "extended"
 }
+
+recommendations_params = {
+    'include_profile_interstitial_type': '1',
+    'include_blocking': '1',
+    'include_blocked_by': '1',
+    'include_followed_by': '1',
+    'include_want_retweets': '1',
+    'include_mute_edge': '1',
+    'include_can_dm': '1',
+    'include_can_media_tag': '1',
+    'include_ext_has_nft_avatar': '1',
+    'include_ext_is_blue_verified': '1',
+    'include_ext_verified_type': '1',
+    'include_ext_profile_image_shape': '1',
+    'skip_status': '1',
+    'pc': 'true',
+    'display_location': 'profile_accounts_sidebar',
+    'limit': 100,
+    'ext': 'mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,superFollowMetadata,unmentionInfo,editControl'
+}

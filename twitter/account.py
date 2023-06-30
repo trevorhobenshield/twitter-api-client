@@ -4,7 +4,6 @@ import logging.config
 import math
 import mimetypes
 import platform
-import random
 from copy import deepcopy
 from datetime import datetime
 from string import ascii_letters
@@ -42,6 +41,7 @@ class Account:
         self.debug = kwargs.get('debug', 0)
         self.gql_api = 'https://twitter.com/i/api/graphql'
         self.v1_api = 'https://api.twitter.com/1.1'
+        self.v2_api = 'https://twitter.com/i/api/2'
         self.logger = self._init_logger(**kwargs)
         self.session = self._validate_session(email, username, password, session, **kwargs)
 
@@ -791,9 +791,29 @@ class Account:
 
     def notifications(self, params: dict = None) -> dict:
         r = self.session.get(
-            'https://twitter.com/i/api/2/notifications/all.json',
+            f'{self.v2_api}/notifications/all.json',
             headers=get_headers(self.session),
             params=params or live_notification_params
+        )
+        if self.debug:
+            log(self.logger, self.debug, r)
+        return r.json()
+
+    def recommendations(self, params: dict = None) -> dict:
+        r = self.session.get(
+            f'{self.v1_api}/users/recommendations.json',
+            headers=get_headers(self.session),
+            params=params or recommendations_params
+        )
+        if self.debug:
+            log(self.logger, self.debug, r)
+        return r.json()
+
+    def fleetline(self, params: dict = None) -> dict:
+        r = self.session.get(
+            'https://twitter.com/i/api/fleets/v1/fleetline',
+            headers=get_headers(self.session),
+            params=params or {}
         )
         if self.debug:
             log(self.logger, self.debug, r)
