@@ -7,13 +7,13 @@
 * [Installation](#installation)
 * [Automation](#automation)
 * [Scraping](#scraping)
-  * [Get all user/tweet data](#get-all-usertweet-data)
-  * [Resume Pagination](#resume-pagination)
-  * [Search](#search)
+    * [Get all user/tweet data](#get-all-usertweet-data)
+    * [Resume Pagination](#resume-pagination)
+    * [Search](#search)
 * [Spaces](#spaces)
-  * [Live Audio Capture](#live-audio-capture)
-  * [Live Transcript Capture](#live-transcript-capture)
-  * [Search and Metadata](#search-and-metadata)
+    * [Live Audio Capture](#live-audio-capture)
+    * [Live Transcript Capture](#live-transcript-capture)
+    * [Search and Metadata](#search-and-metadata)
 * [Automated Solvers](#automated-solvers)
 * [Example API Responses](#example-api-responses)
 
@@ -30,8 +30,15 @@ pip install twitter-api-client
 ```python
 from twitter.account import Account
 
+## sign-in with credentials
 email, username, password = ..., ..., ...
-account = Account(email, username, password, debug=2, save=True)
+account = Account(email, username, password)
+
+## or, resume session using cookies
+# account = Account(cookies={"ct0": ..., "auth_token": ...})
+
+## or, resume session using cookies (JSON file)
+# account = Account(cookies='twitter.cookies')
 
 account.tweet('test 123')
 account.untweet(123456)
@@ -43,18 +50,18 @@ account.schedule_tweet('schedule foo', 1681851240)
 account.unschedule_tweet(123456)
 
 account.tweet('hello world', media=[
-    {'media': 'test.jpg', 'alt': 'some alt text', 'tagged_users': [123]},
-    {'media': 'test.jpeg', 'alt': 'some alt text', 'tagged_users': [123]},
-    {'media': 'test.png', 'alt': 'some alt text', 'tagged_users': [123]},
-    {'media': 'test.jfif', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.jpg', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.jpeg', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.png', 'alt': 'some alt text', 'tagged_users': [123]},
+  {'media': 'test.jfif', 'alt': 'some alt text', 'tagged_users': [123]},
 ])
 
 account.schedule_tweet('foo bar', '2023-04-18 15:42', media=[
-    {'media': 'test.gif', 'alt': 'some alt text'},
+  {'media': 'test.gif', 'alt': 'some alt text'},
 ])
 
 account.schedule_reply('hello world', '2023-04-19 15:42', tweet_id=123456, media=[
-    {'media': 'test.gif', 'alt': 'some alt text'},
+  {'media': 'test.gif', 'alt': 'some alt text'},
 ])
 
 account.dm('my message', [1234], media='test.jpg')
@@ -74,8 +81,8 @@ account.follow(1234)
 account.unfollow(1234)
 account.mute(1234)
 account.unmute(1234)
-account.enable_notifications(1234)
-account.disable_notifications(1234)
+account.enable_follower_notifications(1234)
+account.disable_follower_notifications(1234)
 account.block(1234)
 account.unblock(1234)
 
@@ -112,59 +119,97 @@ latest_timeline = account.home_latest_timeline(limit=500)
 # get bookmarks
 bookmarks = account.bookmarks()
 
+# get DM inbox metadata    
+inbox = account.dm_inbox()
+
+# get DMs from all conversations    
+dms = account.dm_history()
+
+# get DMs from specific conversations
+dms = account.dm_history(['123456-789012', '345678-901234'])
+
+# search DMs by keyword
+dms = account.dm_search('test123')
+
+# delete entire conversation
+account.dm_delete(conversation_id='123456-789012')
+
+# delete (hide) specific DM
+account.dm_delete(message_id='123456')
+
+# get all scheduled tweets
+scheduled_tweets = account.scheduled_tweets()
+
+# delete a scheduled tweet
+account.delete_scheduled_tweet(12345678)
+
+# get all draft tweets
+draft_tweets = account.draft_tweets()
+
+# delete a draft tweet
+account.delete_draft_tweet(12345678)
+
+# delete all scheduled tweets
+account.clear_scheduled_tweets()
+
+# delete all draft tweets
+account.clear_draft_tweets()
+
 # example configuration
 account.update_settings({
-    "address_book_live_sync_enabled": False,
-    "allow_ads_personalization": False,
-    "allow_authenticated_periscope_requests": True,
-    "allow_dm_groups_from": "following",
-    "allow_dms_from": "following",
-    "allow_location_history_personalization": False,
-    "allow_logged_out_device_personalization": False,
-    "allow_media_tagging": "none",
-    "allow_sharing_data_for_third_party_personalization": False,
-    "alt_text_compose_enabled": None,
-    "always_use_https": True,
-    "autoplay_disabled": False,
-    "country_code": "us",
-    "discoverable_by_email": False,
-    "discoverable_by_mobile_phone": False,
-    "display_sensitive_media": False,
-    "dm_quality_filter": "enabled",
-    "dm_receipt_setting": "all_disabled",
-    "geo_enabled": False,
-    "include_alt_text_compose": True,
-    "include_mention_filter": True,
-    "include_nsfw_admin_flag": True,
-    "include_nsfw_user_flag": True,
-    "include_ranked_timeline": True,
-    "language": "en",
-    "mention_filter": "unfiltered",
-    "nsfw_admin": False,
-    "nsfw_user": False,
-    "personalized_trends": True,
-    "protected": False,
-    "ranked_timeline_eligible": None,
-    "ranked_timeline_setting": None,
-    "require_password_login": False,
-    "requires_login_verification": False,
-    "sleep_time": {
-        "enabled": False,
-        "end_time": None,
-        "start_time": None
-    },
-    "translator_type": "none",
-    "universal_quality_filtering_enabled": "enabled",
-    "use_cookie_personalization": False,
+  "address_book_live_sync_enabled": False,
+  "allow_ads_personalization": False,
+  "allow_authenticated_periscope_requests": True,
+  "allow_dm_groups_from": "following",
+  "allow_dms_from": "following",
+  "allow_location_history_personalization": False,
+  "allow_logged_out_device_personalization": False,
+  "allow_media_tagging": "none",
+  "allow_sharing_data_for_third_party_personalization": False,
+  "alt_text_compose_enabled": None,
+  "always_use_https": True,
+  "autoplay_disabled": False,
+  "country_code": "us",
+  "discoverable_by_email": False,
+  "discoverable_by_mobile_phone": False,
+  "display_sensitive_media": False,
+  "dm_quality_filter": "enabled",
+  "dm_receipt_setting": "all_disabled",
+  "geo_enabled": False,
+  "include_alt_text_compose": True,
+  "include_mention_filter": True,
+  "include_nsfw_admin_flag": True,
+  "include_nsfw_user_flag": True,
+  "include_ranked_timeline": True,
+  "language": "en",
+  "mention_filter": "unfiltered",
+  "nsfw_admin": False,
+  "nsfw_user": False,
+  "personalized_trends": True,
+  "protected": False,
+  "ranked_timeline_eligible": None,
+  "ranked_timeline_setting": None,
+  "require_password_login": False,
+  "requires_login_verification": False,
+  "sleep_time": {
+    "enabled": False,
+    "end_time": None,
+    "start_time": None
+  },
+  "translator_type": "none",
+  "universal_quality_filtering_enabled": "enabled",
+  "use_cookie_personalization": False,
 })
 
 # example configuration
 account.update_search_settings({
-    "optInFiltering": True,  # filter nsfw content
-    "optInBlocking": True,  # filter blocked accounts
+  "optInFiltering": True,  # filter nsfw content
+  "optInBlocking": True,  # filter blocked accounts
 })
 
-## change_password('old pwd','new pwd)
+notifications = account.notifications()
+
+account.change_password('old pwd','new pwd')
 
 ```
 
@@ -177,8 +222,19 @@ account.update_search_settings({
 ```python
 from twitter.scraper import Scraper
 
+## sign-in with credentials
 email, username, password = ..., ..., ...
-scraper = Scraper(email, username, password, debug=1, save=True)
+scraper = Scraper(email, username, password)
+
+## or, resume session using cookies
+# scraper = Scraper(cookies={"ct0": ..., "auth_token": ...})
+
+## or, resume session using cookies (JSON file)
+# scraper = Scraper(cookies='twitter.cookies')
+
+## or, initialize guest session (limited endpoints)
+# from twitter.util import init_session
+# scraper = Scraper(session=init_session())
 
 # user data
 users = scraper.users(['foo', 'bar', 'hello', 'world'])
@@ -213,12 +269,16 @@ scraper.trends()
 ```
 
 #### Resume Pagination
-**Pagination is already done by default**, however there are circumstances where you may need to resume pagination from a specific cursor. For example, the `Followers` endpoint only allows for 50 requests every 15 minutes. In this case, we can resume from where we left off by providing a specific cursor value.
+
+**Pagination is already done by default**, however there are circumstances where you may need to resume pagination from
+a specific cursor. For example, the `Followers` endpoint only allows for 50 requests every 15 minutes. In this case, we
+can resume from where we left off by providing a specific cursor value.
+
 ```python
 from twitter.scraper import Scraper
 
-email, username, password = ...,...,...
-scraper = Scraper(email, username, password, debug=1, save=True)
+email, username, password = ..., ..., ...
+scraper = Scraper(email, username, password)
 
 user_id = 44196397
 cursor = '1767341853908517597|1663601806447476672'  # example cursor
@@ -232,13 +292,12 @@ follower_subset, last_cursor = scraper.followers([user_id], limit=limit, cursor=
 
 ![](assets/search.gif)
 
-
 ```python   
 from twitter.search import Search
 
 email, username, password = ..., ..., ...
 # default output directory is `data/raw` if save=True
-search = Search(email, username, password, debug=1, save=True)
+search = Search(email, username, password)
 
 latest_results = search.run(
     'brasil portugal -argentina',
@@ -280,11 +339,11 @@ Capture live audio for up to 500 streams per IP
 from twitter.scraper import Scraper
 from twitter.util import init_session
 
-session = init_session() # initialize guest session, no login required
-scraper = Scraper(session=session, debug=1, save=True)
+session = init_session()  # initialize guest session, no login required
+scraper = Scraper(session=session)
 
 rooms = [...]
-scraper.spaces_live(rooms=rooms) # capture live audio from list of rooms
+scraper.spaces_live(rooms=rooms)  # capture live audio from list of rooms
 ```
 
 #### Live Transcript Capture
@@ -297,38 +356,38 @@ scraper.spaces_live(rooms=rooms) # capture live audio from list of rooms
 from twitter.scraper import Scraper
 from twitter.util import init_session
 
-session = init_session() # initialize guest session, no login required
-scraper = Scraper(session=session, debug=1, save=True)
+session = init_session()  # initialize guest session, no login required
+scraper = Scraper(session=session)
 
 # room must be live, i.e. in "Running" state
-scraper.space_live_transcript('1zqKVPlQNApJB', frequency=2)  # word-level live transcript. (dirty, on-the-fly transcription before post-processing)
+scraper.space_live_transcript('1zqKVPlQNApJB',
+                              frequency=2)  # word-level live transcript. (dirty, on-the-fly transcription before post-processing)
 ```
-
 
 **Processed (final) transcript chunks**
 
 ![](assets/spaces-transcript-01.gif)
 
-
 ```python
 from twitter.scraper import Scraper
 from twitter.util import init_session
 
-session = init_session() # initialize guest session, no login required
-scraper = Scraper(session=session, debug=1, save=True)
+session = init_session()  # initialize guest session, no login required
+scraper = Scraper(session=session)
 
 # room must be live, i.e. in "Running" state
 scraper.space_live_transcript('1zqKVPlQNApJB', frequency=1)  # finalized live transcript.  (clean)
 ```
 
 #### Search and Metadata
+
 ```python
 from twitter.scraper import Scraper
 from twitter.util import init_session
 from twitter.constants import SpaceCategory
 
-session = init_session() # initialize guest session, no login required
-scraper = Scraper(session=session, debug=1, save=True)
+session = init_session()  # initialize guest session, no login required
+scraper = Scraper(session=session)
 
 # download audio and chat-log from space
 spaces = scraper.spaces(rooms=['1eaJbrAPnBVJX', '1eaJbrAlZjjJX'], audio=True, chat=True)
@@ -353,23 +412,26 @@ spaces = scraper.spaces(search=[
 ])
 ```
 
-
-
 ### Automated Solvers
 
-> **Currently removed** due to issues running on Mac. Code has been commented out for now. Cloning the repo, adding the protonmail package, and uncommenting the code referencing `protonmail` can be used as a temporary workaround to re-enable this feature.
+> This requires installation of the [proton-api-client](https://pypi.org/project/proton-api-client) package
 
 To set up automated email confirmation/verification solvers, add your Proton Mail credentials below as shown.
-This removes the need to manually solve email challenges via the web app. These credentials can be used in `Scraper`, `Account`, and `Search` constructors.
+This removes the need to manually solve email challenges via the web app. These credentials can be used
+in `Scraper`, `Account`, and `Search` constructors.
 
 E.g.
 
 ```python
-from twitter.scraper import Scraper
+from twitter.account import Account
+from twitter.util import get_code
+from proton.client import ProtonMail
+
+proton_username, proton_password = ..., ...
+proton = lambda: get_code(ProtonMail(proton_username, proton_password))
 
 email, username, password = ..., ..., ...
-proton_email, proton_password = ..., ...
-account = Scraper(email, username, password, debug=1, save=True, protonmail={'email':proton_email, 'password':proton_password})
+account = Account(email, username, password, proton=proton)
 ```
 
 ### Example API Responses
@@ -5080,14 +5142,19 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
               "default_profile_image": false,
               "description": "31 🇨🇴🇬🇺 | | Orlando | | Web3 Biz Dev/Marketing | | Space Host| | @The_Daily_Alpha  | | @citadalxyz | |",
               "entities": {
-                "description": { "urls": [] },
+                "description": {
+                  "urls": []
+                },
                 "url": {
                   "urls": [
                     {
                       "display_url": "youtube.com/channel/UCE94z…",
                       "expanded_url": "http://youtube.com/channel/UCE94zu5oVIkvZg0yMBueYbA",
                       "url": "https://t.co/U2TeC8Fudk",
-                      "indices": [0, 23]
+                      "indices": [
+                        0,
+                        23
+                      ]
                     }
                   ]
                 }
@@ -5149,14 +5216,19 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                   "default_profile_image": false,
                   "description": "31 🇨🇴🇬🇺 | | Orlando | | Web3 Biz Dev/Marketing | | Space Host| | @The_Daily_Alpha  | | @citadalxyz | |",
                   "entities": {
-                    "description": { "urls": [] },
+                    "description": {
+                      "urls": []
+                    },
                     "url": {
                       "urls": [
                         {
                           "display_url": "youtube.com/channel/UCE94z…",
                           "expanded_url": "http://youtube.com/channel/UCE94zu5oVIkvZg0yMBueYbA",
                           "url": "https://t.co/U2TeC8Fudk",
-                          "indices": [0, 23]
+                          "indices": [
+                            0,
+                            23
+                          ]
                         }
                       ]
                     }
@@ -5218,7 +5290,11 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                           "default_profile": false,
                           "default_profile_image": false,
                           "description": "._. art @andr3w rep @unitedtalent ball @webthreefc",
-                          "entities": { "description": { "urls": [] } },
+                          "entities": {
+                            "description": {
+                              "urls": []
+                            }
+                          },
                           "fast_followers_count": 0,
                           "favourites_count": 121083,
                           "followers_count": 189787,
@@ -5256,27 +5332,38 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                     }
                   },
                   "edit_control": {
-                    "edit_tweet_ids": ["1663624567053598721"],
+                    "edit_tweet_ids": [
+                      "1663624567053598721"
+                    ],
                     "editable_until_msecs": "1685475780000",
                     "is_edit_eligible": false,
                     "edits_remaining": "5"
                   },
                   "is_translatable": false,
-                  "views": { "count": "235006", "state": "EnabledWithCount" },
+                  "views": {
+                    "count": "235006",
+                    "state": "EnabledWithCount"
+                  },
                   "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
                   "legacy": {
                     "bookmark_count": 30,
                     "bookmarked": false,
                     "created_at": "Tue May 30 19:13:00 +0000 2023",
                     "conversation_id_str": "1663624567053598721",
-                    "display_text_range": [0, 205],
+                    "display_text_range": [
+                      0,
+                      205
+                    ],
                     "entities": {
                       "media": [
                         {
                           "display_url": "pic.twitter.com/Fr5Mcu26eR",
                           "expanded_url": "https://twitter.com/andr3w/status/1663624567053598721/photo/1",
                           "id_str": "1663612366947270656",
-                          "indices": [206, 229],
+                          "indices": [
+                            206,
+                            229
+                          ],
                           "media_url_https": "https://pbs.twimg.com/media/FxZWoi_WwAANuP5.jpg",
                           "type": "photo",
                           "url": "https://t.co/Fr5Mcu26eR",
@@ -5293,40 +5380,101 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                             },
                             "large": {
                               "faces": [
-                                { "x": 79, "y": 672, "h": 192, "w": 192 }
+                                {
+                                  "x": 79,
+                                  "y": 672,
+                                  "h": 192,
+                                  "w": 192
+                                }
                               ]
                             },
                             "medium": {
                               "faces": [
-                                { "x": 79, "y": 672, "h": 192, "w": 192 }
+                                {
+                                  "x": 79,
+                                  "y": 672,
+                                  "h": 192,
+                                  "w": 192
+                                }
                               ]
                             },
                             "small": {
                               "faces": [
-                                { "x": 47, "y": 401, "h": 114, "w": 114 }
+                                {
+                                  "x": 47,
+                                  "y": 401,
+                                  "h": 114,
+                                  "w": 114
+                                }
                               ]
                             },
                             "orig": {
                               "faces": [
-                                { "x": 79, "y": 672, "h": 192, "w": 192 }
+                                {
+                                  "x": 79,
+                                  "y": 672,
+                                  "h": 192,
+                                  "w": 192
+                                }
                               ]
                             }
                           },
                           "sizes": {
-                            "large": { "h": 1137, "w": 886, "resize": "fit" },
-                            "medium": { "h": 1137, "w": 886, "resize": "fit" },
-                            "small": { "h": 680, "w": 530, "resize": "fit" },
-                            "thumb": { "h": 150, "w": 150, "resize": "crop" }
+                            "large": {
+                              "h": 1137,
+                              "w": 886,
+                              "resize": "fit"
+                            },
+                            "medium": {
+                              "h": 1137,
+                              "w": 886,
+                              "resize": "fit"
+                            },
+                            "small": {
+                              "h": 680,
+                              "w": 530,
+                              "resize": "fit"
+                            },
+                            "thumb": {
+                              "h": 150,
+                              "w": 150,
+                              "resize": "crop"
+                            }
                           },
                           "original_info": {
                             "height": 1137,
                             "width": 886,
                             "focus_rects": [
-                              { "x": 0, "y": 405, "w": 886, "h": 496 },
-                              { "x": 0, "y": 210, "w": 886, "h": 886 },
-                              { "x": 0, "y": 127, "w": 886, "h": 1010 },
-                              { "x": 0, "y": 0, "w": 569, "h": 1137 },
-                              { "x": 0, "y": 0, "w": 886, "h": 1137 }
+                              {
+                                "x": 0,
+                                "y": 405,
+                                "w": 886,
+                                "h": 496
+                              },
+                              {
+                                "x": 0,
+                                "y": 210,
+                                "w": 886,
+                                "h": 886
+                              },
+                              {
+                                "x": 0,
+                                "y": 127,
+                                "w": 886,
+                                "h": 1010
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 569,
+                                "h": 1137
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 886,
+                                "h": 1137
+                              }
                             ]
                           }
                         },
@@ -5334,7 +5482,10 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                           "display_url": "pic.twitter.com/Fr5Mcu26eR",
                           "expanded_url": "https://twitter.com/andr3w/status/1663624567053598721/photo/1",
                           "id_str": "1663613526085193732",
-                          "indices": [206, 229],
+                          "indices": [
+                            206,
+                            229
+                          ],
                           "media_url_https": "https://pbs.twimg.com/media/FxZXsBHX0AQsXaz.jpg",
                           "type": "photo",
                           "url": "https://t.co/Fr5Mcu26eR",
@@ -5349,26 +5500,75 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                                 }
                               ]
                             },
-                            "large": { "faces": [] },
-                            "medium": { "faces": [] },
-                            "small": { "faces": [] },
-                            "orig": { "faces": [] }
+                            "large": {
+                              "faces": []
+                            },
+                            "medium": {
+                              "faces": []
+                            },
+                            "small": {
+                              "faces": []
+                            },
+                            "orig": {
+                              "faces": []
+                            }
                           },
                           "sizes": {
-                            "large": { "h": 1594, "w": 888, "resize": "fit" },
-                            "medium": { "h": 1200, "w": 669, "resize": "fit" },
-                            "small": { "h": 680, "w": 379, "resize": "fit" },
-                            "thumb": { "h": 150, "w": 150, "resize": "crop" }
+                            "large": {
+                              "h": 1594,
+                              "w": 888,
+                              "resize": "fit"
+                            },
+                            "medium": {
+                              "h": 1200,
+                              "w": 669,
+                              "resize": "fit"
+                            },
+                            "small": {
+                              "h": 680,
+                              "w": 379,
+                              "resize": "fit"
+                            },
+                            "thumb": {
+                              "h": 150,
+                              "w": 150,
+                              "resize": "crop"
+                            }
                           },
                           "original_info": {
                             "height": 1594,
                             "width": 888,
                             "focus_rects": [
-                              { "x": 0, "y": 0, "w": 888, "h": 497 },
-                              { "x": 0, "y": 0, "w": 888, "h": 888 },
-                              { "x": 0, "y": 0, "w": 888, "h": 1012 },
-                              { "x": 0, "y": 0, "w": 797, "h": 1594 },
-                              { "x": 0, "y": 0, "w": 888, "h": 1594 }
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 497
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 888
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 1012
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 797,
+                                "h": 1594
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 1594
+                              }
                             ]
                           }
                         }
@@ -5378,7 +5578,10 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                           "id_str": "1423662204293844993",
                           "name": "Phoenix 🐧",
                           "screen_name": "Hopeexist1",
-                          "indices": [62, 73]
+                          "indices": [
+                            62,
+                            73
+                          ]
                         }
                       ],
                       "urls": [],
@@ -5391,12 +5594,17 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                           "display_url": "pic.twitter.com/Fr5Mcu26eR",
                           "expanded_url": "https://twitter.com/andr3w/status/1663624567053598721/photo/1",
                           "id_str": "1663612366947270656",
-                          "indices": [206, 229],
+                          "indices": [
+                            206,
+                            229
+                          ],
                           "media_key": "3_1663612366947270656",
                           "media_url_https": "https://pbs.twimg.com/media/FxZWoi_WwAANuP5.jpg",
                           "type": "photo",
                           "url": "https://t.co/Fr5Mcu26eR",
-                          "ext_media_availability": { "status": "Available" },
+                          "ext_media_availability": {
+                            "status": "Available"
+                          },
                           "features": {
                             "all": {
                               "tags": [
@@ -5410,40 +5618,101 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                             },
                             "large": {
                               "faces": [
-                                { "x": 79, "y": 672, "h": 192, "w": 192 }
+                                {
+                                  "x": 79,
+                                  "y": 672,
+                                  "h": 192,
+                                  "w": 192
+                                }
                               ]
                             },
                             "medium": {
                               "faces": [
-                                { "x": 79, "y": 672, "h": 192, "w": 192 }
+                                {
+                                  "x": 79,
+                                  "y": 672,
+                                  "h": 192,
+                                  "w": 192
+                                }
                               ]
                             },
                             "small": {
                               "faces": [
-                                { "x": 47, "y": 401, "h": 114, "w": 114 }
+                                {
+                                  "x": 47,
+                                  "y": 401,
+                                  "h": 114,
+                                  "w": 114
+                                }
                               ]
                             },
                             "orig": {
                               "faces": [
-                                { "x": 79, "y": 672, "h": 192, "w": 192 }
+                                {
+                                  "x": 79,
+                                  "y": 672,
+                                  "h": 192,
+                                  "w": 192
+                                }
                               ]
                             }
                           },
                           "sizes": {
-                            "large": { "h": 1137, "w": 886, "resize": "fit" },
-                            "medium": { "h": 1137, "w": 886, "resize": "fit" },
-                            "small": { "h": 680, "w": 530, "resize": "fit" },
-                            "thumb": { "h": 150, "w": 150, "resize": "crop" }
+                            "large": {
+                              "h": 1137,
+                              "w": 886,
+                              "resize": "fit"
+                            },
+                            "medium": {
+                              "h": 1137,
+                              "w": 886,
+                              "resize": "fit"
+                            },
+                            "small": {
+                              "h": 680,
+                              "w": 530,
+                              "resize": "fit"
+                            },
+                            "thumb": {
+                              "h": 150,
+                              "w": 150,
+                              "resize": "crop"
+                            }
                           },
                           "original_info": {
                             "height": 1137,
                             "width": 886,
                             "focus_rects": [
-                              { "x": 0, "y": 405, "w": 886, "h": 496 },
-                              { "x": 0, "y": 210, "w": 886, "h": 886 },
-                              { "x": 0, "y": 127, "w": 886, "h": 1010 },
-                              { "x": 0, "y": 0, "w": 569, "h": 1137 },
-                              { "x": 0, "y": 0, "w": 886, "h": 1137 }
+                              {
+                                "x": 0,
+                                "y": 405,
+                                "w": 886,
+                                "h": 496
+                              },
+                              {
+                                "x": 0,
+                                "y": 210,
+                                "w": 886,
+                                "h": 886
+                              },
+                              {
+                                "x": 0,
+                                "y": 127,
+                                "w": 886,
+                                "h": 1010
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 569,
+                                "h": 1137
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 886,
+                                "h": 1137
+                              }
                             ]
                           }
                         },
@@ -5451,12 +5720,17 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                           "display_url": "pic.twitter.com/Fr5Mcu26eR",
                           "expanded_url": "https://twitter.com/andr3w/status/1663624567053598721/photo/1",
                           "id_str": "1663613526085193732",
-                          "indices": [206, 229],
+                          "indices": [
+                            206,
+                            229
+                          ],
                           "media_key": "3_1663613526085193732",
                           "media_url_https": "https://pbs.twimg.com/media/FxZXsBHX0AQsXaz.jpg",
                           "type": "photo",
                           "url": "https://t.co/Fr5Mcu26eR",
-                          "ext_media_availability": { "status": "Available" },
+                          "ext_media_availability": {
+                            "status": "Available"
+                          },
                           "features": {
                             "all": {
                               "tags": [
@@ -5468,26 +5742,75 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                                 }
                               ]
                             },
-                            "large": { "faces": [] },
-                            "medium": { "faces": [] },
-                            "small": { "faces": [] },
-                            "orig": { "faces": [] }
+                            "large": {
+                              "faces": []
+                            },
+                            "medium": {
+                              "faces": []
+                            },
+                            "small": {
+                              "faces": []
+                            },
+                            "orig": {
+                              "faces": []
+                            }
                           },
                           "sizes": {
-                            "large": { "h": 1594, "w": 888, "resize": "fit" },
-                            "medium": { "h": 1200, "w": 669, "resize": "fit" },
-                            "small": { "h": 680, "w": 379, "resize": "fit" },
-                            "thumb": { "h": 150, "w": 150, "resize": "crop" }
+                            "large": {
+                              "h": 1594,
+                              "w": 888,
+                              "resize": "fit"
+                            },
+                            "medium": {
+                              "h": 1200,
+                              "w": 669,
+                              "resize": "fit"
+                            },
+                            "small": {
+                              "h": 680,
+                              "w": 379,
+                              "resize": "fit"
+                            },
+                            "thumb": {
+                              "h": 150,
+                              "w": 150,
+                              "resize": "crop"
+                            }
                           },
                           "original_info": {
                             "height": 1594,
                             "width": 888,
                             "focus_rects": [
-                              { "x": 0, "y": 0, "w": 888, "h": 497 },
-                              { "x": 0, "y": 0, "w": 888, "h": 888 },
-                              { "x": 0, "y": 0, "w": 888, "h": 1012 },
-                              { "x": 0, "y": 0, "w": 797, "h": 1594 },
-                              { "x": 0, "y": 0, "w": 888, "h": 1594 }
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 497
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 888
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 1012
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 797,
+                                "h": 1594
+                              },
+                              {
+                                "x": 0,
+                                "y": 0,
+                                "w": 888,
+                                "h": 1594
+                              }
                             ]
                           }
                         }
@@ -5506,7 +5829,9 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
                     "retweeted": false,
                     "user_id_str": "4911583324",
                     "id_str": "1663624567053598721",
-                    "self_thread": { "id_str": "1663624567053598721" }
+                    "self_thread": {
+                      "id_str": "1663624567053598721"
+                    }
                   },
                   "quick_promote_eligibility": {
                     "eligibility": "IneligibleUserUnauthorized"
@@ -5863,17 +6188,23 @@ account = Scraper(email, username, password, debug=1, save=True, protonmail={'em
               {
                 "kind": "Audiospace",
                 "followed_participants_results": [],
-                "space": { "rest_id": "1MYGNgPoldnJw" }
+                "space": {
+                  "rest_id": "1MYGNgPoldnJw"
+                }
               },
               {
                 "kind": "Audiospace",
                 "followed_participants_results": [],
-                "space": { "rest_id": "1YqGoAdvOjbxv" }
+                "space": {
+                  "rest_id": "1YqGoAdvOjbxv"
+                }
               },
               {
                 "kind": "Audiospace",
                 "followed_participants_results": [],
-                "space": { "rest_id": "1OwGWwdNlmpGQ" }
+                "space": {
+                  "rest_id": "1OwGWwdNlmpGQ"
+                }
               }
             ],
             "destination": "Live"

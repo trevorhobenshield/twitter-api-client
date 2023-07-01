@@ -3,6 +3,7 @@ import logging.config
 import math
 import platform
 import random
+import re
 import time
 from logging import Logger
 from pathlib import Path
@@ -36,11 +37,11 @@ if platform.system() != 'Windows':
 
 class Search:
     def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
-        self.logger = self._init_logger(kwargs.get('log_config', False))
-        self.session = self._validate_session(email, username, password, session, **kwargs)
-        self.api = 'https://api.twitter.com/2/search/adaptive.json?'
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
+        self.api = 'https://api.twitter.com/2/search/adaptive.json?'
+        self.logger = self._init_logger(**kwargs)
+        self.session = self._validate_session(email, username, password, session, **kwargs)
 
     def run(self, *args, out: str = 'data', **kwargs):
         out_path = self.make_output_dirs(out)
@@ -134,31 +135,57 @@ class Search:
         (p / 'final').mkdir(parents=True, exist_ok=True)
         return p
 
-    @staticmethod
-    def _init_logger(cfg: dict) -> Logger:
-        if cfg:
-            logging.config.dictConfig(cfg)
-        else:
-            logging.config.dictConfig(LOGGER_CONFIG)
+    def _init_logger(self, **kwargs) -> Logger:
+        if kwargs.get('debug'):
+            cfg = kwargs.get('log_config')
+            logging.config.dictConfig(cfg or LOG_CONFIG)
 
-        # only support one logger
-        logger_name = list(LOGGER_CONFIG['loggers'].keys())[0]
+            # only support one logger
+            logger_name = list(LOG_CONFIG['loggers'].keys())[0]
 
-        # set level of all other loggers to ERROR
-        for name in logging.root.manager.loggerDict:
-            if name != logger_name:
-                logging.getLogger(name).setLevel(logging.ERROR)
+            # set level of all other loggers to ERROR
+            for name in logging.root.manager.loggerDict:
+                if name != logger_name:
+                    logging.getLogger(name).setLevel(logging.ERROR)
 
-        return logging.getLogger(logger_name)
+            return logging.getLogger(logger_name)
 
     @staticmethod
     def _validate_session(*args, **kwargs):
         email, username, password, session = args
-        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
-            # authenticated session provided
-            return session
-        if not session:
-            # no session provided, log-in to authenticate
+
+        # validate credentials
+        if all((email, username, password)):
             return login(email, username, password, **kwargs)
+
+        # invalid credentials, try validating session
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            return session
+
+        # invalid credentials and session
+        cookies = kwargs.get('cookies')
+
+        # try validating cookies dict
+        if isinstance(cookies, dict) and all(cookies.get(c) for c in {'ct0', 'auth_token'}):
+            _session = Client(cookies=cookies, follow_redirects=True)
+            _session.headers.update(get_headers(_session))
+            return _session
+
+        # try validating cookies from file
+        if isinstance(cookies, str):
+            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True)
+            _session.headers.update(get_headers(_session))
+            return _session
+
         raise Exception('Session not authenticated. '
                         'Please use an authenticated session or remove the `session` argument and try again.')
+
+    @property
+    def id(self) -> int:
+        """ Get User ID """
+        return int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+
+    def save_cookies(self, fname: str = None):
+        """ Save cookies to file """
+        cookies = self.session.cookies
+        Path(f'{fname or cookies.get("username")}.cookies').write_bytes(orjson.dumps(dict(cookies)))

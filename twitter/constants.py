@@ -19,7 +19,7 @@ WHITE = '\x1b[37m'
 BOLD = '\x1b[1m'
 RESET = '\x1b[0m'
 
-LOGGER_CONFIG = {
+LOG_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
@@ -212,9 +212,10 @@ class Operation:
     DisableUserAccountLabel = '_ckHEj05gan2VfNHG6thBA', 'DisableUserAccountLabel'
     DisableVerifiedPhoneLabel = 'g2m0pAOamawNtVIfjXNMJg', 'DisableVerifiedPhoneLabel'
     DismissRitoSuggestedAction = 'jYvwa61cv3NwNP24iUru6g', 'DismissRitoSuggestedAction'
-    DmAllSearchSlice = '9qd2xqJkMURKSyXVJ33xBw', 'DmAllSearchSlice'
+    DmAllSearchSlice = 'U-QXVRZ6iddb1QuZweh5DQ', 'DmAllSearchSlice'
     DmGroupSearchSlice = '5zpY1dCR-8NyxQJS_CFJoQ', 'DmGroupSearchSlice'
     DmMutedTimeline = 'lrcWa13oyrQc7L33wRdLAQ', 'DmMutedTimeline'
+    DMMessageDeleteMutation = 'BJ6DtxA2llfjnRoRjaiIiw', 'DMMessageDeleteMutation'
     DmNsfwMediaFilterUpdate = 'of_N6O33zfyD4qsFJMYFxA', 'DmNsfwMediaFilterUpdate'
     DmPeopleSearchSlice = 'xYSm8m5kJnzm_gFCn5GH-w', 'DmPeopleSearchSlice'
     EditBookmarkFolder = 'a6kPp1cS1Dgbsjhapz1PNw', 'EditBookmarkFolder'
@@ -344,6 +345,10 @@ class Operation:
         'isMetatagsQuery': False,
         'withReplays': True,
         'withClientEventToken': False,
+        'withAttachments': True,
+        'withConversationQueryHighlights': True,
+        'withMessageQueryHighlights': True,
+        'withMessages': True,
     }
     default_features = {
         "blue_business_profile_image_shape_enabled": True,
@@ -468,7 +473,7 @@ account_settings = {
     # 'allow_contributor_request': 'all',
     # 'protect_password_reset': False,
 }
-notification_settings = {
+follower_notification_settings = {
     'cursor': '-1',
     'include_profile_interstitial_type': '1',
     'include_blocking': '1',
@@ -555,4 +560,92 @@ search_config = {
     'spelling_corrections': 1,
     'include_ext_edit_control': 'true',
     'ext': 'mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,enrichments,superFollowMetadata,unmentionInfo,editControl,collab_control,vibe'
+}
+
+dm_params = {
+    'context': 'FETCH_DM_CONVERSATION',
+    'include_profile_interstitial_type': '1',
+    'include_blocking': '1',
+    'include_blocked_by': '1',
+    'include_followed_by': '1',
+    'include_want_retweets': '1',
+    'include_mute_edge': '1',
+    'include_can_dm': '1',
+    'include_can_media_tag': '1',
+    'include_ext_has_nft_avatar': '1',
+    'include_ext_is_blue_verified': '1',
+    'include_ext_verified_type': '1',
+    'include_ext_profile_image_shape': '1',
+    'skip_status': '1',
+    'dm_secret_conversations_enabled': 'false',
+    'krs_registration_enabled': 'true',
+    'cards_platform': 'Web-12',
+    'include_cards': '1',
+    'include_ext_alt_text': 'true',
+    'include_ext_limited_action_results': 'false',
+    'include_quote_count': 'true',
+    'include_reply_count': '1',
+    'tweet_mode': 'extended',
+    'include_ext_views': 'true',
+    'dm_users': 'false',
+    'include_groups': 'true',
+    'include_inbox_timelines': 'true',
+    'include_ext_media_color': 'true',
+    'supports_reactions': 'true',
+    'include_conversation_info': 'true',
+    'ext': 'mediaColor,altText,mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,superFollowMetadata,unmentionInfo,editControl',
+}
+
+live_notification_params = params = {
+    "cards_platform": "Web-12",
+    "count": "50",  # max value
+    "ext": "mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,superFollowMetadata,unmentionInfo,editControl",
+    "include_blocked_by": "1",
+    "include_blocking": "1",
+    "include_can_dm": "1",
+    "include_can_media_tag": "1",
+    "include_cards": "1",
+    "include_entities": "true",
+    "include_ext_alt_text": "true",
+    "include_ext_has_nft_avatar": "1",
+    "include_ext_is_blue_verified": "1",
+    "include_ext_limited_action_results": "true",
+    "include_ext_media_availability": "true",
+    "include_ext_media_color": "true",
+    "include_ext_profile_image_shape": "1",
+    "include_ext_sensitive_media_warning": "true",
+    "include_ext_trusted_friends_metadata": "true",
+    "include_ext_verified_type": "1",
+    "include_ext_views": "true",
+    "include_followed_by": "1",
+    "include_mute_edge": "1",
+    "include_profile_interstitial_type": "1",
+    "include_quote_count": "true",
+    "include_reply_count": "1",
+    "include_user_entities": "true",
+    "include_want_retweets": "1",
+    "send_error_codes": "true",
+    "simple_quoted_tweet": "true",
+    "skip_status": "1",
+    "tweet_mode": "extended"
+}
+
+recommendations_params = {
+    'include_profile_interstitial_type': '1',
+    'include_blocking': '1',
+    'include_blocked_by': '1',
+    'include_followed_by': '1',
+    'include_want_retweets': '1',
+    'include_mute_edge': '1',
+    'include_can_dm': '1',
+    'include_can_media_tag': '1',
+    'include_ext_has_nft_avatar': '1',
+    'include_ext_is_blue_verified': '1',
+    'include_ext_verified_type': '1',
+    'include_ext_profile_image_shape': '1',
+    'skip_status': '1',
+    'pc': 'true',
+    'display_location': 'profile_accounts_sidebar',
+    'limit': 100,
+    'ext': 'mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,birdwatchPivot,superFollowMetadata,unmentionInfo,editControl'
 }

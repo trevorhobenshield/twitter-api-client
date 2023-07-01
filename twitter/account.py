@@ -1,15 +1,17 @@
+import asyncio
 import hashlib
 import logging.config
 import math
 import mimetypes
 import platform
-import random
 from copy import deepcopy
 from datetime import datetime
 from string import ascii_letters
 from uuid import uuid1, getnode
 
+from httpx import AsyncClient, Limits
 from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 
 from .constants import *
 from .login import login
@@ -35,12 +37,13 @@ if platform.system() != 'Windows':
 class Account:
 
     def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
-        self.logger = self._init_logger(kwargs.get('log_config', False))
-        self.session = self._validate_session(email, username, password, session, **kwargs)
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.gql_api = 'https://twitter.com/i/api/graphql'
         self.v1_api = 'https://api.twitter.com/1.1'
+        self.v2_api = 'https://twitter.com/i/api/2'
+        self.logger = self._init_logger(**kwargs)
+        self.session = self._validate_session(email, username, password, session, **kwargs)
 
     def gql(self, method: str, operation: tuple, variables: dict, features: dict = Operation.default_features) -> dict:
         qid, op = operation
@@ -114,6 +117,44 @@ class Account:
             },
             'semantic_annotation_ids': [],
         }
+
+        if reply_params := kwargs.get('reply_params', {}):
+            variables |= reply_params
+        if quote_params := kwargs.get('quote_params', {}):
+            variables |= quote_params
+        if poll_params := kwargs.get('poll_params', {}):
+            variables |= poll_params
+
+        draft = kwargs.get('draft')
+        schedule = kwargs.get('schedule')
+
+        if draft or schedule:
+            variables = {
+                'post_tweet_request': {
+                    'auto_populate_reply_metadata': False,
+                    'status': text,
+                    'exclude_reply_user_ids': [],
+                    'media_ids': [],
+                },
+            }
+            if media:
+                for m in media:
+                    media_id = self._upload_media(m['media'])
+                    variables['post_tweet_request']['media_ids'].append(media_id)
+                    if alt := m.get('alt'):
+                        self._add_alt_text(media_id, alt)
+
+            if schedule:
+                variables['execute_at'] = (
+                    datetime.strptime(schedule, "%Y-%m-%d %H:%M").timestamp()
+                    if isinstance(schedule, str)
+                    else schedule
+                )
+                return self.gql('POST', Operation.CreateScheduledTweet, variables)
+
+            return self.gql('POST', Operation.CreateDraftTweet, variables)
+
+        # regular tweet
         if media:
             for m in media:
                 media_id = self._upload_media(m['media'])
@@ -123,12 +164,7 @@ class Account:
                 })
                 if alt := m.get('alt'):
                     self._add_alt_text(media_id, alt)
-        if reply_params := kwargs.get('reply_params', {}):
-            variables |= reply_params
-        if quote_params := kwargs.get('quote_params', {}):
-            variables |= quote_params
-        if poll_params := kwargs.get('poll_params', {}):
-            variables |= poll_params
+
         return self.gql('POST', Operation.CreateTweet, variables)
 
     def schedule_tweet(self, text: str, date: int | str, *, media: list = None) -> dict:
@@ -317,13 +353,13 @@ class Account:
     def unmute(self, user_id: int) -> dict:
         return self.v1('mutes/users/destroy.json', {'user_id': user_id})
 
-    def enable_notifications(self, user_id: int) -> dict:
-        settings = deepcopy(notification_settings)
+    def enable_follower_notifications(self, user_id: int) -> dict:
+        settings = deepcopy(follower_notification_settings)
         settings |= {'id': user_id, 'device': 'true'}
         return self.v1('friendships/update.json', settings)
 
-    def disable_notifications(self, user_id: int) -> dict:
-        settings = deepcopy(notification_settings)
+    def disable_follower_notifications(self, user_id: int) -> dict:
+        settings = deepcopy(follower_notification_settings)
         settings |= {'id': user_id, 'device': 'false'}
         return self.v1('friendships/update.json', settings)
 
@@ -556,31 +592,239 @@ class Account:
         r = self.session.post(url, headers=get_headers(self.session), json=params)
         return r
 
-    @staticmethod
-    def _init_logger(cfg: dict) -> Logger:
-        if cfg:
-            logging.config.dictConfig(cfg)
-        else:
-            logging.config.dictConfig(LOGGER_CONFIG)
+    def _init_logger(self, **kwargs) -> Logger:
+        if kwargs.get('debug'):
+            cfg = kwargs.get('log_config')
+            logging.config.dictConfig(cfg or LOG_CONFIG)
 
-        # only support one logger
-        logger_name = list(LOGGER_CONFIG['loggers'].keys())[0]
+            # only support one logger
+            logger_name = list(LOG_CONFIG['loggers'].keys())[0]
 
-        # set level of all other loggers to ERROR
-        for name in logging.root.manager.loggerDict:
-            if name != logger_name:
-                logging.getLogger(name).setLevel(logging.ERROR)
+            # set level of all other loggers to ERROR
+            for name in logging.root.manager.loggerDict:
+                if name != logger_name:
+                    logging.getLogger(name).setLevel(logging.ERROR)
 
-        return logging.getLogger(logger_name)
+            return logging.getLogger(logger_name)
 
     @staticmethod
     def _validate_session(*args, **kwargs):
         email, username, password, session = args
-        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
-            # authenticated session provided
+
+        # validate credentials
+        if all((email, username, password)):
+            session = login(email, username, password, **kwargs)
+            session._init_with_cookies = False
             return session
-        if not session:
-            # no session provided, login to authenticate
-            return login(email, username, password, **kwargs)
+
+        # invalid credentials, try validating session
+        if session and all(session.cookies.get(c) for c in {'ct0', 'auth_token'}):
+            session._init_with_cookies = True
+            return session
+
+        # invalid credentials and session
+        cookies = kwargs.get('cookies')
+
+        # try validating cookies dict
+        if isinstance(cookies, dict) and all(cookies.get(c) for c in {'ct0', 'auth_token'}):
+            _session = Client(cookies=cookies, follow_redirects=True)
+            _session._init_with_cookies = True
+            _session.headers.update(get_headers(_session))
+            return _session
+
+        # try validating cookies from file
+        if isinstance(cookies, str):
+            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True)
+            _session._init_with_cookies = True
+            _session.headers.update(get_headers(_session))
+            return _session
+
         raise Exception('Session not authenticated. '
                         'Please use an authenticated session or remove the `session` argument and try again.')
+
+    def dm_inbox(self) -> dict:
+        """
+        Get DM inbox metadata.
+
+        @return: inbox as dict
+        """
+        r = self.session.get(
+            f'{self.v1_api}/dm/inbox_initial_state.json',
+            headers=get_headers(self.session),
+            params=dm_params
+        )
+        return r.json()
+
+    def dm_history(self, conversation_ids: list[str] = None) -> list[dict]:
+        """
+        Get DM history.
+
+        Call without arguments to get all DMS from all conversations.
+
+        @param conversation_ids: optional list of conversation ids
+        @return: list of messages as dicts
+        """
+
+        async def get(session: AsyncClient, conversation_id: str):
+            params = deepcopy(dm_params)
+            r = await session.get(
+                f'{self.v1_api}/dm/conversation/{conversation_id}.json',
+                params=params,
+            )
+            res = r.json().get('conversation_timeline', {})
+            data = [x.get('message') for x in res.get('entries', [])]
+            entry_id = res.get('min_entry_id')
+            while entry_id:
+                params['max_id'] = entry_id
+                r = await session.get(
+                    f'{self.v1_api}/dm/conversation/{conversation_id}.json',
+                    params=params,
+                )
+                res = r.json().get('conversation_timeline', {})
+                data.extend(x['message'] for x in res.get('entries', []))
+                entry_id = res.get('min_entry_id')
+            return data
+
+        async def process(ids):
+            limits = Limits(max_connections=100)
+            headers, cookies = get_headers(self.session), self.session.cookies
+            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
+                return await tqdm_asyncio.gather(*(get(c, _id) for _id in ids), desc="Getting DMs")
+
+        if conversation_ids:
+            ids = conversation_ids
+        else:
+            # get all conversations
+            inbox = self.dm_inbox()
+            ids = list(inbox['inbox_initial_state']['conversations'])
+
+        return asyncio.run(process(ids))
+
+    def dm_delete(self, *, conversation_id: str = None, message_id: str = None) -> dict:
+        """
+        Delete operations
+
+        - delete (hide) a single DM
+        - delete an entire conversation
+
+        @param conversation_id: the conversation id
+        @param message_id: the message id
+        @return: result metadata
+        """
+        self.session.headers.update(headers=get_headers(self.session))
+        results = {'conversation': None, 'message': None}
+        if conversation_id:
+            results['conversation'] = self.session.post(
+                f'{self.v1_api}/dm/conversation/{conversation_id}/delete.json',
+            ).text  # not json response
+        if message_id:
+            # delete single message
+            _id, op = Operation.DMMessageDeleteMutation
+            results['message'] = self.session.post(
+                f'{self.gql_api}/{_id}/{op}',
+                json={'queryId': _id, 'variables': {'messageId': message_id}},
+            ).json()
+        return results
+
+    def dm_search(self, query: str) -> dict:
+        """
+        Search DMs by keyword
+
+        @param query: search term
+        @return: search results as dict
+        """
+
+        def get(cursor=None):
+            if cursor:
+                params['variables']['cursor'] = cursor.pop()
+            _id, op = Operation.DmAllSearchSlice
+            r = self.session.get(
+                f'{self.gql_api}/{_id}/{op}',
+                params=build_params(params),
+            )
+            res = r.json()
+            cursor = find_key(res, 'next_cursor')
+            return res, cursor
+
+        self.session.headers.update(headers=get_headers(self.session))
+        variables = deepcopy(Operation.default_variables)
+        variables['count'] = 50  # strict limit, errors thrown if exceeded
+        variables['query'] = query
+        params = {'variables': variables, 'features': Operation.default_features}
+        res, cursor = get()
+        data = [res]
+        while cursor:
+            res, cursor = get(cursor)
+            data.append(res)
+        return {'query': query, 'data': data}
+
+    def scheduled_tweets(self, ascending: bool = True) -> dict:
+        variables = {"ascending": ascending}
+        return self.gql('GET', Operation.FetchScheduledTweets, variables)
+
+    def delete_scheduled_tweet(self, tweet_id: int) -> dict:
+        """duplicate, same as `unschedule_tweet()`"""
+        variables = {'scheduled_tweet_id': tweet_id}
+        return self.gql('POST', Operation.DeleteScheduledTweet, variables)
+
+    def clear_scheduled_tweets(self) -> None:
+        user_id = int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+        drafts = self.gql('GET', Operation.FetchScheduledTweets, {"ascending": True})
+        for _id in set(find_key(drafts, 'rest_id')):
+            if _id != user_id:
+                self.gql('POST', Operation.DeleteScheduledTweet, {'scheduled_tweet_id': _id})
+
+    def draft_tweets(self, ascending: bool = True) -> dict:
+        variables = {"ascending": ascending}
+        return self.gql('GET', Operation.FetchDraftTweets, variables)
+
+    def delete_draft_tweet(self, tweet_id: int) -> dict:
+        variables = {'draft_tweet_id': tweet_id}
+        return self.gql('POST', Operation.DeleteDraftTweet, variables)
+
+    def clear_draft_tweets(self) -> None:
+        user_id = int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+        drafts = self.gql('GET', Operation.FetchDraftTweets, {"ascending": True})
+        for _id in set(find_key(drafts, 'rest_id')):
+            if _id != user_id:
+                self.gql('POST', Operation.DeleteDraftTweet, {'draft_tweet_id': _id})
+
+    def notifications(self, params: dict = None) -> dict:
+        r = self.session.get(
+            f'{self.v2_api}/notifications/all.json',
+            headers=get_headers(self.session),
+            params=params or live_notification_params
+        )
+        if self.debug:
+            log(self.logger, self.debug, r)
+        return r.json()
+
+    def recommendations(self, params: dict = None) -> dict:
+        r = self.session.get(
+            f'{self.v1_api}/users/recommendations.json',
+            headers=get_headers(self.session),
+            params=params or recommendations_params
+        )
+        if self.debug:
+            log(self.logger, self.debug, r)
+        return r.json()
+
+    def fleetline(self, params: dict = None) -> dict:
+        r = self.session.get(
+            'https://twitter.com/i/api/fleets/v1/fleetline',
+            headers=get_headers(self.session),
+            params=params or {}
+        )
+        if self.debug:
+            log(self.logger, self.debug, r)
+        return r.json()
+
+    @property
+    def id(self) -> int:
+        """ Get User ID """
+        return int(re.findall('"u=(\d+)"', self.session.cookies.get('twid'))[0])
+
+    def save_cookies(self, fname: str = None):
+        """ Save cookies to file """
+        cookies = self.session.cookies
+        Path(f'{fname or cookies.get("username")}.cookies').write_bytes(orjson.dumps(dict(cookies)))
