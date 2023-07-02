@@ -52,46 +52,47 @@ class Search:
             return await asyncio.gather(*(self.paginate(s, q, limit, out, **kwargs) for q in queries))
 
     async def paginate(self, client: AsyncClient, query: dict, limit: int, out: Path, **kwargs) -> list[dict]:
-        c = colors.pop() if colors else ''
         params = {
             'variables': {
                 'count': 20,
                 'querySource': 'typed_query',
+                'rawQuery': query['query'],
+                'product': query['category']
             },
             'features': Operation.default_features,
             'fieldToggles': {'withArticleRichContentState': False},
         }
-        params['variables']['rawQuery'] = query['query']
-        params['variables']['product'] = query['category']
 
-        data, entries, cursor = await self.backoff(lambda: self.get(client, params), **kwargs)
-
+        res = []
+        cursor = ''
         total = set()
-        res = [*entries]
         while True:
             if cursor:
                 params['variables']['cursor'] = cursor
-
             data, entries, cursor = await self.backoff(lambda: self.get(client, params), **kwargs)
-
-            if len(entries) <= 2:  # just cursors
-                return res
-
             res.extend(entries)
-            unq = set(find_key(entries, 'entryId'))
-            total |= unq
-
-            if self.debug:
-                self.logger.debug(f'{c}{query["query"]}{reset}')
-
-            if len(total) >= limit:
-                if self.debug:
-                    self.logger.debug(
-                        f'[{GREEN}success{RESET}] Returned {len(total)} search results for {c}{query["query"]}{reset}')
+            if len(entries) <= 2 or len(total) >= limit:  # just cursors
+                self.debug and self.logger.debug(f'[{GREEN}success{RESET}] Returned {len(total)} search results for {query["query"]}')
                 return res
+            total |= set(find_key(entries, 'entryId'))
+            self.debug and self.logger.debug(f'{query["query"]}')
+            self.save and (out / f'{time.time_ns()}.json').write_bytes(orjson.dumps(entries))
 
-            if self.save:
-                (out / f'{time.time_ns()}.json').write_bytes(orjson.dumps(entries))
+    async def get(self, client: AsyncClient, params: dict) -> tuple:
+        _, qid, name = Operation.SearchTimeline
+        r = await client.get(f'https://twitter.com/i/api/graphql/{qid}/{name}', params=build_params(params))
+        data = r.json()
+        cursor = self.get_cursor(data)
+        entries = [y for x in find_key(data, 'entries') for y in x if re.search(r'^(tweet|user)-', y['entryId'])]
+        # add on query info
+        for e in entries:
+            e['query'] = params['variables']['rawQuery']
+        return data, entries, cursor
+
+    def get_cursor(self, data: list[dict]):
+        for e in find_key(data, 'content'):
+            if e.get('cursorType') == 'Bottom':
+                return e['value']
 
     async def backoff(self, fn, **kwargs):
         retries = kwargs.get('retries', 3)
@@ -111,27 +112,7 @@ class Search:
                     return
                 t = 2 ** i + random.random()
                 self.logger.debug(f'Retrying in {f"{t:.2f}"} seconds\t\t{e}')
-                # time.sleep(t)
                 await asyncio.sleep(t)
-
-    async def get(self, client: AsyncClient, params: dict) -> tuple:
-        _, qid, name = Operation.SearchTimeline
-        r = await client.get(
-            f'https://twitter.com/i/api/graphql/{qid}/{name}',
-            params=build_params(params),
-        )
-        data = r.json()
-        cursor = self.get_cursor(data)
-        entries = [y for x in find_key(data, 'entries') for y in x if re.search(r'^(tweet|user)-', y['entryId'])]
-        # add on query info
-        for e in entries:
-            e['query'] = params['variables']['rawQuery']
-        return data, entries, cursor
-
-    def get_cursor(self, data: list[dict]):
-        for e in find_key(data, 'content'):
-            if e.get('cursorType') == 'Bottom':
-                return e['value']
 
     def _init_logger(self, **kwargs) -> Logger:
         if kwargs.get('debug'):
