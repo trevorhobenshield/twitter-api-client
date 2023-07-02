@@ -296,28 +296,34 @@ follower_subset, last_cursor = scraper.followers([user_id], limit=limit, cursor=
 from twitter.search import Search
 
 email, username, password = ..., ..., ...
-# default output directory is `data/raw` if save=True
-search = Search(email, username, password)
+# default output directory is `data/search_results` if save=True
+search = Search(email, username, password, save=True, debug=1)
 
-latest_results = search.run(
-    'brasil portugal -argentina',
-    'paperswithcode -tensorflow -tf',
-    'ios android',
-    limit=100,
-    latest=True,  # get latest tweets only
-    retries=3,
-)
-
-general_results = search.run(
-    '(#dogs OR #cats) min_retweets:500',
-    'min_faves:10000 @elonmusk until:2023-02-16 since:2023-02-01',
-    'brasil portugal -argentina',
-    'paperswithcode -tensorflow -tf',
-    'skateboarding baseball guitar',
-    'cheese bread butter',
-    'ios android',
-    limit=100,
-    retries=7,
+res = search.run(
+    limit=37,
+    retries=5,
+    queries=[
+        {
+            'category': 'Top',
+            'query': 'paperswithcode -tensorflow -tf'
+        },
+        {
+            'category': 'Latest',
+            'query': 'test'
+        },
+        {
+            'category': 'People',
+            'query': 'brasil portugal -argentina'
+        },
+        {
+            'category': 'Photos',
+            'query': 'greece'
+        },
+        {
+            'category': 'Videos',
+            'query': 'italy'
+        },
+    ],
 )
 ```
 

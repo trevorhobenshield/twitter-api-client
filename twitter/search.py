@@ -13,7 +13,7 @@ from httpx import AsyncClient, Client
 
 from .constants import *
 from .login import login
-from .util import set_qs, get_headers, find_key
+from .util import get_headers, find_key, build_params
 
 reset = '\u001b[0m'
 colors = [f'\u001b[{i}m' for i in range(30, 38)]
@@ -39,101 +39,99 @@ class Search:
     def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
-        self.api = 'https://api.twitter.com/2/search/adaptive.json?'
         self.logger = self._init_logger(**kwargs)
         self.session = self._validate_session(email, username, password, session, **kwargs)
 
-    def run(self, *args, out: str = 'data', **kwargs):
-        out_path = self.make_output_dirs(out)
-        if kwargs.get('latest', False):
-            search_config['tweet_search_mode'] = 'live'
-        return asyncio.run(self.process(args, search_config, out_path, **kwargs))
+    def run(self, queries: list[dict], limit: int = math.inf, **kwargs):
+        out = Path('data/search_results')
+        out.mkdir(parents=True, exist_ok=True)
+        return asyncio.run(self.process(queries, limit, out, **kwargs))
 
-    async def process(self, queries: tuple, config: dict, out: Path, **kwargs) -> list:
+    async def process(self, queries: list[dict], limit: int, out: Path, **kwargs) -> list:
         async with AsyncClient(headers=get_headers(self.session)) as s:
-            return await asyncio.gather(*(self.paginate(q, s, config, out, **kwargs) for q in queries))
+            return await asyncio.gather(*(self.paginate(s, q, limit, out, **kwargs) for q in queries))
 
-    async def paginate(self, query: str, session: AsyncClient, config: dict, out: Path, **kwargs) -> list[dict]:
-        config['q'] = query
-        data, next_cursor = await self.backoff(lambda: self.get(session, config), query, **kwargs)
-        all_data = [data]
+    async def paginate(self, client: AsyncClient, query: dict, limit: int, out: Path, **kwargs) -> list[dict]:
         c = colors.pop() if colors else ''
-        ids = set()
-        while next_cursor:
-            ids |= set(data['globalObjects']['tweets'])
-            if len(ids) >= kwargs.get('limit', math.inf):
+        params = {
+            'variables': {
+                'count': 20,
+                'querySource': 'typed_query',
+            },
+            'features': Operation.default_features,
+            'fieldToggles': {'withArticleRichContentState': False},
+        }
+        params['variables']['rawQuery'] = query['query']
+        params['variables']['product'] = query['category']
+
+        data, entries, cursor = await self.backoff(lambda: self.get(client, params), **kwargs)
+
+        total = set()
+        res = [*entries]
+        while True:
+            if cursor:
+                params['variables']['cursor'] = cursor
+
+            data, entries, cursor = await self.backoff(lambda: self.get(client, params), **kwargs)
+
+            if len(entries) <= 2:  # just cursors
+                return res
+
+            res.extend(entries)
+            unq = set(find_key(entries, 'entryId'))
+            total |= unq
+
+            if self.debug:
+                self.logger.debug(f'{c}{query["query"]}{reset}')
+
+            if len(total) >= limit:
                 if self.debug:
                     self.logger.debug(
-                        f'[{GREEN}success{RESET}] Returned {len(ids)} search results for {c}{query}{reset}')
-                return all_data
-            if self.debug:
-                self.logger.debug(f'{c}{query}{reset}')
-            config['cursor'] = next_cursor
-
-            data, next_cursor = await self.backoff(lambda: self.get(session, config), query, **kwargs)
-            if not data:
-                return all_data
-
-            data['query'] = query
+                        f'[{GREEN}success{RESET}] Returned {len(total)} search results for {c}{query["query"]}{reset}')
+                return res
 
             if self.save:
-                (out / f'raw/{time.time_ns()}.json').write_text(
-                    orjson.dumps(data, option=orjson.OPT_INDENT_2).decode(),
-                    encoding='utf-8'
-                )
-            all_data.append(data)
-        return all_data
+                (out / f'{time.time_ns()}.json').write_bytes(orjson.dumps(entries))
 
-    async def backoff(self, fn, info, **kwargs):
+    async def backoff(self, fn, **kwargs):
         retries = kwargs.get('retries', 3)
         for i in range(retries + 1):
             try:
-                data, next_cursor = await fn()
-                if not data.get('globalObjects', {}).get('tweets'):
-                    raise Exception
-                return data, next_cursor
+                data, entries, cursor = await fn()
+                if errors := data.get('errors'):
+                    for e in errors:
+                        self.logger.warning(f'{YELLOW}{e.get("message")}{RESET}')
+                        return [], [], ''
+                ids = set(find_key(data, 'entryId'))
+                if len(ids) >= 2:
+                    return data, entries, cursor
             except Exception as e:
                 if i == retries:
-                    if self.debug:
-                        self.logger.debug(f'Max retries exceeded\n{e}')
-                    return None, None
+                    self.logger.debug(f'Max retries exceeded\n{e}')
+                    return
                 t = 2 ** i + random.random()
-                if self.debug:
-                    self.logger.debug(
-                        f'No data for: {BOLD}{info}{RESET}, retrying in {f"{t:.2f}"} seconds\t\t{e}')
-                time.sleep(t)
+                self.logger.debug(f'Retrying in {f"{t:.2f}"} seconds\t\t{e}')
+                # time.sleep(t)
+                await asyncio.sleep(t)
 
-    async def get(self, session: AsyncClient, params: dict) -> tuple:
-        url = set_qs(self.api, params, update=True, safe='()')
-        r = await session.get(url)
+    async def get(self, client: AsyncClient, params: dict) -> tuple:
+        _, qid, name = Operation.SearchTimeline
+        r = await client.get(
+            f'https://twitter.com/i/api/graphql/{qid}/{name}',
+            params=build_params(params),
+        )
         data = r.json()
-        next_cursor = self.get_cursor(data)
-        return data, next_cursor
+        cursor = self.get_cursor(data)
+        entries = [y for x in find_key(data, 'entries') for y in x if re.search(r'^(tweet|user)-', y['entryId'])]
+        # add on query info
+        for e in entries:
+            e['query'] = params['variables']['rawQuery']
+        return data, entries, cursor
 
-    def get_cursor(self, res: dict):
-        try:
-            if live := find_key(res, 'value'):
-                if cursor := [x for x in live if 'scroll' in x]:
-                    return cursor[0]
-            for instr in res['timeline']['instructions']:
-                if replaceEntry := instr.get('replaceEntry'):
-                    cursor = replaceEntry['entry']['content']['operation']['cursor']
-                    if cursor['cursorType'] == 'Bottom':
-                        return cursor['value']
-                    continue
-                for entry in instr['addEntries']['entries']:
-                    if entry['entryId'] == 'cursor-bottom-0':
-                        return entry['content']['operation']['cursor']['value']
-        except Exception as e:
-            if self.debug:
-                self.logger.debug(e)
-
-    def make_output_dirs(self, path: str) -> Path:
-        p = Path(f'{path}')
-        (p / 'raw').mkdir(parents=True, exist_ok=True)
-        (p / 'processed').mkdir(parents=True, exist_ok=True)
-        (p / 'final').mkdir(parents=True, exist_ok=True)
-        return p
+    def get_cursor(self, data: list[dict]):
+        for e in find_key(data, 'content'):
+            if e.get('cursorType') == 'Bottom':
+                return e['value']
 
     def _init_logger(self, **kwargs) -> Logger:
         if kwargs.get('debug'):
