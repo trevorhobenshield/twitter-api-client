@@ -566,7 +566,7 @@ class Scraper:
                 ids = set(find_key(initial_data, 'rest_id'))
                 cursor = get_cursor(initial_data)
             except Exception as e:
-                self.logger.error('Failed to get initial pagination data', e)
+                self.logger.error('Failed to get initial pagination data')
                 return
         while (dups < DUP_LIMIT) and cursor:
             prev_len = len(ids)
