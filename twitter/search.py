@@ -15,8 +15,8 @@ from .constants import *
 from .login import login
 from .util import get_headers, find_key, build_params
 
-reset = '\u001b[0m'
-colors = [f'\u001b[{i}m' for i in range(30, 38)]
+reset = '\x1b[0m'
+colors = [f'\x1b[{i}m' for i in range(31, 37)]
 
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
@@ -42,8 +42,8 @@ class Search:
         self.logger = self._init_logger(**kwargs)
         self.session = self._validate_session(email, username, password, session, **kwargs)
 
-    def run(self, queries: list[dict], limit: int = math.inf, **kwargs):
-        out = Path('data/search_results')
+    def run(self, queries: list[dict], limit: int = math.inf, out: str = 'data/search_results', **kwargs):
+        out = Path(out)
         out.mkdir(parents=True, exist_ok=True)
         return asyncio.run(self.process(queries, limit, out, **kwargs))
 
@@ -72,7 +72,8 @@ class Search:
             data, entries, cursor = await self.backoff(lambda: self.get(client, params), **kwargs)
             res.extend(entries)
             if len(entries) <= 2 or len(total) >= limit:  # just cursors
-                self.debug and self.logger.debug(f'[{GREEN}success{RESET}] Returned {len(total)} search results for {query["query"]}')
+                self.debug and self.logger.debug(
+                    f'[{GREEN}success{RESET}] Returned {len(total)} search results for {query["query"]}')
                 return res
             total |= set(find_key(entries, 'entryId'))
             self.debug and self.logger.debug(f'{query["query"]}')
