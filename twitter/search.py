@@ -40,7 +40,7 @@ class Search:
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.logger = self._init_logger(**kwargs)
-        self.session = self._validate_session(email, username, password, session, **kwargs)
+        self.session = self._validate_session(email, username, password, session, proxies=proxies, **kwargs)
         self.proxies = proxies
 
     def run(self, queries: list[dict], limit: int = math.inf, **kwargs):
