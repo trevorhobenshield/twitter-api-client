@@ -166,9 +166,6 @@ def login(email: str, username: str, password: str, proxies=None, **kwargs) -> C
         proxies=proxies
     )
     client = execute_login_flow(client, **kwargs)
-    if kwargs.get('debug'):
-        if not client or client.cookies.get('flow_errors') == 'true':
-            print(f'[{RED}error{RESET}] {BOLD}{username}{RESET} login failed')
-        else:
-            print(f'[{GREEN}success{RESET}] {BOLD}{username}{RESET} login success')
+    if not client or client.cookies.get('flow_errors') == 'true':
+        raise Exception(f'[{RED}error{RESET}] {BOLD}{username}{RESET} login failed')
     return client

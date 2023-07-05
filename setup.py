@@ -1,8 +1,6 @@
-import os
-from codecs import open
 from textwrap import dedent
-
 from setuptools import find_packages, setup
+from pathlib import Path
 
 install_requires = [
     "aiofiles",
@@ -15,9 +13,7 @@ install_requires = [
 ]
 
 about = {}
-here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, "twitter", "__version__.py"), "r", "utf-8") as f:
-    exec(f.read(), about)
+exec((Path().cwd() / 'twitter' / '__version__.py').read_text(), about)
 
 setup(
     name=about['__title__'],
@@ -146,10 +142,10 @@ setup(
     # get bookmarks
     bookmarks = account.bookmarks()
 
-    # get DM inbox metadata    
+    # get DM inbox metadata
     inbox = account.dm_inbox()
 
-    # get DMs from all conversations    
+    # get DMs from all conversations
     dms = account.dm_history()
 
     # get DMs from specific conversations
@@ -311,7 +307,7 @@ setup(
 
     #### Search
 
-    ```python   
+    ```python
     from twitter.search import Search
 
     email, username, password = ..., ..., ...
@@ -430,23 +426,23 @@ setup(
     ```
 
     ### Automated Solvers
-    
+
     > This requires installation of the [proton-api-client](https://pypi.org/project/proton-api-client) package
-    
+
     To set up automated email confirmation/verification solvers, add your Proton Mail credentials below as shown.
     This removes the need to manually solve email challenges via the web app. These credentials can be used
     in `Scraper`, `Account`, and `Search` constructors.
-    
+
     E.g.
-    
+
     ```python
     from twitter.account import Account
     from twitter.util import get_code
     from proton.client import ProtonMail
-    
+
     proton_username, proton_password = ..., ...
     proton = lambda: get_code(ProtonMail(proton_username, proton_password))
-    
+
     email, username, password = ..., ..., ...
     account = Account(email, username, password, proton=proton)
     ```
