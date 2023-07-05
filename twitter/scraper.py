@@ -34,7 +34,7 @@ class Scraper:
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.pbar = kwargs.get('pbar', True)
-        self.out_path = Path('data')
+        self.out = Path(kwargs.get('out', 'data'))
         self.guest = False
         self.logger = self._init_logger(**kwargs)
         self.session = self._validate_session(email, username, password, session, **kwargs)
@@ -306,7 +306,7 @@ class Scraper:
                 return await asyncio.gather(*tasks)
 
         trends = asyncio.run(process())
-        out = self.out_path / 'raw' / 'trends'
+        out = self.out / 'raw' / 'trends'
         out.mkdir(parents=True, exist_ok=True)
         (out / f'{time.time_ns()}.json').write_text(orjson.dumps(
             {k: v for d in trends for k, v in d.items()},
@@ -441,7 +441,7 @@ class Scraper:
             info = await self._init_chat(c, key['chat_token'])
             chat = await self._get_chat(c, info['endpoint'], info['access_token'])
             if self.save:
-                (self.out_path / 'raw' / f"chat_{key['rest_id']}.json").write_bytes(orjson.dumps(chat))
+                (self.out / 'raw' / f"chat_{key['rest_id']}.json").write_bytes(orjson.dumps(chat))
             return {
                 'space': key['rest_id'],
                 'chat': chat,
@@ -449,7 +449,7 @@ class Scraper:
             }
 
         async def process():
-            (self.out_path / 'raw').mkdir(parents=True, exist_ok=True)
+            (self.out / 'raw').mkdir(parents=True, exist_ok=True)
             limits = Limits(max_connections=100, max_keepalive_connections=10)
             headers = self.session.headers if self.guest else get_headers(self.session)
             cookies = self.session.cookies
@@ -484,7 +484,7 @@ class Scraper:
         # ensure chunks are in correct order
         for k, v in streams.items():
             streams[k] = sorted(v, key=lambda x: int(re.findall('_(\d+)_\w\.aac$', x.url.path)[0]))
-        out = self.out_path / 'audio'
+        out = self.out / 'audio'
         out.mkdir(parents=True, exist_ok=True)
         for space_id, chunks in streams.items():
             # 1hr ~= 50mb
@@ -533,7 +533,7 @@ class Scraper:
         if self.debug:
             log(self.logger, self.debug, r)
         if self.save:
-            save_json(r, self.out_path, name, **kwargs)
+            save_json(r, self.out, name, **kwargs)
         return r
 
     async def _process(self, operation: tuple, queries: list[dict], **kwargs):
@@ -739,7 +739,7 @@ class Scraper:
             if not playlist: return
             chunks = await get_chunks(client, playlist['url'])
             if not chunks: return
-            out = self.out_path / 'live'
+            out = self.out / 'live'
             out.mkdir(parents=True, exist_ok=True)
             async with aiofiles.open(out / f'{playlist["room"]}.aac', 'wb') as fp:
                 while curr < lim:
