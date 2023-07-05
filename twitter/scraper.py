@@ -30,14 +30,15 @@ if platform.system() != 'Windows':
 
 
 class Scraper:
-    def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
+    def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, proxies=None, **kwargs):
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.pbar = kwargs.get('pbar', True)
         self.out = Path(kwargs.get('out', 'data'))
         self.guest = False
         self.logger = self._init_logger(**kwargs)
-        self.session = self._validate_session(email, username, password, session, **kwargs)
+        self.proxies = proxies
+        self.session = self._validate_session(email, username, password, session, proxies=proxies, **kwargs)
 
     def users(self, screen_names: list[str], **kwargs) -> list[dict]:
         """
@@ -258,7 +259,7 @@ class Scraper:
                 [urls.append([url, video]) for video in hq_videos]
 
         async def process():
-            async with AsyncClient(headers=self.session.headers, cookies=self.session.cookies) as client:
+            async with AsyncClient(headers=self.session.headers, cookies=self.session.cookies, proxies=self.proxies) as client:
                 tasks = (download(client, x, y) for x, y in urls)
                 if self.pbar:
                     return await tqdm_asyncio.gather(*tasks, desc='Downloading media')
@@ -299,7 +300,7 @@ class Scraper:
             offsets = utc or ["-1200", "-1100", "-1000", "-0900", "-0800", "-0700", "-0600", "-0500", "-0400", "-0300",
                               "-0200", "-0100", "+0000", "+0100", "+0200", "+0300", "+0400", "+0500", "+0600", "+0700",
                               "+0800", "+0900", "+1000", "+1100", "+1200", "+1300", "+1400"]
-            async with AsyncClient(headers=get_headers(self.session)) as client:
+            async with AsyncClient(headers=get_headers(self.session), proxies=self.proxies) as client:
                 tasks = (get_trends(client, o, url) for o in offsets)
                 if self.pbar:
                     return await tqdm_asyncio.gather(*tasks, desc='Getting trends')
@@ -453,7 +454,7 @@ class Scraper:
             limits = Limits(max_connections=100, max_keepalive_connections=10)
             headers = self.session.headers if self.guest else get_headers(self.session)
             cookies = self.session.cookies
-            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
+            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20, proxies=self.proxies) as c:
                 tasks = (get(c, key) for key in keys)
                 if self.pbar:
                     return await tqdm_asyncio.gather(*tasks, desc='Downloading chat data')
@@ -501,7 +502,7 @@ class Scraper:
             limits = Limits(max_connections=100, max_keepalive_connections=10)
             headers = self.session.headers if self.guest else get_headers(self.session)
             cookies = self.session.cookies
-            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
+            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20, proxies=self.proxies) as c:
                 return await asyncio.gather(*(get(c, key) for key in keys))
 
         return asyncio.run(process())
@@ -540,7 +541,7 @@ class Scraper:
         limits = Limits(max_connections=100, max_keepalive_connections=10)
         headers = self.session.headers if self.guest else get_headers(self.session)
         cookies = self.session.cookies
-        async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
+        async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20, proxies=self.proxies) as c:
             tasks = (self._paginate(c, operation, **q, **kwargs) for q in queries)
             if self.pbar:
                 return await tqdm_asyncio.gather(*tasks, desc=operation[-1])
@@ -565,7 +566,7 @@ class Scraper:
                 ids = set(find_key(initial_data, 'rest_id'))
                 cursor = get_cursor(initial_data)
             except Exception as e:
-                self.logger.error('Failed to get initial pagination data', e)
+                self.logger.error('Failed to get initial pagination data')
                 return
         while (dups < DUP_LIMIT) and cursor:
             prev_len = len(ids)
@@ -668,7 +669,7 @@ class Scraper:
             return r.json()
 
         limits = Limits(max_connections=100)
-        async with AsyncClient(headers=client.headers, limits=limits, timeout=30) as c:
+        async with AsyncClient(headers=client.headers, limits=limits, timeout=30, proxies=self.proxies) as c:
             tasks = (get(c, _id) for _id in spaces)
             if self.pbar:
                 return await tqdm_asyncio.gather(*tasks, desc='Getting live transcripts')
@@ -763,7 +764,7 @@ class Scraper:
         async def process(spaces: list[dict]):
             limits = Limits(max_connections=100)
             headers, cookies = self.session.headers, self.session.cookies
-            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
+            async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20, proxies=self.proxies) as c:
                 return await asyncio.gather(*(poll_space(c, space) for space in spaces))
 
         spaces = self.spaces(rooms=rooms)
@@ -800,13 +801,13 @@ class Scraper:
 
         # try validating cookies dict
         if isinstance(cookies, dict) and all(cookies.get(c) for c in {'ct0', 'auth_token'}):
-            _session = Client(cookies=cookies, follow_redirects=True)
+            _session = Client(cookies=cookies, follow_redirects=True, proxies=self.proxies)
             _session.headers.update(get_headers(_session))
             return _session
 
         # try validating cookies from file
         if isinstance(cookies, str):
-            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True)
+            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True, proxies=self.proxies)
             _session.headers.update(get_headers(_session))
             return _session
 
