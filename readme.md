@@ -4,26 +4,26 @@
 
 ## Table of Contents
 
-* 🤰 [Installation](#installation)
-* 🐓 [Automation](#automation)
-* 🧦 [Scraping](#scraping)
-    * 💩 [Get all user/tweet data](#get-all-usertweet-data)
-    * 👠 [Resume Pagination](#resume-pagination)
-    * 🥕 [Search](#search)
-* 🐪 [Spaces](#spaces)
-    * 🚭 [Live Audio Capture](#live-audio-capture)
-    * 🍌 [Live Transcript Capture](#live-transcript-capture)
-    * ✂️ [Search and Metadata](#search-and-metadata)
-* 🦧 [Automated Solvers](#automated-solvers)
-* ⛄️ [Example API Responses](#example-api-responses)
+* [Installation](#installation)
+* [Automation](#automation)
+* [Scraping](#scraping)
+    * [Get all user/tweet data](#get-all-usertweet-data)
+    * [Resume Pagination](#resume-pagination)
+    * [Search](#search)
+* [Spaces](#spaces)
+    * [Live Audio Capture](#live-audio-capture)
+    * [Live Transcript Capture](#live-transcript-capture)
+    * [Search and Metadata](#search-and-metadata)
+* [Automated Solvers](#automated-solvers)
+* [Example API Responses](#example-api-responses)
 
-### 🤰 Installation
+### Installation
 
 ```bash
 pip install twitter-api-client
 ```
 
-### 🐓 Automation
+### Automation
 
 ![](assets/account.gif)
 
@@ -213,9 +213,9 @@ account.change_password('old pwd','new pwd')
 
 ```
 
-### 🧦 Scraping
+### Scraping
 
-#### 💩 Get all user/tweet data
+#### Get all user/tweet data
 
 ![](assets/scrape.gif)
 
@@ -268,7 +268,7 @@ scraper.download_media([
 scraper.trends()
 ```
 
-#### 👠 Resume Pagination
+#### Resume Pagination
 
 **Pagination is already done by default**, however there are circumstances where you may need to resume pagination from
 a specific cursor. For example, the `Followers` endpoint only allows for 50 requests every 15 minutes. In this case, we
@@ -288,7 +288,7 @@ follower_subset, last_cursor = scraper.followers([user_id], limit=limit, cursor=
 # use last_cursor to resume pagination
 ```
 
-#### 🥕 Search
+#### Search
 
 ![](assets/search.gif)
 
@@ -333,9 +333,9 @@ https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-
 
 https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query
 
-### 🐪 Spaces
+### Spaces
 
-#### 🚭 Live Audio Capture
+#### Live Audio Capture
 
 Capture live audio for up to 500 streams per IP
 
@@ -352,7 +352,7 @@ rooms = [...]
 scraper.spaces_live(rooms=rooms)  # capture live audio from list of rooms
 ```
 
-#### 🍌 Live Transcript Capture
+#### Live Transcript Capture
 
 **Raw transcript chunks**
 
@@ -385,7 +385,7 @@ scraper = Scraper(session=session)
 scraper.space_live_transcript('1zqKVPlQNApJB', frequency=1)  # finalized live transcript.  (clean)
 ```
 
-#### ✂️ Search and Metadata
+#### Search and Metadata
 
 ```python
 from twitter.scraper import Scraper
@@ -418,7 +418,7 @@ spaces = scraper.spaces(search=[
 ])
 ```
 
-### 🦧 Automated Solvers
+### Automated Solvers
 
 > This requires installation of the [proton-api-client](https://pypi.org/project/proton-api-client) package
 
@@ -440,7 +440,7 @@ email, username, password = ..., ..., ...
 account = Account(email, username, password, proton=proton)
 ```
 
-### ⛄️ Example API Responses
+### Example API Responses
 
 <details>
 <summary> UserTweetsAndReplies  </summary>
