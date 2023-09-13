@@ -36,11 +36,12 @@ if platform.system() != 'Windows':
 
 
 class Search:
-    def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, **kwargs):
+    def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, proxies=None, **kwargs):
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.logger = self._init_logger(**kwargs)
-        self.session = self._validate_session(email, username, password, session, **kwargs)
+        self.proxies = proxies
+        self.session = self._validate_session(email, username, password, session, proxies=proxies, **kwargs)
 
     def run(self, queries: list[dict], limit: int = math.inf, out: str = 'data/search_results', **kwargs):
         out = Path(out)
@@ -48,7 +49,7 @@ class Search:
         return asyncio.run(self.process(queries, limit, out, **kwargs))
 
     async def process(self, queries: list[dict], limit: int, out: Path, **kwargs) -> list:
-        async with AsyncClient(headers=get_headers(self.session)) as s:
+        async with AsyncClient(headers=get_headers(self.session), proxies=self.proxies) as s:
             return await asyncio.gather(*(self.paginate(s, q, limit, out, **kwargs) for q in queries))
 
     async def paginate(self, client: AsyncClient, query: dict, limit: int, out: Path, **kwargs) -> list[dict]:
@@ -147,13 +148,13 @@ class Search:
 
         # try validating cookies dict
         if isinstance(cookies, dict) and all(cookies.get(c) for c in {'ct0', 'auth_token'}):
-            _session = Client(cookies=cookies, follow_redirects=True)
+            _session = Client(cookies=cookies, follow_redirects=True, proxies=self.proxies)
             _session.headers.update(get_headers(_session))
             return _session
 
         # try validating cookies from file
         if isinstance(cookies, str):
-            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True)
+            _session = Client(cookies=orjson.loads(Path(cookies).read_bytes()), follow_redirects=True, proxies=self.proxies)
             _session.headers.update(get_headers(_session))
             return _session
 
