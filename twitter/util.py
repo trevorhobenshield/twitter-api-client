@@ -231,7 +231,7 @@ def get_code(cls, retries=5) -> str | None:
     def poll_inbox():
         inbox = cls.inbox()
         for c in inbox.get('Conversations', []):
-            if c['Senders'][0]['Address'] == 'info@twitter.com':
+            if c['Senders'][0]['Address'] == 'info@x.com':
                 exprs = ['Your Twitter confirmation code is (.+)', '(.+) is your Twitter verification code']
                 if temp := list(filter(None, (re.search(expr, c['Subject']) for expr in exprs))):
                     return temp[0].group(1)
