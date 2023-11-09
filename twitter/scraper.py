@@ -230,8 +230,8 @@ class Scraper:
         """
         return self._run(Operation.UserByRestId, user_ids, **kwargs)
 
-    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True,
-                       chunk_size: int = 8192) -> None:
+    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True, chunk_size: int = 8192,
+                       stream: bool = False) -> None:
         """
         Download media from tweets by tweet ids.
 
@@ -239,6 +239,7 @@ class Scraper:
         @param photos: flag to include photos
         @param videos: flag to include videos
         @param chunk_size: chunk size for download
+        @params stream: flag to enable downloading raw stream
         @return: None
         """
         out = Path('media')
@@ -259,19 +260,27 @@ class Scraper:
 
         async def process():
             async with AsyncClient(headers=self.session.headers, cookies=self.session.cookies) as client:
-                tasks = (download(client, x, y) for x, y in urls)
+                tasks = (download(client, x, y, stream) for x, y in urls)
                 if self.pbar:
                     return await tqdm_asyncio.gather(*tasks, desc='Downloading media')
                 return await asyncio.gather(*tasks)
 
-        async def download(client: AsyncClient, post_url: str, cdn_url: str) -> None:
-            name = urlsplit(post_url).path.replace('/', '_')[1:]
-            ext = urlsplit(cdn_url).path.split('/')[-1]
+        async def download(client: AsyncClient, post_url: str, cdn_url: str, stream: bool = False) -> None:
             try:
-                r = await client.get(cdn_url)
-                async with aiofiles.open(out / f'{name}_{ext}', 'wb') as fp:
-                    for chunk in r.iter_bytes(chunk_size=chunk_size):
-                        await fp.write(chunk)
+                name = urlsplit(post_url).path.replace('/', '_')[1:]
+                ext = urlsplit(cdn_url).path.split('/')[-1]
+                fname = out / f'{name}_{ext}'
+                if stream:
+                    async with aiofiles.open(fname, 'wb') as fp:
+                        async with client.stream('GET', cdn_url) as r:
+                            async for chunk in r.aiter_raw(chunk_size):
+                                await fp.write(chunk)
+                else:
+                    r = await client.get(cdn_url)
+                    async with aiofiles.open(fname, 'wb') as fp:
+                        for chunk in r.iter_bytes(chunk_size):
+                            await fp.write(chunk)
+
             except Exception as e:
                 self.logger.error(f'[{RED}error{RESET}] Failed to download media: {post_url} {e}')
 

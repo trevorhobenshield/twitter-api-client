@@ -23,7 +23,7 @@ setup(
     license=about['__license__'],
     long_description=dedent('''
 
-    ## Implementation of Twitter's v1, v2, and GraphQL APIs
+    ## Implementation of X/Twitter v1, v2, and GraphQL APIs.
 
 
     ## Table of Contents
