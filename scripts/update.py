@@ -40,7 +40,6 @@ logger = logging.getLogger('twitter')
 def get_operations(session: Client) -> None:
     """
     Get operations and their respective queryId and feature definitions
-    @return: list of operations
     """
     r1 = session.get('https://twitter.com')
     m = re.findall('href="(https\:\/\/abs\.twimg\.com\/responsive-web\/client-web\/main\.\w+\.js)"', r1.text)
@@ -56,7 +55,7 @@ def get_operations(session: Client) -> None:
     subprocess.run(f'node {js_out}', shell=True)
 
 
-async def process(session: Client, fn: callable, urls: any, **kwargs) -> list:
+async def process(session: Client, fn: callable, urls: any, **kwargs) -> tuple:
     async with AsyncClient(follow_redirects=True, headers=session.headers) as s:
         return await asyncio.gather(*(fn(s, u, **kwargs) for u in urls))
 
