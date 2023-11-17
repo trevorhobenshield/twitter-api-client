@@ -7,7 +7,7 @@ from pathlib import Path
 
 import aiofiles
 import orjson
-from httpx import AsyncClient, Client, Response
+from httpx import AsyncClient, Client
 
 from twitter.constants import *
 
@@ -27,9 +27,6 @@ if platform.system() != 'Windows':
     except ImportError as e:
         ...
 
-_a = 'a.js'
-_base = 'https://abs.twimg.com/responsive-web/client-web'
-
 STRINGS = Path('strings.txt')
 PATHS = Path('paths.txt')
 JS_FILES_MAP = Path('js.json')
@@ -40,34 +37,22 @@ logging.config.dictConfig(LOG_CONFIG)
 logger = logging.getLogger('twitter')
 
 
-def find_api_script(res: Response) -> str:
-    """
-    Find api script
-    @param res: response from homepage: https://twitter.com
-    @return: url to api script
-    """
-    temp = re.findall('\+"\."\+(\{.*\})\[e\]\+?' + '"' + _a + '"', res.text)[0]
-    endpoints = orjson.loads(temp.replace('vendor:', '"vendor":').replace('api:', '"api":'))
-    JS_FILES_MAP.write_bytes(orjson.dumps(dict(sorted(endpoints.items()))))
-    js = 'api.' + endpoints['api'] + _a  # search for `+"a.js"` in homepage source
-    return f'{_base}/{js}'
-
-
 def get_operations(session: Client) -> None:
     """
     Get operations and their respective queryId and feature definitions
     @return: list of operations
     """
     r1 = session.get('https://twitter.com')
-    script = find_api_script(r1)
-    r2 = session.get(script)
-    temp = '[{' + re.search('\d+:\w=>\{\w\.exports=\{.*?(?=,\d+:\w=>\{"use strict";)', r2.text).group() + '}]'
-    temp = re.sub('\w\.exports=', 'return', temp)
+    m = re.findall('href="(https\:\/\/abs\.twimg\.com\/responsive-web\/client-web\/main\.\w+\.js)"', r1.text)
+    r2 = session.get(m[0])
+    tmp = '[{' + re.search('\d+:\w=>\{\w\.exports=\{.*?(?=,\d+:\w=>\{"use strict";)', r2.text).group() + '}]'
+    tmp = re.sub('\w\.exports=', 'return', tmp)
+    tmp = re.sub(',\d+:\([\w,]+\).*', '}]', tmp)
 
     js = 'const obj={},out=Object.entries(O[0]).forEach(([e,t])=>{let a=t(),o={};for(let r of a.metadata.featureSwitches)o[r]=!0;obj[a.operationName]={queryId:a.queryId,variables:{},features:o}});require("fs").writeFile("' + OPERATIONS.with_suffix(
-        '.json').name + '",JSON.stringify(obj,null,2),e=>e);'
+        '.json').name + '",JSON.stringify(Object.fromEntries(Object.entries(obj).sort())),e=>e);'
     js_out = OPERATIONS.with_suffix('.js')
-    js_out.expanduser().write_text(f"O={temp};" + js)
+    js_out.expanduser().write_text(f"O={tmp};" + js)
     subprocess.run(f'node {js_out}', shell=True)
 
 
@@ -76,7 +61,7 @@ async def process(session: Client, fn: callable, urls: any, **kwargs) -> list:
         return await asyncio.gather(*(fn(s, u, **kwargs) for u in urls))
 
 
-async def get(session: AsyncClient, url: str, **kwargs) -> tuple[str, str]:
+async def get(session: AsyncClient, url: str) -> tuple[str, str]:
     try:
         logger.debug(f"GET {url}")
         r = await session.get(url)
@@ -112,15 +97,16 @@ def main():
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
     }, follow_redirects=True)
     get_operations(session)
-    urls = (
-        f'{_base}/{k}.{v}{_a}'
-        for k, v in orjson.loads(JS_FILES_MAP.read_text()).items()
-        if not re.search('participantreaction|\.countries-|emojipicker|i18n|icons\/', k, flags=re.I)
-        # if 'endpoint' in k
-    )
+
+    # urls = (
+    #     f'{_base}/{k}.{v}{_a}'
+    #     for k, v in orjson.loads(JS_FILES_MAP.read_text()).items()
+    #     if not re.search('participantreaction|\.countries-|emojipicker|i18n|icons\/', k, flags=re.I)
+    #     # if 'endpoint' in k
+    # )
     # asyncio.run(process(session, get, urls))
-    get_strings()
-    get_features()
+    # get_strings()
+    # get_features()
 
 
 if __name__ == '__main__':
