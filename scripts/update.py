@@ -12,20 +12,16 @@ from httpx import AsyncClient, Client
 from twitter.constants import *
 
 try:
-    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-        import nest_asyncio
-
-        nest_asyncio.apply()
+    import nest_asyncio
+    nest_asyncio.apply()
 except:
     ...
 
-if platform.system() != 'Windows':
-    try:
-        import uvloop
-
-        uvloop.install()
-    except ImportError as e:
-        ...
+try:
+    import uvloop
+    uvloop.install()
+except:
+    ...
 
 STRINGS = Path('strings.txt')
 PATHS = Path('paths.txt')
