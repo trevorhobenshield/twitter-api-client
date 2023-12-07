@@ -1,9 +1,7 @@
 import asyncio
 import logging.config
 import math
-import platform
 
-import aiofiles
 import websockets
 from httpx import AsyncClient, Limits, ReadTimeout, URL
 from tqdm.asyncio import tqdm_asyncio
@@ -13,20 +11,18 @@ from .login import login
 from .util import *
 
 try:
-    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-        import nest_asyncio
+    import nest_asyncio
 
-        nest_asyncio.apply()
+    nest_asyncio.apply()
 except:
     ...
 
-if platform.system() != 'Windows':
-    try:
-        import uvloop
+try:
+    import uvloop
 
-        uvloop.install()
-    except ImportError as e:
-        ...
+    uvloop.install()
+except:
+    ...
 
 
 class Scraper:
@@ -49,7 +45,7 @@ class Scraper:
         """
         return self._run(Operation.UserByScreenName, screen_names, **kwargs)
 
-    def tweets_by_id(self, tweet_ids: list[int], **kwargs) -> list[dict]:
+    def tweets_by_id(self, tweet_ids: list[int | str], **kwargs) -> list[dict]:
         """
         Get tweet metadata by tweet ids.
 
@@ -58,6 +54,18 @@ class Scraper:
         @return: list of tweet data as dicts
         """
         return self._run(Operation.TweetResultByRestId, tweet_ids, **kwargs)
+
+    def tweets_by_ids(self, tweet_ids: list[int | str], **kwargs) -> list[dict]:
+        """
+        Get tweet metadata by tweet ids.
+
+        Special batch query for tweet data. Most efficient way to get tweets.
+
+        @param tweet_ids: list of tweet ids
+        @param kwargs: optional keyword arguments
+        @return: list of tweet data as dicts
+        """
+        return self._run(Operation.TweetResultsByRestIds, batch_ids(tweet_ids), **kwargs)
 
     def tweets_details(self, tweet_ids: list[int], **kwargs) -> list[dict]:
         """
@@ -230,8 +238,7 @@ class Scraper:
         """
         return self._run(Operation.UserByRestId, user_ids, **kwargs)
 
-    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True, chunk_size: int = 8192,
-                       stream: bool = False) -> None:
+    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True, chunk_size: int = 8192, stream: bool = False) -> None:
         """
         Download media from tweets by tweet ids.
 
@@ -515,12 +522,12 @@ class Scraper:
 
         return asyncio.run(process())
 
-    def _run(self, operation: tuple[dict, str, str], queries: set | list[int | str | dict], **kwargs):
+    def _run(self, operation: tuple[dict, str, str], queries: set | list[int | str | list | dict], **kwargs):
         keys, qid, name = operation
         # stay within rate-limits
-        if (l := len(queries)) > 500:
+        if (l := len(queries)) > MAX_ENDPOINT_LIMIT:
             self.logger.warning(f'Got {l} queries, truncating to first 500.')
-            queries = list(queries)[:500]
+            queries = list(queries)[:MAX_ENDPOINT_LIMIT]
 
         if all(isinstance(q, dict) for q in queries):
             data = asyncio.run(self._process(operation, list(queries), **kwargs))
@@ -542,14 +549,13 @@ class Scraper:
         if self.debug:
             log(self.logger, self.debug, r)
         if self.save:
-            save_json(r, self.out, name, **kwargs)
+            await save_json(r, self.out, name, **kwargs)
         return r
 
     async def _process(self, operation: tuple, queries: list[dict], **kwargs):
-        limits = Limits(max_connections=100, max_keepalive_connections=10)
         headers = self.session.headers if self.guest else get_headers(self.session)
         cookies = self.session.cookies
-        async with AsyncClient(limits=limits, headers=headers, cookies=cookies, timeout=20) as c:
+        async with AsyncClient(limits=Limits(max_connections=MAX_ENDPOINT_LIMIT), headers=headers, cookies=cookies, timeout=20) as c:
             tasks = (self._paginate(c, operation, **q, **kwargs) for q in queries)
             if self.pbar:
                 return await tqdm_asyncio.gather(*tasks, desc=operation[-1])

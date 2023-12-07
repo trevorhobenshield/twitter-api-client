@@ -5,10 +5,12 @@ from logging import Logger
 from pathlib import Path
 from urllib.parse import urlsplit, urlencode, urlunsplit, parse_qs, quote
 
+import aiofiles
 import orjson
+from aiofiles.os import makedirs
 from httpx import Response, Client
 
-from .constants import GREEN, MAGENTA, RED, RESET, ID_MAP
+from .constants import GREEN, MAGENTA, RED, RESET, ID_MAP, MAX_GQL_CHAR_LIMIT
 
 
 def init_session():
@@ -25,20 +27,17 @@ def init_session():
     return client
 
 
-def batch_ids(ids: list[int], char_limit: int = 4_500) -> list[dict]:
-    """ To avoid 431 errors """
-    length = 0
-    res, batch = [], []
+def batch_ids(ids: list[int | str], char_limit: int = MAX_GQL_CHAR_LIMIT) -> list[list]:
+    """To avoid 431 errors"""
+    res, batch, length = [], [], 0
     for x in map(str, ids):
-        curr_length = len(x)
-        if length + curr_length > char_limit:
+        if length + len(x) > char_limit:
             res.append(batch)
-            batch = []
-            length = 0
+            batch, length = [], 0
         batch.append(x)
-        length += curr_length
-    if batch:
-        res.append(batch)
+        length += len(x)
+    res.append(batch) if batch else ...
+    print(f'Batched {sum(map(len, res))} ids into {len(res)} requests')
     return res
 
 
@@ -46,15 +45,22 @@ def build_params(params: dict) -> dict:
     return {k: orjson.dumps(v).decode() for k, v in params.items()}
 
 
-def save_json(r: Response, path: Path, name: str, **kwargs):
+async def save_json(r: Response, path: str | Path, name: str, **kwargs):
     try:
         data = r.json()
         kwargs.pop('cursor', None)
-        out = path / '_'.join(map(str, kwargs.values()))
-        out.mkdir(parents=True, exist_ok=True)
-        (out / f'{time.time_ns()}_{name}.json').write_bytes(orjson.dumps(data))
+
+        # special case: only 2 endpoints have batch requests as of Dec 2023
+        if name in {'TweetResultsByRestIds', 'UsersByRestIds'}:
+            out = f'{path}/batch'
+        else:
+            out = f'{path}/{"_".join(map(str, kwargs.values()))}'
+        await makedirs(out, exist_ok=True)
+        async with aiofiles.open(f'{out}/{time.time_ns()}_{name}.json', 'wb') as fp:
+            await fp.write(orjson.dumps(data))
+
     except Exception as e:
-        print(f'Failed to save data: {e}')
+        print(f'Failed to save JSON data for {kwargs}\n{e}')
 
 
 def flatten(seq: list | tuple) -> list:
@@ -212,19 +218,6 @@ def fmt_status(status: int) -> str:
     return f'[{color}{status}{RESET}]'
 
 
-def get_ids(data: list | dict, operation: tuple) -> set:
-    expr = ID_MAP[operation[-1]]
-    return {k for k in find_key(data, 'entryId') if re.search(expr, k)}
-
-
-def dump(path: str, **kwargs):
-    fname, data = list(kwargs.items())[0]
-    out = Path(path)
-    out.mkdir(exist_ok=True, parents=True)
-    (out / f'{fname}_{time.time_ns()}.json').write_bytes(
-        orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS))
-
-
 def get_code(cls, retries=5) -> str | None:
     """ Get verification code from Proton Mail inbox """
 
@@ -245,3 +238,16 @@ def get_code(cls, retries=5) -> str | None:
         t = 2 ** i + random.random()
         print(f'Retrying in {f"{t:.2f}"} seconds')
         time.sleep(t)
+
+
+# todo: to remove
+def get_ids(data: list | dict, operation: tuple) -> set:
+    expr = ID_MAP[operation[-1]]
+    return {k for k in find_key(data, 'entryId') if re.search(expr, k)}
+
+
+def dump(path: str, **kwargs):
+    fname, data = list(kwargs.items())[0]
+    out = Path(path)
+    out.mkdir(exist_ok=True, parents=True)
+    (out / f'{fname}_{time.time_ns()}.json').write_bytes(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS))

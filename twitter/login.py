@@ -2,7 +2,7 @@ import sys
 
 from httpx import Client
 
-from .constants import GREEN, YELLOW, RED, BOLD, RESET
+from .constants import YELLOW, RED, BOLD, RESET
 from .util import find_key
 
 

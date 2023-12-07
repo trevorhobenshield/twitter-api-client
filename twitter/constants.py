@@ -1,5 +1,10 @@
 from dataclasses import dataclass
 
+# todo: not accurate measure. value will decrease as new gql features/variables are required. (actual limitation is request size, i.e. new gql features an variables contribute to total request size)
+MAX_GQL_CHAR_LIMIT = 4_200
+
+MAX_ENDPOINT_LIMIT = 500  # 500/15 mins
+
 MAX_IMAGE_SIZE = 5_242_880  # ~5 MB
 MAX_GIF_SIZE = 15_728_640  # ~15 MB
 MAX_VIDEO_SIZE = 536_870_912  # ~530 MB
@@ -105,6 +110,7 @@ class Operation:
     UserMedia = {'userId': int}, 'YqiE3JL1KNgf9nSljYdxaA', 'UserMedia'
     UserTweetsAndReplies = {'userId': int}, 'RIWc55YCNyUJ-U3HHGYkdg', 'UserTweetsAndReplies'
     TweetResultByRestId = {'tweetId': int}, 'D_jNhjWZeRZT5NURzfJZSQ', 'TweetResultByRestId'
+    TweetResultsByRestIds = {'tweetIds': list[int | str]}, 'BWy5aoI-WvwbeSiHUIf2Hw', 'TweetResultsByRestIds'
     TweetDetail = {'focalTweetId': int}, 'zXaXQgfyR4GxE21uwYQSyA', 'TweetDetail'
     TweetStats = {'rest_id': int}, 'EvbTkPDT-xQCfupPu0rWMA', 'TweetStats'
     Likes = {'userId': int}, 'nXEl0lfN_XSznVMlprThgQ', 'Likes'
@@ -360,6 +366,10 @@ class Operation:
         'withMessages': True,
     }
     default_features = {
+        # new
+        'c9s_tweet_anatomy_moderator_badge_enabled': True,
+        'responsive_web_home_pinned_timelines_enabled': True,
+
         'blue_business_profile_image_shape_enabled': True,
         'creator_subscriptions_tweet_preview_api_enabled': True,
         'freedom_of_speech_not_reach_fetch_enabled': True,

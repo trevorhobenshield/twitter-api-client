@@ -215,7 +215,19 @@ account.change_password('old pwd','new pwd')
 
 #### Get all user/tweet data
 
+Two special batch queries `scraper.tweets_by_ids` and `scraper.users_by_ids` should be preferred when applicable. These endpoints are more much more efficient and have higher rate limits than their unbatched counterparts. See the table below for a comparison.
+
+| Endpoint      | Batch Size     | Rate Limit    |
+|---------------|----------------|---------------|
+| tweets_by_ids | ~220           | 500 / 15 mins |
+| tweets_by_id  | 1              | 50 / 15 mins  |
+| users_by_ids  | ~220           | 100 / 15 mins |
+| users_by_id   | 1              | 500 / 15 mins |
+
+
 ![](assets/scrape.gif)
+
+*As of Fall 2023 login by username/password is unstable. Using cookies is now recommended.*
 
 ```python
 from twitter.scraper import Scraper
@@ -236,7 +248,8 @@ scraper = Scraper(email, username, password)
 
 # user data
 users = scraper.users(['foo', 'bar', 'hello', 'world'])
-users = scraper.users_by_ids([123, 234, 345])  # batch-request
+users = scraper.users_by_ids([123, 234, 345]) # preferred
+users = scraper.users_by_id([123, 234, 345])
 tweets = scraper.tweets([123, 234, 345])
 likes = scraper.likes([123, 234, 345])
 tweets_and_replies = scraper.tweets_and_replies([123, 234, 345])
@@ -250,8 +263,9 @@ scraper.recommended_users()
 scraper.recommended_users([123])
 
 # tweet data
-tweets_by_ids = scraper.tweets_by_id([987, 876, 754])
-tweets_details = scraper.tweets_details([987, 876, 754])
+tweets = scraper.tweets_by_ids([987, 876, 754]) # preferred
+tweets = scraper.tweets_by_id([987, 876, 754])
+tweet_details = scraper.tweets_details([987, 876, 754])
 retweeters = scraper.retweeters([987, 876, 754])
 favoriters = scraper.favoriters([987, 876, 754])
 
