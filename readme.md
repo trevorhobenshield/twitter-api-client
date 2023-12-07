@@ -18,7 +18,7 @@
 ### Installation
 
 ```bash
-pip install twitter-api-client
+pip install twitter-api-client -U
 ```
 
 ### Automation
