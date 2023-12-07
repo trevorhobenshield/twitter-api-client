@@ -25,6 +25,8 @@ pip install twitter-api-client -U
 
 ![](assets/account.gif)
 
+*As of Fall 2023 login by username/password is unstable. Using cookies is now recommended.*
+
 ```python
 from twitter.account import Account
 
