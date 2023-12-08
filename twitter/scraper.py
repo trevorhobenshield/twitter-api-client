@@ -238,7 +238,7 @@ class Scraper:
         """
         return self._run(Operation.UserByRestId, user_ids, **kwargs)
 
-    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True, chunk_size: int = 8192, stream: bool = False) -> None:
+    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True, chunk_size: int = 8192, stream: bool = False, out: str = 'media') -> None:
         """
         Download media from tweets by tweet ids.
 
@@ -249,9 +249,9 @@ class Scraper:
         @params stream: flag to enable downloading raw stream
         @return: None
         """
-        out = Path('media')
+        out = Path(out)
         out.mkdir(parents=True, exist_ok=True)
-        tweets = self.tweets_by_id(ids)
+        tweets = self.tweets_by_id(ids)  # todo: switch to batch method tweets_by_ids
         urls = []
         for tweet in tweets:
             tweet_id = find_key(tweet, 'id_str')[0]
@@ -285,7 +285,7 @@ class Scraper:
                 else:
                     r = await client.get(cdn_url)
                     async with aiofiles.open(fname, 'wb') as fp:
-                        for chunk in r.iter_bytes(chunk_size):
+                        async for chunk in r.aiter_raw(chunk_size):
                             await fp.write(chunk)
 
             except Exception as e:
