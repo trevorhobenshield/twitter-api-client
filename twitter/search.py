@@ -19,18 +19,18 @@ reset = '\x1b[0m'
 colors = [f'\x1b[{i}m' for i in range(31, 37)]
 
 try:
-    import nest_asyncio
-
-    nest_asyncio.apply()
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+        nest_asyncio.apply()
 except:
     ...
 
-try:
-    import uvloop
-
-    uvloop.install()
-except:
-    ...
+if platform.system() != 'Windows':
+    try:
+        import uvloop
+        uvloop.install()
+    except ImportError as e:
+        ...
 
 
 class Search:

@@ -1,6 +1,7 @@
 import asyncio
 import logging.config
 import math
+import platform
 
 import websockets
 from httpx import AsyncClient, Limits, ReadTimeout, URL
@@ -11,18 +12,18 @@ from .login import login
 from .util import *
 
 try:
-    import nest_asyncio
-
-    nest_asyncio.apply()
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+        nest_asyncio.apply()
 except:
     ...
 
-try:
-    import uvloop
-
-    uvloop.install()
-except:
-    ...
+if platform.system() != 'Windows':
+    try:
+        import uvloop
+        uvloop.install()
+    except ImportError as e:
+        ...
 
 
 class Scraper:

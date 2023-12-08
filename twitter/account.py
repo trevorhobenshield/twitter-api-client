@@ -3,6 +3,7 @@ import hashlib
 import logging.config
 import math
 import mimetypes
+import platform
 from copy import deepcopy
 from datetime import datetime
 from string import ascii_letters
@@ -17,18 +18,18 @@ from .login import login
 from .util import *
 
 try:
-    import nest_asyncio
-
-    nest_asyncio.apply()
+    if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        import nest_asyncio
+        nest_asyncio.apply()
 except:
     ...
 
-try:
-    import uvloop
-
-    uvloop.install()
-except:
-    ...
+if platform.system() != 'Windows':
+    try:
+        import uvloop
+        uvloop.install()
+    except ImportError as e:
+        ...
 
 
 class Account:
