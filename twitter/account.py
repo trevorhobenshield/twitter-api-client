@@ -102,7 +102,8 @@ class Account:
             variables['message']['text'] = {'text': text}
         res = self.gql('POST', Operation.useSendMessageMutation, variables)
         if find_key(res, 'dm_validation_failure_type'):
-            self.logger.debug(f"{RED}Failed to send DM(s) to {receivers}{RESET}")
+            if self.debug:
+                self.logger.debug(f"{RED}Failed to send DM(s) to {receivers}{RESET}")
         return res
 
     def tweet(self, text: str, *, media: any = None, **kwargs) -> dict:
@@ -542,16 +543,19 @@ class Account:
                         _headers = {b'content-type': b'multipart/form-data; boundary=----WebKitFormBoundary' + pad}
                         r = self.session.post(url=url, headers=headers | _headers, params=params, content=data)
                     except Exception as e:
-                        self.logger.error(f'Failed to upload chunk, trying alternative method\n{e}')
+                        if self.debug:
+                            self.logger.error(f'Failed to upload chunk, trying alternative method\n{e}')
                         try:
                             files = {'media': chunk}
                             r = self.session.post(url=url, headers=headers, params=params, files=files)
                         except Exception as e:
-                            self.logger.error(f'Failed to upload chunk\n{e}')
+                            if self.debug:
+                                self.logger.error(f'Failed to upload chunk\n{e}')
                             return
 
                     if r.status_code < 200 or r.status_code > 299:
-                        self.logger.debug(f'{RED}{r.status_code} {r.text}{RESET}')
+                        if self.debug:
+                            self.logger.debug(f'{RED}{r.status_code} {r.text}{RESET}')
 
                     i += 1
                     pbar.update(fp.tell() - pbar.n)
@@ -561,7 +565,8 @@ class Account:
             params |= {'original_md5': hashlib.md5(file.read_bytes()).hexdigest()}
         r = self.session.post(url=url, headers=headers, params=params)
         if r.status_code == 400:
-            self.logger.debug(f'{RED}{r.status_code} {r.text}{RESET}')
+            if self.debug:
+                self.logger.debug(f'{RED}{r.status_code} {r.text}{RESET}')
             return
 
         # self.logger.debug(f'processing, please wait...')
@@ -569,12 +574,14 @@ class Account:
         while processing_info:
             state = processing_info['state']
             if error := processing_info.get("error"):
-                self.logger.debug(f'{RED}{error}{RESET}')
+                if self.debug:
+                    self.logger.debug(f'{RED}{error}{RESET}')
                 return
             if state == MEDIA_UPLOAD_SUCCEED:
                 break
             if state == MEDIA_UPLOAD_FAIL:
-                self.logger.debug(f'{RED}{r.status_code} {r.text} {RESET}')
+                if self.debug:
+                    self.logger.debug(f'{RED}{r.status_code} {r.text} {RESET}')
                 return
             check_after_secs = processing_info.get('check_after_secs', random.randint(1, 5))
             time.sleep(check_after_secs)

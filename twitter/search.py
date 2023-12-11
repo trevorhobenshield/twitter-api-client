@@ -100,17 +100,20 @@ class Search:
                 data, entries, cursor = await fn()
                 if errors := data.get('errors'):
                     for e in errors:
-                        self.logger.warning(f'{YELLOW}{e.get("message")}{RESET}')
+                        if self.debug:
+                            self.logger.warning(f'{YELLOW}{e.get("message")}{RESET}')
                         return [], [], ''
                 ids = set(find_key(data, 'entryId'))
                 if len(ids) >= 2:
                     return data, entries, cursor
             except Exception as e:
                 if i == retries:
-                    self.logger.debug(f'Max retries exceeded\n{e}')
+                    if self.debug:
+                        self.logger.debug(f'Max retries exceeded\n{e}')
                     return
                 t = 2 ** i + random.random()
-                self.logger.debug(f'Retrying in {f"{t:.2f}"} seconds\t\t{e}')
+                if self.debug:
+                    self.logger.debug(f'Retrying in {f"{t:.2f}"} seconds\t\t{e}')
                 await asyncio.sleep(t)
 
     def _init_logger(self, **kwargs) -> Logger:

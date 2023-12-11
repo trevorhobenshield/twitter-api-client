@@ -10,13 +10,13 @@ import orjson
 from aiofiles.os import makedirs
 from httpx import Response, Client
 
-from .constants import GREEN, MAGENTA, RED, RESET, ID_MAP, MAX_GQL_CHAR_LIMIT
+from .constants import GREEN, MAGENTA, RED, RESET, ID_MAP, MAX_GQL_CHAR_LIMIT, USER_AGENTS
 
 
 def init_session():
     client = Client(headers={
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+        'user-agent': random.choice(USER_AGENTS),
     }, follow_redirects=True)
     r = client.post('https://api.twitter.com/1.1/guest/activate.json').json()
     client.headers.update({
@@ -37,7 +37,7 @@ def batch_ids(ids: list[int | str], char_limit: int = MAX_GQL_CHAR_LIMIT) -> lis
         batch.append(x)
         length += len(x)
     res.append(batch) if batch else ...
-    print(f'Batched {sum(map(len, res))} ids into {len(res)} requests')
+    # print(f'Batched {sum(map(len, res))} ids into {len(res)} requests')
     return res
 
 
@@ -238,6 +238,24 @@ def get_code(cls, retries=5) -> str | None:
         t = 2 ** i + random.random()
         print(f'Retrying in {f"{t:.2f}"} seconds')
         time.sleep(t)
+
+
+def parse_card_media(cards):
+    res = []
+    for c in cards:
+        img = c.get('value', {}).get('image_value', {})
+        if c.get('key') == 'photo_image_full_size_original':
+            url = img.get('url')
+            res.append([url, img.get('width', 0) * img.get('height', 0)])
+    return [t[0] for t in sorted(res, key=lambda x: -x[1])]
+
+
+def set2list(d):
+    if isinstance(d, dict):
+        return {k: set2list(v) for k, v in d.items()}
+    if isinstance(d, set):
+        return list(d)
+    return d
 
 
 # todo: to remove

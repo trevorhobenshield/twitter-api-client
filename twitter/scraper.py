@@ -2,6 +2,8 @@ import asyncio
 import logging.config
 import math
 import platform
+from functools import partial
+from typing import Generator
 
 import websockets
 from httpx import AsyncClient, Limits, ReadTimeout, URL
@@ -14,6 +16,7 @@ from .util import *
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
@@ -21,6 +24,7 @@ except:
 if platform.system() != 'Windows':
     try:
         import uvloop
+
         uvloop.install()
     except ImportError as e:
         ...
@@ -239,60 +243,97 @@ class Scraper:
         """
         return self._run(Operation.UserByRestId, user_ids, **kwargs)
 
-    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True, chunk_size: int = 8192, stream: bool = False, out: str = 'media') -> None:
+    def download_media(self, ids: list[int], photos: bool = True, videos: bool = True, cards: bool = True, hq_img_variant: bool = True, video_thumb: bool = False, out: str = 'media',
+                       metadata_out: str = 'media.json', **kwargs) -> dict:
         """
-        Download media from tweets by tweet ids.
+        Download and extract media metadata from Tweets
 
-        @param ids: list of tweet ids containing media
-        @param photos: flag to include photos
-        @param videos: flag to include videos
-        @param chunk_size: chunk size for download
-        @params stream: flag to enable downloading raw stream
-        @return: None
+        @param ids: list of Tweet IDs
+        @param photos: download images
+        @param videos: download videos
+        @param cards: download cards
+        @param hq_img_variant: download highest quality image, options: {"orig", "4096x4096"}
+        @param video_thumb: download video thumbnails
+        @param out: output file for media
+        @param metadata_out: output file for media metadata
+        @return: media data
         """
-        out = Path(out)
-        out.mkdir(parents=True, exist_ok=True)
-        tweets = self.tweets_by_id(ids)  # todo: switch to batch method tweets_by_ids
-        urls = []
-        for tweet in tweets:
-            tweet_id = find_key(tweet, 'id_str')[0]
-            url = f'https://twitter.com/i/status/{tweet_id}'
-            media = [y for x in find_key(tweet, 'media') for y in x]
-            if photos:
-                photo_urls = list({u for m in media if 'ext_tw_video_thumb' not in (u := m['media_url_https'])})
-                [urls.append([url, photo]) for photo in photo_urls]
-            if videos:
-                video_urls = [x['variants'] for m in media if (x := m.get('video_info'))]
-                hq_videos = {sorted(v, key=lambda d: d.get('bitrate', 0))[-1]['url'] for v in video_urls}
-                [urls.append([url, video]) for video in hq_videos]
 
-        async def process():
-            async with AsyncClient(headers=self.session.headers, cookies=self.session.cookies) as client:
-                tasks = (download(client, x, y, stream) for x, y in urls)
-                if self.pbar:
-                    return await tqdm_asyncio.gather(*tasks, desc='Downloading media')
-                return await asyncio.gather(*tasks)
+        async def process(fns: Generator) -> list:
+            limits = {
+                'max_connections': kwargs.pop('max_connections', 1000),
+                'max_keepalive_connections': kwargs.pop('max_keepalive_connections', None),
+                'keepalive_expiry': kwargs.pop('keepalive_expiry', 5.0),
+            }
+            headers = {'user-agent': random.choice(USER_AGENTS)}
+            async with AsyncClient(limits=Limits(**limits), headers=headers, http2=True, verify=False, timeout=60, follow_redirects=True) as client:
+                return await tqdm_asyncio.gather(*(fn(client=client) for fn in fns), desc='Downloading Media')
 
-        async def download(client: AsyncClient, post_url: str, cdn_url: str, stream: bool = False) -> None:
-            try:
-                name = urlsplit(post_url).path.replace('/', '_')[1:]
+        def download(urls: list[tuple], out: str) -> Generator:
+            out = Path(out)
+            out.mkdir(parents=True, exist_ok=True)
+            chunk_size = kwargs.pop('chunk_size', None)
+
+            async def get(client: AsyncClient, url: str):
+                tid, cdn_url = url
                 ext = urlsplit(cdn_url).path.split('/')[-1]
-                fname = out / f'{name}_{ext}'
-                if stream:
-                    async with aiofiles.open(fname, 'wb') as fp:
-                        async with client.stream('GET', cdn_url) as r:
-                            async for chunk in r.aiter_raw(chunk_size):
-                                await fp.write(chunk)
-                else:
-                    r = await client.get(cdn_url)
-                    async with aiofiles.open(fname, 'wb') as fp:
+                fname = out / f'{tid}_{ext}'
+                async with aiofiles.open(fname, 'wb') as fp:
+                    async with client.stream('GET', cdn_url) as r:
                         async for chunk in r.aiter_raw(chunk_size):
                             await fp.write(chunk)
 
-            except Exception as e:
-                self.logger.error(f'[{RED}error{RESET}] Failed to download media: {post_url} {e}')
+            return (partial(get, url=u) for u in urls)
 
-        asyncio.run(process())
+        tweets = self.tweets_by_ids(ids, **kwargs)
+        media = {}
+        for data in tweets:
+            for tweet in data.get('data', {}).get('tweetResult', []):
+                if _id := tweet.get('result', {}).get('rest_id'):
+
+                    date = tweet.get('result', {}).get('legacy', {}).get('created_at', '')
+                    uid = tweet.get('result', {}).get('legacy', {}).get('user_id_str', '')
+                    media[_id] = {'date': date, 'uid': uid, 'img': set(), 'video': {'thumb': set(), 'video_info': {}, 'hq': set()}, 'card': []}
+
+                    for _media in (y for x in find_key(tweet['result'], 'media') for y in x if isinstance(x, list)):
+                        if videos:
+                            if vinfo := _media.get('video_info'):
+                                hq = sorted(vinfo.get('variants', []), key=lambda x: -x.get('bitrate', 0))[0]['url']
+                                media[_id]['video']['video_info'] |= vinfo
+                                media[_id]['video']['hq'].add(hq)
+
+                        if video_thumb:
+                            if url := _media.get('media_url_https', ''):
+                                media[_id]['video']['thumb'].add(url)
+
+                        if photos:
+                            if (url := _media.get('media_url_https', '')) and "_video_thumb" not in url:
+                                if hq_img_variant:
+                                    url = f'{url}?name=orig'
+                                media[_id]['img'].add(url)
+                    if cards:
+                        if card := tweet.get('result', {}).get('card', {}).get('legacy', {}):
+                            media[_id]['card'].extend(card.get('binding_values', []))
+        if metadata_out:
+            media = set2list(media)
+            metadata_out = Path(metadata_out)
+            metadata_out.parent.mkdir(parents=True, exist_ok=True)  # if user specifies subdir
+            metadata_out.write_bytes(orjson.dumps(media))
+
+        res = []
+        for k, v in media.items():
+            tmp = []
+            if photos:
+                tmp.extend(v['img'])
+            if videos:
+                tmp.extend(v['video']['hq'])
+            if video_thumb:
+                tmp.extend(v['video']['thumb'])
+            if cards:
+                tmp.extend(parse_card_media(v['card']))
+            res.extend([(k, m) for m in tmp])
+        asyncio.run(process(download(res, out)))
+        return media
 
     def trends(self, utc: list[str] = None) -> dict:
         """
@@ -309,7 +350,8 @@ class Scraper:
                 trends = find_key(r.json(), 'item')
                 return {t['content']['trend']['name']: t for t in trends}
             except Exception as e:
-                self.logger.error(f'[{RED}error{RESET}] Failed to get trends\n{e}')
+                if self.debug:
+                    self.logger.error(f'[{RED}error{RESET}] Failed to get trends\n{e}')
 
         async def process():
             url = set_qs('https://twitter.com/i/api/2/guide.json', trending_params)
@@ -393,7 +435,8 @@ class Scraper:
             r = await client.get(url, params=params)
             return r.json()
         except Exception as e:
-            self.logger.error(f'stream not available for playback\n{e}')
+            if self.debug:
+                self.logger.error(f'stream not available for playback\n{e}')
 
     async def _init_chat(self, client: AsyncClient, chat_token: str) -> dict:
         payload = {'chat_token': chat_token}  # stream['chatToken']
@@ -422,7 +465,8 @@ class Scraper:
                 data = r.json()
                 res.append(data)
             except ReadTimeout as e:
-                self.logger.debug(f'End of chat data\n{e}')
+                if self.debug:
+                    self.logger.debug(f'End of chat data\n{e}')
                 break
 
         parsed = []
@@ -433,7 +477,8 @@ class Scraper:
                     msg['payload'] = orjson.loads(msg.get('payload', '{}'))
                     msg['payload']['body'] = orjson.loads(msg['payload'].get('body'))
                 except Exception as e:
-                    self.logger.error(f'Failed to parse chat message\n{e}')
+                    if self.debug:
+                        self.logger.error(f'Failed to parse chat message\n{e}')
             parsed.extend(messages)
         return parsed
 
@@ -451,7 +496,8 @@ class Scraper:
             url = '/'.join(location.split('/')[:-1])
             return [f'{url}/{chunk}' for chunk in chunks]
         except Exception as e:
-            self.logger.error(f'Failed to get chunks\n{e}')
+            if self.debug:
+                self.logger.error(f'Failed to get chunks\n{e}')
 
     def _get_chat_data(self, keys: list[dict]) -> list[dict]:
         async def get(c: AsyncClient, key: dict) -> dict:
@@ -527,7 +573,8 @@ class Scraper:
         keys, qid, name = operation
         # stay within rate-limits
         if (l := len(queries)) > MAX_ENDPOINT_LIMIT:
-            self.logger.warning(f'Got {l} queries, truncating to first 500.')
+            if self.debug:
+                self.logger.warning(f'Got {l} queries, truncating to first 500.')
             queries = list(queries)[:MAX_ENDPOINT_LIMIT]
 
         if all(isinstance(q, dict) for q in queries):
@@ -578,10 +625,12 @@ class Scraper:
                 initial_data = r.json()
                 res = [r]
                 # ids = get_ids(initial_data, operation) # todo
-                ids = set(find_key(initial_data, 'rest_id'))
+                ids = {x for x in find_key(initial_data, 'rest_id') if x[0].isnumeric()}
+
                 cursor = get_cursor(initial_data)
             except Exception as e:
-                self.logger.error('Failed to get initial pagination data', e)
+                if self.debug:
+                    self.logger.error('Failed to get initial pagination data', e)
                 return
         while (dups < DUP_LIMIT) and cursor:
             prev_len = len(ids)
@@ -591,11 +640,13 @@ class Scraper:
                 r = await self._query(client, operation, cursor=cursor, **kwargs)
                 data = r.json()
             except Exception as e:
-                self.logger.error(f'Failed to get pagination data\n{e}')
+                if self.debug:
+                    self.logger.error(f'Failed to get pagination data\n{e}')
                 return
             cursor = get_cursor(data)
             # ids |= get_ids(data, operation) # todo
-            ids |= set(find_key(data, 'rest_id'))
+            ids |= {x for x in find_key(data, 'rest_id') if x[0].isnumeric()}
+
             if self.debug:
                 self.logger.debug(f'Unique results: {len(ids)}\tcursor: {cursor}')
             if prev_len == len(ids):
@@ -732,7 +783,8 @@ class Scraper:
                 return {"url": data['source']['location'], "room": room}
             except Exception as e:
                 room = space['data']['audioSpace']['metadata']['rest_id']
-                self.logger.error(f'Failed to get stream info for https://twitter.com/i/spaces/{room}\n{e}')
+                if self.debug:
+                    self.logger.error(f'Failed to get stream info for https://twitter.com/i/spaces/{room}\n{e}')
 
         async def get_chunks(client: AsyncClient, url: str) -> list[str]:
             try:
@@ -745,7 +797,8 @@ class Scraper:
                 base = '/'.join(str(url).split('/')[:-1])
                 return [f'{base}/{c}' for c in parse_chunks(r.text)]
             except Exception as e:
-                self.logger.error(f'Failed to get chunks\n{e}')
+                if self.debug:
+                    self.logger.error(f'Failed to get chunks\n{e}')
 
         async def poll_space(client: AsyncClient, space: dict) -> dict | None:
             curr = 0
@@ -766,11 +819,13 @@ class Scraper:
                     all_chunks |= new_chunks
                     for c in sort_chunks(new_chunks):
                         try:
-                            self.logger.debug(f"write: chunk [{chunk_idx(c)}]\t{c}")
+                            if self.debug:
+                                self.logger.debug(f"write: chunk [{chunk_idx(c)}]\t{c}")
                             r = await client.get(c)
                             await fp.write(r.content)
                         except Exception as e:
-                            self.logger.error(f'Failed to write chunk {c}\n{e}')
+                            if self.debug:
+                                self.logger.error(f'Failed to write chunk {c}\n{e}')
                     curr = 0 if new_chunks else curr + 1
                     # wait for new chunks. dynamic playlist is updated every 2-3 seconds
                     await asyncio.sleep(random.random() + 1.5)

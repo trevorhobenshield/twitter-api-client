@@ -1,10 +1,10 @@
+import random
 import sys
 
 from httpx import Client
 
-from .constants import YELLOW, RED, BOLD, RESET
+from .constants import YELLOW, RED, BOLD, RESET, USER_AGENTS
 from .util import find_key
-
 
 def update_token(client: Client, key: str, url: str, **kwargs) -> Client:
     caller_name = sys._getframe(1).f_code.co_name
@@ -158,7 +158,7 @@ def login(email: str, username: str, password: str, **kwargs) -> Client:
         headers={
             'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
             'content-type': 'application/json',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+            'user-agent': random.choice(USER_AGENTS),
             'x-twitter-active-user': 'yes',
             'x-twitter-client-language': 'en',
         },
