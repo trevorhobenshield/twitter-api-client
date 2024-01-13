@@ -10,7 +10,7 @@ import orjson
 from aiofiles.os import makedirs
 from httpx import Response, Client
 
-from .constants import GREEN, MAGENTA, RED, RESET, ID_MAP, MAX_GQL_CHAR_LIMIT, USER_AGENTS
+from .constants import GREEN, MAGENTA, RED, RESET, MAX_GQL_CHAR_LIMIT, USER_AGENTS
 
 
 def init_session():
@@ -256,16 +256,3 @@ def set2list(d):
     if isinstance(d, set):
         return list(d)
     return d
-
-
-# todo: to remove
-def get_ids(data: list | dict, operation: tuple) -> set:
-    expr = ID_MAP[operation[-1]]
-    return {k for k in find_key(data, 'entryId') if re.search(expr, k)}
-
-
-def dump(path: str, **kwargs):
-    fname, data = list(kwargs.items())[0]
-    out = Path(path)
-    out.mkdir(exist_ok=True, parents=True)
-    (out / f'{fname}_{time.time_ns()}.json').write_bytes(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS))

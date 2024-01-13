@@ -56,19 +56,6 @@ LOG_CONFIG = {
     }
 }
 
-ID_MAP = {
-    'Followers': '^user-\d+$',
-    'Following': '^user-\d+$',
-    'UserTweets': '^tweet-\d+$',
-    'Likes': '^tweet-\d+$',
-    'UserMedia': '^tweet-\d+$',
-    'TweetResultByRestId': '^tweet-\d+$',
-    'TweetsAndReplies': '^profile-conversation-\d+-tweet-\d+$',
-    'TweetDetail': '^conversationthread-\d+-tweet-\d+$',  # if another key after tweet-\d+, it's an ad
-    'Retweeters': '^user-\d+$',
-    'Favoriters': '^user-\d+$'
-}
-
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.3',
@@ -80,6 +67,7 @@ USER_AGENTS = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/116.0',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5.1 Safari/605.1.15',
 ]
+
 
 @dataclass
 class SearchCategory:
