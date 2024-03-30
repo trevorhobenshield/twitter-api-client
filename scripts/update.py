@@ -8,6 +8,7 @@ PATH_OPS = Path('ops.json')
 PATH_MAIN = Path('main.js')
 
 
+
 def _get_ops(client: Client) -> None:
     r1 = client.get('https://twitter.com')
     m = re.findall('href="(https\:\/\/abs\.twimg\.com\/responsive-web\/client-web\/main\.\w+\.js)"', r1.text)
