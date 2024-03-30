@@ -2,6 +2,7 @@ import asyncio
 import logging.config
 import math
 import platform
+import sys
 from functools import partial
 from typing import Generator
 
@@ -39,6 +40,7 @@ class Scraper:
         self.guest = False
         self.logger = self._init_logger(**kwargs)
         self.session = self._validate_session(email, username, password, session, **kwargs)
+        self.rate_limits = {}
 
     def users(self, screen_names: list[str], **kwargs) -> list[dict]:
         """
@@ -594,6 +596,13 @@ class Scraper:
             'features': Operation.default_features,
         }
         r = await client.get(f'https://twitter.com/i/api/graphql/{qid}/{name}', params=build_params(params))
+
+        try:
+            fn_name = sys._getframe(9).f_code.co_name
+            self.rate_limits[fn_name] = {'_endpoint': name} | {k: int(v) for k, v in r.headers.items() if 'rate-limit' in k}
+        except Exception as e:
+            self.logger.debug(f'{e}')
+
         if self.debug:
             log(self.logger, self.debug, r)
         if self.save:
@@ -894,3 +903,6 @@ class Scraper:
         """ Save cookies to file """
         cookies = self.session.cookies
         Path(f'{fname or cookies.get("username")}.cookies').write_bytes(orjson.dumps(dict(cookies)))
+
+    def _v1_rate_limits(self):
+        return self.session.get('https://api.twitter.com/1.1/application/rate_limit_status.json').json()
