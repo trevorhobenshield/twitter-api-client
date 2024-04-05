@@ -9,8 +9,9 @@ import aiofiles
 import orjson
 from aiofiles.os import makedirs
 from httpx import Response, Client
+from textwrap import dedent
 
-from .constants import GREEN, MAGENTA, RED, RESET, MAX_GQL_CHAR_LIMIT, USER_AGENTS
+from .constants import GREEN, MAGENTA, RED, RESET, MAX_GQL_CHAR_LIMIT, USER_AGENTS, ORANGE
 
 
 def init_session():
@@ -88,6 +89,12 @@ def get_json(res: list[Response], **kwargs) -> list:
                 results.append(data)
         except Exception as e:
             print('Cannot parse JSON response', e)
+            print(dedent(f'''{ORANGE}
+            Checklist:
+                1. Log-in via the browser and confirm your account is not blocked, or has pending security challenges.
+                2. Copy the `ct0` and `auth_token` cookies from the browser.
+                3. Re-run your program using these new cookies.
+            {RESET}'''))
     return results
 
 
