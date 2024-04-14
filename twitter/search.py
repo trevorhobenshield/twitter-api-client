@@ -21,6 +21,7 @@ colors = [f'\x1b[{i}m' for i in range(31, 37)]
 try:
     if get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         import nest_asyncio
+
         nest_asyncio.apply()
 except:
     ...
@@ -28,6 +29,7 @@ except:
 if platform.system() != 'Windows':
     try:
         import uvloop
+
         uvloop.install()
     except ImportError as e:
         ...
@@ -70,12 +72,14 @@ class Search:
             data, entries, cursor = await self.backoff(lambda: self.get(client, params), **kwargs)
             res.extend(entries)
             if len(entries) <= 2 or len(total) >= limit:  # just cursors
-                self.debug and self.logger.debug(
-                    f'[{GREEN}success{RESET}] Returned {len(total)} search results for {query["query"]}')
+                if self.debug:
+                    self.logger.debug(f'[{GREEN}success{RESET}] Returned {len(total)} search results for {query["query"]}')
                 return res
             total |= set(find_key(entries, 'entryId'))
-            self.debug and self.logger.debug(f'{query["query"]}')
-            self.save and (out / f'{time.time_ns()}.json').write_bytes(orjson.dumps(entries))
+            if self.debug:
+                self.logger.debug(f'{query["query"]}')
+            if self.save:
+                (out / f'{time.time_ns()}.json').write_bytes(orjson.dumps(entries))
 
     async def get(self, client: AsyncClient, params: dict) -> tuple:
         _, qid, name = Operation.SearchTimeline

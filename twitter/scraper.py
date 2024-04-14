@@ -598,8 +598,7 @@ class Scraper:
         r = await client.get(f'https://twitter.com/i/api/graphql/{qid}/{name}', params=build_params(params))
 
         try:
-            fn_name = sys._getframe(9).f_code.co_name
-            self.rate_limits[fn_name] = {'_endpoint': name} | {k: int(v) for k, v in r.headers.items() if 'rate-limit' in k}
+            self.rate_limits[name] = {k: int(v) for k, v in r.headers.items() if 'rate-limit' in k}
         except Exception as e:
             self.logger.debug(f'{e}')
 

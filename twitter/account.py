@@ -42,6 +42,7 @@ class Account:
         self.v2_api = 'https://twitter.com/i/api/2'
         self.logger = self._init_logger(**kwargs)
         self.session = self._validate_session(email, username, password, session, **kwargs)
+        self.rate_limits = {}
 
     def gql(self, method: str, operation: tuple, variables: dict, features: dict = Operation.default_features) -> dict:
         qid, op = operation
@@ -60,6 +61,7 @@ class Account:
             headers=get_headers(self.session),
             **data
         )
+        self.rate_limits[op] = {k: int(v) for k, v in r.headers.items() if 'rate-limit' in k}
         if self.debug:
             log(self.logger, self.debug, r)
         return r.json()
