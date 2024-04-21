@@ -291,30 +291,28 @@ class Scraper:
         media = {}
         for data in tweets:
             for tweet in data.get('data', {}).get('tweetResult', []):
-                if _id := tweet.get('result', {}).get('rest_id'):
-
-                    date = tweet.get('result', {}).get('legacy', {}).get('created_at', '')
-                    uid = tweet.get('result', {}).get('legacy', {}).get('user_id_str', '')
+                # TweetWithVisibilityResults and Tweet have different structures
+                root = tweet.get('result', {}).get('tweet', {}) or tweet.get('result', {})
+                if _id := root.get('rest_id'):
+                    date = root.get('legacy', {}).get('created_at', '')
+                    uid = root.get('legacy', {}).get('user_id_str', '')
                     media[_id] = {'date': date, 'uid': uid, 'img': set(), 'video': {'thumb': set(), 'video_info': {}, 'hq': set()}, 'card': []}
-
-                    for _media in (y for x in find_key(tweet['result'], 'media') for y in x if isinstance(x, list)):
+                    for _media in (y for x in find_key(root, 'media') for y in x if isinstance(x, list)):
                         if videos:
                             if vinfo := _media.get('video_info'):
                                 hq = sorted(vinfo.get('variants', []), key=lambda x: -x.get('bitrate', 0))[0]['url']
                                 media[_id]['video']['video_info'] |= vinfo
                                 media[_id]['video']['hq'].add(hq)
-
                         if video_thumb:
                             if url := _media.get('media_url_https', ''):
                                 media[_id]['video']['thumb'].add(url)
-
                         if photos:
                             if (url := _media.get('media_url_https', '')) and "_video_thumb" not in url:
                                 if hq_img_variant:
                                     url = f'{url}?name=orig'
                                 media[_id]['img'].add(url)
                     if cards:
-                        if card := tweet.get('result', {}).get('card', {}).get('legacy', {}):
+                        if card := root.get('card', {}).get('legacy', {}):
                             media[_id]['card'].extend(card.get('binding_values', []))
         if metadata_out:
             media = set2list(media)
