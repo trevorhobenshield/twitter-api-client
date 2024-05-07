@@ -33,7 +33,6 @@ if platform.system() != 'Windows':
 
 class Scraper:
     def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, httpx_proxies: dict = {}, **kwargs):
-        self.httpx_proxies = httpx_proxies
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.pbar = kwargs.get('pbar', True)
