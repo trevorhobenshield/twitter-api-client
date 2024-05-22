@@ -32,8 +32,10 @@ if platform.system() != 'Windows':
 
 
 class Scraper:
-    def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, httpx_proxies: dict = {}, **kwargs):
+    def __init__(self, email: str = None, username: str = None, password: str = None, session: Client = None, httpx_proxies: dict = {}, user_agent: str = None, **kwargs):
         self.httpx_proxies = httpx_proxies
+        self.user_agent = user_agent
+
         self.save = kwargs.get('save', True)
         self.debug = kwargs.get('debug', 0)
         self.pbar = kwargs.get('pbar', True)
@@ -268,7 +270,11 @@ class Scraper:
                 'max_keepalive_connections': kwargs.pop('max_keepalive_connections', None),
                 'keepalive_expiry': kwargs.pop('keepalive_expiry', 5.0),
             }
-            headers = {'user-agent': random.choice(USER_AGENTS)}
+            if(self.user_agent != None):
+                headers = {'user-agent': self.user_agent}
+            else: 
+                headers = {'user-agent': random.choice(USER_AGENTS)}
+
             async with AsyncClient(proxies=self.httpx_proxies, limits=Limits(**limits), headers=headers, http2=True, verify=False, timeout=60, follow_redirects=True) as client:
                 return await tqdm_asyncio.gather(*(fn(client=client) for fn in fns), desc='Downloading Media')
 
