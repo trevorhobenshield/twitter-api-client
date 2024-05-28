@@ -27,6 +27,29 @@
 pip install twitter-api-client -U
 ```
 
+## New
+Scraper now supports httpx proxy settings 
+
+```bash
+pip install httpx[socks]
+```
+
+```python
+from twitter.scraper import Scraper
+
+#
+proxy_url="socks5://username:paswword@host:port"
+httpx_proxies={"http://": proxy_url, "https://": proxy_url}
+
+
+## resume session using cookies (JSON file) and use proxy
+scraper = Scraper(cookies='twitter.cookies', httpx_proxies=httpx_proxies)
+
+## if you want to use the scraper as regular without proxy...
+scraper = Scraper(cookies='twitter.cookies')
+```
+
+
 ### Automation
 
 ![](assets/account.gif)
