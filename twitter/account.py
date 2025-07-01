@@ -796,15 +796,35 @@ class Account:
             if _id != user_id:
                 self.gql('POST', Operation.DeleteDraftTweet, {'draft_tweet_id': _id})
 
-    def notifications(self, params: dict = None) -> dict:
+    def notifications(self, params: dict = None, type: str = "all") -> dict:
+        """
+        type: all, verified, mentions
+        """
         r = self.session.get(
-            f'{self.v2_api}/notifications/all.json',
+            f'{self.v2_api}/notifications/{type}.json',
             headers=get_headers(self.session),
             params=params or live_notification_params
         )
         if self.debug:
             log(self.logger, self.debug, r)
         return r.json()
+
+    # def get_new_user_mentions_outdated(self, x_handle: str, last_mention_id: int = 0) -> dict:
+    #     """
+    #     Monitor user mentions via 'mentions' type notifications.
+    #     """
+    #     last_id = last_mention_id
+    #     notifications = self.notifications(type='mentions')
+    #     mentions = notifications.get('globalObjects', {}).get('tweets', {})
+    #     new_mentions = []
+    #     for tweet_id, tweet in mentions.items():
+    #         if last_id and int(tweet_id) <= int(last_id):
+    #             continue
+    #         if f'@{x_handle.lower()}' in tweet.get('full_text', '').lower():
+    #             new_mentions.append((tweet_id, tweet))
+    #     # Sort by tweet_id ascending (oldest first)
+    #     new_mentions.sort(key=lambda x: int(x[0]))
+    #     return new_mentions
 
     def recommendations(self, params: dict = None) -> dict:
         r = self.session.get(

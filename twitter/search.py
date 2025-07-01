@@ -174,3 +174,34 @@ class Search:
         """ Save cookies to file """
         cookies = self.session.cookies
         Path(f'{fname or cookies.get("username")}.cookies').write_bytes(orjson.dumps(dict(cookies)))
+
+    def get_user_mentions(
+        self,
+        x_handle: str,
+        search_count: int = 20
+    ) -> list:
+        """
+        Fetches user mentions via search method.
+
+        Parameters
+        ----------
+        x_handle : :class:`str`
+            The target user handle (eg: 5mknc5, elonmusk).
+        search_count : :class:`int`, default=20
+            The number of latest tweets to retrieve in each request.
+
+        Returns
+        -------
+        A list of tweets mentions `x_handle`.
+        """
+        result = self.run(
+            limit=search_count,
+            retries=5,
+            queries=[
+                {
+                    'category': 'Latest',
+                    'query': f'@{x_handle}',
+                },
+            ]
+        )
+        return result

@@ -347,6 +347,18 @@ res = search.run(
 )
 ```
 
+#### Monitor User Mentions
+
+```python 
+from twitter.search import Search
+
+email, username, password = ..., ..., ...
+search = Search(email, username, password, save=True, debug=1)
+user_mentions = search.get_user_mentions(x_handle="MY_X_HANDLE", search_count=30)
+for tweet in user_mentions:
+  pritn(tweet)
+```
+
 **Search Operators Reference**
 
 https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/search-operators
