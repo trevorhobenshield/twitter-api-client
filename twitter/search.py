@@ -42,10 +42,11 @@ class Search:
         self.logger = self._init_logger(**kwargs)
         self.session = self._validate_session(email, username, password, session, **kwargs)
 
-    def run(self, queries: list[dict], limit: int = math.inf, out: str = 'data/search_results', **kwargs):
-        out = Path(out)
-        out.mkdir(parents=True, exist_ok=True)
-        return asyncio.run(self.process(queries, limit, out, **kwargs))
+    async def run(self, queries: list[dict], limit: int = math.inf, out: str = 'data/search_results', **kwargs):
+        if out is not None:
+          out = Path(out)
+          out.mkdir(parents=True, exist_ok=True)
+        return await self.process(queries, limit, out, **kwargs)
 
     async def process(self, queries: list[dict], limit: int, out: Path, **kwargs) -> list:
         async with AsyncClient(headers=get_headers(self.session)) as s:
