@@ -128,9 +128,15 @@ def get_headers(session, **kwargs) -> dict:
             cookies.delete('ct0', domain='.twitter.com')
     except:
         ...
+    
+    try:
+        cookie_string = '; '.join(f'{k}={v}' for k, v in cookies.items())
+    except Exception:
+        cookie_string = '; '.join(f'{c.name}={c.value}' for c in cookies.jar)
+    
     headers = kwargs | {
         'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        'cookie': '; '.join(f'{k}={v}' for k, v in cookies.items()),
+        'cookie': cookie_string,
         'referer': 'https://twitter.com/',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
         'x-csrf-token': cookies.get('ct0', ''),
